@@ -22,19 +22,6 @@
             left: 10px;
             z-index: 1000;
         }
-        #layerPanel {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 300px;
-            max-height: 80%;
-            overflow-y: auto;
-            background-color: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            display: none;
-        }
         .panel {
             position: absolute;
             background-color: white;
@@ -44,9 +31,28 @@
             display: none;
             z-index: 1000;
         }
+        #layerPanel { top: 10px; right: 10px; width: 300px; max-height: 80%; overflow-y: auto; }
         #searchPanel { top: 60px; left: 10px; }
         #addServicePanel { top: 60px; left: 10px; }
         #attributePanel { bottom: 20px; right: 20px; }
+        #basemapGalleryPanel, #printPanel { 
+            top: 10px; 
+            right: 10px; 
+            width: 280px; 
+            max-height: 400px; 
+            overflow-y: auto;
+        }
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+        }
+        .close-btn:hover {
+            color: #000;
+        }
     </style>
 </head>
 <body>
@@ -63,16 +69,19 @@
     </div>
 
     <div id="layerPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('layerPanel')">&times;</span>
         <h5>Layer List</h5>
         <ul id="layerList" class="list-group"></ul>
     </div>
 
     <div id="searchPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('searchPanel')">&times;</span>
         <input type="text" id="searchInput" placeholder="Latitude, Longitude">
         <button id="searchCoordBtn" class="btn btn-primary btn-sm">Search</button>
     </div>
 
     <div id="addServicePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('addServicePanel')">&times;</span>
         <input type="text" id="serviceUrl" placeholder="Service URL">
         <select id="serviceType">
             <option value="featureLayer">Feature Layer</option>
@@ -84,10 +93,21 @@
     </div>
 
     <div id="attributePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('attributePanel')">&times;</span>
         <h5>Attributes</h5>
         <div id="attributeContent"></div>
         <button id="editAttributeBtn" class="btn btn-primary btn-sm">Edit</button>
         <button id="deleteFeatureBtn" class="btn btn-danger btn-sm">Delete</button>
+    </div>
+
+    <div id="basemapGalleryPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('basemapGalleryPanel')">&times;</span>
+        <div id="basemapGalleryDiv"></div>
+    </div>
+
+    <div id="printPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('printPanel')">&times;</span>
+        <div id="printDiv"></div>
     </div>
 
     <script src="https://js.arcgis.com/4.22/"></script>
@@ -126,11 +146,11 @@
             // Basemap Gallery
             var basemapGallery = new BasemapGallery({
                 view: view,
-                container: document.createElement("div")
+                container: "basemapGalleryDiv"
             });
 
             document.getElementById("basemapBtn").addEventListener("click", function() {
-                togglePanel(basemapGallery);
+                togglePanel("basemapGalleryPanel");
             });
 
             // Fullscreen
@@ -149,7 +169,7 @@
             view.ui.add(search, "top-right");
 
             document.getElementById("searchBtn").addEventListener("click", function() {
-                togglePanel(document.getElementById("searchPanel"));
+                togglePanel("searchPanel");
             });
 
             document.getElementById("searchCoordBtn").addEventListener("click", function() {
@@ -166,16 +186,17 @@
             // Print
             var print = new Print({
                 view: view,
+                container: "printDiv",
                 printServiceUrl: "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task"
             });
 
             document.getElementById("printBtn").addEventListener("click", function() {
-                togglePanel(print);
+                togglePanel("printPanel");
             });
 
             // Add Service
             document.getElementById("addServiceBtn").addEventListener("click", function() {
-                togglePanel(document.getElementById("addServicePanel"));
+                togglePanel("addServicePanel");
             });
 
             document.getElementById("addServiceConfirmBtn").addEventListener("click", function() {
@@ -206,7 +227,7 @@
 
             // Layer List
             document.getElementById("layerListBtn").addEventListener("click", function() {
-                togglePanel(document.getElementById("layerPanel"));
+                togglePanel("layerPanel");
                 updateLayerList();
             });
 
@@ -355,14 +376,25 @@
                     } else {
                         panel.style.display = "none";
                     }
+                } else if (typeof panel === "string") {
+                    var panelElement = document.getElementById(panel);
+                    if (panelElement.style.display === "none" || panelElement.style.display === "") {
+                        panelElement.style.display = "block";
+                    } else {
+                        panelElement.style.display = "none";
+                    }
                 } else {
                     if (view.ui.find(panel)) {
-                        view.ui.remove(panel)
-
+                        view.ui.remove(panel);
                     } else {
                         view.ui.add(panel, "top-right");
                     }
                 }
+            }
+
+            // Close panel function
+            window.closePanel = function(panelId) {
+                document.getElementById(panelId).style.display = "none";
             }
 
             // Initialize UI
@@ -372,4 +404,4 @@
         });
     </script>
 </body>
-</html>                       
+</html>                
