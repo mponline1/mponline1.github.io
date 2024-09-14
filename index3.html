@@ -31,7 +31,13 @@
             display: none;
             z-index: 1000;
         }
-        #layerPanel { top: 10px; right: 10px; width: 300px; max-height: 80%; overflow-y: auto; }
+        #layerPanel { 
+            top: 10px; 
+            right: 10px; 
+            width: 300px; 
+            max-height: 80%; 
+            overflow-y: auto; 
+        }
         #searchPanel { top: 60px; left: 10px; }
         #addServicePanel { top: 60px; left: 10px; }
         #attributePanel { bottom: 20px; right: 20px; }
@@ -52,6 +58,16 @@
         }
         .close-btn:hover {
             color: #000;
+        }
+        .layer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .layer-controls {
+            display: flex;
+            gap: 5px;
         }
     </style>
 </head>
@@ -110,9 +126,15 @@
         <div id="printDiv"></div>
     </div>
 
+    <div id="attributeTablePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('attributeTablePanel')">&times;</span>
+        <h5>Attribute Table</h5>
+        <div id="attributeTableContent"></div>
+    </div>
+
     <script src="https://js.arcgis.com/4.22/"></script>
     <script>
-        require([
+          require([
             "esri/Map",
             "esri/views/MapView",
             "esri/widgets/BasemapGallery",
@@ -179,7 +201,7 @@
                         latitude: parseFloat(coords[0]),
                         longitude: parseFloat(coords[1])
                     });
-                    view.goTo({target: point, zoom: 12});
+                    view.goTo({target: point, zoom: 15});
                 }
             });
 
@@ -235,22 +257,89 @@
                 var layerList = document.getElementById("layerList");
                 layerList.innerHTML = "";
                 map.layers.forEach(function(layer, index) {
-                    var li = document.createElement("li");
-                    li.className = "list-group-item";
-                    li.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-center">
+                    if (layer !== graphicsLayer) {
+                        var li = document.createElement("li");
+                        li.className = "list-group-item layer-item";
+                        li.innerHTML = `
                             <span>${layer.title || "Layer " + (index + 1)}</span>
-                            <div>
+                            <div class="layer-controls">
                                 <input type="range" min="0" max="1" step="0.1" value="${layer.opacity}" 
-                                    onchange="this.nextElementSibling.textContent = this.value; map.findLayerById('${layer.id}').opacity = this.value">
-                                <span>${layer.opacity}</span>
-                                <button class="btn btn-sm btn-danger" onclick="map.remove(map.findLayerById('${layer.id}'))">Remove</button>
+                                    onchange="updateLayerOpacity('${layer.id}', this.value)">
+                                <button class="btn btn-sm btn-info" onclick="openAttributeTable('${layer.id}')">Attributes</button>
+                                <button class="btn btn-sm btn-secondary" onclick="moveLayerUp('${layer.id}')">↑</button>
+                                <button class="btn btn-sm btn-secondary" onclick="moveLayerDown('${layer.id}')">↓</button>
+                                <button class="btn btn-sm btn-danger" onclick="removeLayer('${layer.id}')">Remove</button>
                             </div>
-                        </div>
-                    `;
-                    layerList.appendChild(li);
+                        `;
+                        layerList.appendChild(li);
+                    }
                 });
             }
+
+            window.updateLayerOpacity = function(layerId, opacity) {
+                var layer = map.findLayerById(layerId);
+                if (layer) {
+                    layer.opacity = parseFloat(opacity);
+                }
+            };
+
+
+            window.openAttributeTable = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                if (layer && layer.type === "feature") {
+                    layer.queryFeatures().then(function(results) {
+                        var features = results.features;
+                        var fields = layer.fields;
+                        
+                        var table = '<table class="table table-striped"><thead><tr>';
+                        fields.forEach(function(field) {
+                            table += '<th>' + field.name + '</th>';
+                        });
+                        table += '</tr></thead><tbody>';
+                        
+                        features.forEach(function(feature) {
+                            table += '<tr>';
+                            fields.forEach(function(field) {
+                                table += '<td>' + (feature.attributes[field.name] || '') + '</td>';
+                            });
+                            table += '</tr>';
+                        });
+                        
+                        table += '</tbody></table>';
+                        
+                        document.getElementById('attributeTableContent').innerHTML = table;
+                        togglePanel('attributeTablePanel');
+                    });
+                } else {
+                    alert("This layer does not support attribute table view.");
+                }
+            };
+
+            window.moveLayerUp = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                var index = map.layers.indexOf(layer);
+                if (index < map.layers.length - 1) {
+                    map.reorder(layer, index + 1);
+                    updateLayerList();
+                }
+            };
+
+            window.moveLayerDown = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                var index = map.layers.indexOf(layer);
+                if (index > 0) {
+                    map.reorder(layer, index - 1);
+                    updateLayerList();
+                }
+            };
+
+            window.removeLayer = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                if (layer) {
+                    map.remove(layer);
+                    updateLayerList();
+                }
+            };
 
             // Draw
             var sketch = new Sketch({
@@ -404,4 +493,4 @@
         });
     </script>
 </body>
-</html>                
+</html>                   
