@@ -69,6 +69,12 @@
             display: flex;
             gap: 5px;
         }
+        #locationBtn {
+            position: flex;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
@@ -83,6 +89,8 @@
         <button id="drawBtn" class="btn btn-danger">Draw</button>
         <button id="layerListBtn" class="btn btn-light">Layer List</button>
     </div>
+
+    <button id="locationBtn" class="btn btn-primary">Track Location</button>
 
     <div id="layerPanel" class="panel">
         <span class="close-btn" onclick="closePanel('layerPanel')">&times;</span>
@@ -134,7 +142,7 @@
 
     <script src="https://js.arcgis.com/4.22/"></script>
     <script>
-          require([
+        require([
             "esri/Map",
             "esri/views/MapView",
             "esri/widgets/BasemapGallery",
@@ -149,8 +157,9 @@
             "esri/Graphic",
             "esri/geometry/Point",
             "esri/geometry/Polygon",
-            "esri/geometry/support/webMercatorUtils"
-        ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, Sketch, GraphicsLayer, Graphic, Point, Polygon, webMercatorUtils) {
+            "esri/geometry/support/webMercatorUtils",
+            "esri/widgets/Track"
+        ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, Sketch, GraphicsLayer, Graphic, Point, Polygon, webMercatorUtils, Track) {
             var map = new Map({
                 basemap: "topo-vector"
             });
@@ -282,7 +291,6 @@
                     layer.opacity = parseFloat(opacity);
                 }
             };
-
 
             window.openAttributeTable = function(layerId) {
                 var layer = map.findLayerById(layerId);
@@ -486,11 +494,60 @@
                 document.getElementById(panelId).style.display = "none";
             }
 
+            // Location tracking
+            var track = new Track({
+                view: view,
+                graphic: new Graphic({
+                    symbol: {
+                        type: "simple-marker",
+                        size: "12px",
+                        color: "green",
+                        outline: {
+                            color: "#efefef",
+                            width: "1.5px"
+                        }
+                    }
+                }),
+                useHeadingEnabled: false
+            });
+
+            view.ui.add(track, "top-left");
+
+            var locationBtn = document.getElementById("locationBtn");
+            var isTracking = false;
+
+            locationBtn.addEventListener("click", function() {
+                if (!isTracking) {
+                    track.start();
+                    isTracking = true;
+                    locationBtn.textContent = "Stop Tracking";
+                    locationBtn.classList.remove("btn-primary");
+                    locationBtn.classList.add("btn-danger");
+                } else {
+                    track.stop();
+                    isTracking = false;
+                    locationBtn.textContent = "Track Location";
+                    locationBtn.classList.remove("btn-danger");
+                    locationBtn.classList.add("btn-primary");
+                }
+            });
+
+            track.on("track", function(trackEvent) {
+                var position = trackEvent.position;
+                if (position) {
+                    view.goTo({
+                        center: [position.longitude, position.latitude],
+                        zoom: 15
+                    }, { duration: 500 });
+                }
+            });
+
             // Initialize UI
             view.when(function() {
                 view.ui.add("toolPanel", "top-left");
+                view.ui.add(locationBtn, "bottom-left");
             });
         });
     </script>
 </body>
-</html>                   
+</html>                        
