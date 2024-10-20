@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArcGIS Map Website</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.22/esri/themes/light/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+    <style>
+        html, body, #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+        .esri-view .esri-view-surface--inset-outline:focus::after {
+            outline: none !important;
+        }
+        #toolPanel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+        }
+        .panel {
+            position: absolute;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 1000;
+        }
+        #layerPanel { 
+            top: 10px; 
+            right: 10px; 
+            width: 300px; 
+            max-height: 80%; 
+            overflow-y: auto; 
+        }
+        #searchPanel { top: 60px; left: 10px; }
+        #addServicePanel { top: 60px; left: 10px; }
+        #attributePanel { bottom: 20px; right: 20px; }
+        #basemapGalleryPanel, #printPanel { 
+            top: 10px; 
+            right: 10px; 
+            width: 280px; 
+            max-height: 400px; 
+            overflow-y: auto;
+        }
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+        }
+        .close-btn:hover {
+            color: #000;
+        }
+        .layer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .layer-controls {
+            display: flex;
+            gap: 5px;
+        }
+        #locationBtn {
+            position: flex;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewDiv"></div>
+
+    <div id="toolPanel" class="btn-group">
+        <button id="basemapBtn" class="btn btn-primary">Basemap</button>
+        <button id="fullscreenBtn" class="btn btn-secondary">Fullscreen</button>
+        <button id="searchBtn" class="btn btn-info">Search</button>
+        <button id="printBtn" class="btn btn-success">Print</button>
+        <button id="addServiceBtn" class="btn btn-warning">Add Service</button>
+        <button id="drawBtn" class="btn btn-danger">Draw</button>
+        <button id="layerListBtn" class="btn btn-light">Layer List</button>
+    </div>
+
+    <button id="locationBtn" class="btn btn-primary">Track Location</button>
+
+    <div id="layerPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('layerPanel')">&times;</span>
+        <h5>Layer List</h5>
+        <ul id="layerList" class="list-group"></ul>
+    </div>
+
+    <div id="searchPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('searchPanel')">&times;</span>
+        <input type="text" id="searchInput" placeholder="Latitude, Longitude">
+        <button id="searchCoordBtn" class="btn btn-primary btn-sm">Search</button>
+    </div>
+
+    <div id="addServicePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('addServicePanel')">&times;</span>
+        <input type="text" id="serviceUrl" placeholder="Service URL">
+        <select id="serviceType">
+            <option value="featureLayer">Feature Layer</option>
+            <option value="mapImageLayer">Map Image Layer</option>
+            <option value="wmsLayer">WMS Layer</option>
+            <option value="tileLayer">Tile Layer</option>
+        </select>
+        <button id="addServiceConfirmBtn" class="btn btn-primary btn-sm">Add Service</button>
+    </div>
+
+    <div id="attributePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('attributePanel')">&times;</span>
+        <h5>Attributes</h5>
+        <div id="attributeContent"></div>
+        <button id="editAttributeBtn" class="btn btn-primary btn-sm">Edit</button>
+        <button id="deleteFeatureBtn" class="btn btn-danger btn-sm">Delete</button>
+    </div>
+
+    <div id="basemapGalleryPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('basemapGalleryPanel')">&times;</span>
+        <div id="basemapGalleryDiv"></div>
+    </div>
+
+    <div id="printPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('printPanel')">&times;</span>
+        <div id="printDiv"></div>
+    </div>
+
+    <div id="attributeTablePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('attributeTablePanel')">&times;</span>
+        <h5>Attribute Table</h5>
+        <div id="attributeTableContent"></div>
+    </div>
+
+    <script src="https://js.arcgis.com/4.22/"></script>
+    <script>
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/widgets/BasemapGallery",
+            "esri/widgets/Search",
+            "esri/widgets/Print",
+            "esri/layers/FeatureLayer",
+            "esri/layers/MapImageLayer",
+            "esri/layers/WMSLayer",
+            "esri/layers/TileLayer",
+            "esri/widgets/Sketch",
+            "esri/layers/GraphicsLayer",
+            "esri/Graphic",
+            "esri/geometry/Point",
+            "esri/geometry/Polygon",
+            "esri/geometry/support/webMercatorUtils",
+            "esri/widgets/Track"
+        ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, Sketch, GraphicsLayer, Graphic, Point, Polygon, webMercatorUtils, Track) {
+            var map = new Map({
+                basemap: "topo-vector"
+            });
+
+            var view = new MapView({
+                container: "viewDiv",
+                map: map,
+                center: [100.5, 13.7],
+                zoom: 5
+            });
+
+            var graphicsLayer = new GraphicsLayer();
+            map.add(graphicsLayer);
+
+            // Basemap Gallery
+            var basemapGallery = new BasemapGallery({
+                view: view,
+                container: "basemapGalleryDiv"
+            });
+
+            document.getElementById("basemapBtn").addEventListener("click", function() {
+                togglePanel("basemapGalleryPanel");
+            });
+
+            // Fullscreen
+            document.getElementById("fullscreenBtn").addEventListener("click", function() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            });
+
+            // Search
+            var search = new Search({view: view});
+            view.ui.add(search, "top-right");
+
+            document.getElementById("searchBtn").addEventListener("click", function() {
+                togglePanel("searchPanel");
+            });
+
+            document.getElementById("searchCoordBtn").addEventListener("click", function() {
+                var coords = document.getElementById("searchInput").value.split(",");
+                if (coords.length === 2) {
+                    var point = new Point({
+                        latitude: parseFloat(coords[0]),
+                        longitude: parseFloat(coords[1])
+                    });
+                    view.goTo({target: point, zoom: 15});
+                }
+            });
+
+            // Print
+            var print = new Print({
+                view: view,
+                container: "printDiv",
+                printServiceUrl: "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task"
+            });
+
+            document.getElementById("printBtn").addEventListener("click", function() {
+                togglePanel("printPanel");
+            });
+
+            // Add Service
+            document.getElementById("addServiceBtn").addEventListener("click", function() {
+                togglePanel("addServicePanel");
+            });
+
+            document.getElementById("addServiceConfirmBtn").addEventListener("click", function() {
+                var serviceUrl = document.getElementById("serviceUrl").value;
+                var serviceType = document.getElementById("serviceType").value;
+                var layer;
+
+                switch (serviceType) {
+                    case "featureLayer":
+                        layer = new FeatureLayer({url: serviceUrl});
+                        break;
+                    case "mapImageLayer":
+                        layer = new MapImageLayer({url: serviceUrl});
+                        break;
+                    case "wmsLayer":
+                        layer = new WMSLayer({url: serviceUrl});
+                        break;
+                    case "tileLayer":
+                        layer = new TileLayer({url: serviceUrl});
+                        break;
+                }
+
+                if (layer) {
+                    map.add(layer);
+                    updateLayerList();
+                }
+            });
+
+            // Layer List
+            document.getElementById("layerListBtn").addEventListener("click", function() {
+                togglePanel("layerPanel");
+                updateLayerList();
+            });
+
+            function updateLayerList() {
+                var layerList = document.getElementById("layerList");
+                layerList.innerHTML = "";
+                map.layers.forEach(function(layer, index) {
+                    if (layer !== graphicsLayer) {
+                        var li = document.createElement("li");
+                        li.className = "list-group-item layer-item";
+                        li.innerHTML = `
+                            <span>${layer.title || "Layer " + (index + 1)}</span>
+                            <div class="layer-controls">
+                                <input type="range" min="0" max="1" step="0.1" value="${layer.opacity}" 
+                                    onchange="updateLayerOpacity('${layer.id}', this.value)">
+                                <button class="btn btn-sm btn-info" onclick="openAttributeTable('${layer.id}')">Attributes</button>
+                                <button class="btn btn-sm btn-secondary" onclick="moveLayerUp('${layer.id}')">↑</button>
+                                <button class="btn btn-sm btn-secondary" onclick="moveLayerDown('${layer.id}')">↓</button>
+                                <button class="btn btn-sm btn-danger" onclick="removeLayer('${layer.id}')">Remove</button>
+                            </div>
+                        `;
+                        layerList.appendChild(li);
+                    }
+                });
+            }
+
+            window.updateLayerOpacity = function(layerId, opacity) {
+                var layer = map.findLayerById(layerId);
+                if (layer) {
+                    layer.opacity = parseFloat(opacity);
+                }
+            };
+
+            window.openAttributeTable = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                if (layer && layer.type === "feature") {
+                    layer.queryFeatures().then(function(results) {
+                        var features = results.features;
+                        var fields = layer.fields;
+                        
+                        var table = '<table class="table table-striped"><thead><tr>';
+                        fields.forEach(function(field) {
+                            table += '<th>' + field.name + '</th>';
+                        });
+                        table += '</tr></thead><tbody>';
+                        
+                        features.forEach(function(feature) {
+                            table += '<tr>';
+                            fields.forEach(function(field) {
+                                table += '<td>' + (feature.attributes[field.name] || '') + '</td>';
+                            });
+                            table += '</tr>';
+                        });
+                        
+                        table += '</tbody></table>';
+                        
+                        document.getElementById('attributeTableContent').innerHTML = table;
+                        togglePanel('attributeTablePanel');
+                    });
+                } else {
+                    alert("This layer does not support attribute table view.");
+                }
+            };
+
+            window.moveLayerUp = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                var index = map.layers.indexOf(layer);
+                if (index < map.layers.length - 1) {
+                    map.reorder(layer, index + 1);
+                    updateLayerList();
+                }
+            };
+
+            window.moveLayerDown = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                var index = map.layers.indexOf(layer);
+                if (index > 0) {
+                    map.reorder(layer, index - 1);
+                    updateLayerList();
+                }
+            };
+
+            window.removeLayer = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                if (layer) {
+                    map.remove(layer);
+                    updateLayerList();
+                }
+            };
+
+            // Draw
+            var sketch = new Sketch({
+                layer: graphicsLayer,
+                view: view,
+                creationMode: "update",
+                availableCreateTools: ["point", "polygon"]
+            });
+
+            document.getElementById("drawBtn").addEventListener("click", function() {
+                togglePanel(sketch);
+            });
+
+            sketch.on("create", function(event) {
+                if (event.state === "complete") {
+                    promptAttributes(event.graphic);
+                }
+            });
+
+            function promptAttributes(graphic) {
+                var attributes = {};
+                attributes["description"] = prompt("Enter description:");
+                graphic.attributes = attributes;
+            }
+
+            view.on("click", function(event) {
+                view.hitTest(event).then(function(response) {
+                    var graphic = response.results.filter(function(result) {
+                        return result.graphic.layer === graphicsLayer;
+                    })[0];
+                    if (graphic) {
+                        showAttributePanel(graphic.graphic);
+                    } else {
+                        hideAttributePanel();
+                    }
+                });
+            });
+
+            function showAttributePanel(graphic) {
+                var panel = document.getElementById("attributePanel");
+                var content = document.getElementById("attributeContent");
+                content.innerHTML = "";
+                for (var key in graphic.attributes) {
+                    content.innerHTML += `<p><strong>${key}:</strong> ${graphic.attributes[key]}</p>`;
+                }
+                panel.style.display = "block";
+
+                document.getElementById("editAttributeBtn").onclick = function() {
+                    editAttributes(graphic);
+                };
+
+                document.getElementById("deleteFeatureBtn").onclick = function() {
+                    deleteFeature(graphic);
+                };
+            }
+
+            function hideAttributePanel() {
+                document.getElementById("attributePanel").style.display = "none";
+            }
+
+            function editAttributes(graphic) {
+                var newAttributes = {};
+                for (var key in graphic.attributes) {
+                    var value = prompt(`Edit ${key}:`, graphic.attributes[key]);
+                    if (value !== null) {
+                        newAttributes[key] = value;
+                    }
+                }
+                graphic.attributes = newAttributes;
+                showAttributePanel(graphic);
+            }
+
+            function deleteFeature(graphic) {
+                graphicsLayer.remove(graphic);
+                hideAttributePanel();
+            }
+
+            // Export to KML
+            function exportToKML() {
+                var kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
+                graphicsLayer.graphics.forEach(function(graphic) {
+                    var geometry = graphic.geometry;
+                    var attributes = graphic.attributes;
+                    kml += '<Placemark>\n';
+                    kml += '<name>' + (attributes.description || "Untitled") + '</name>\n';
+                    kml += '<description>' + (attributes.description || "") + '</description>\n';
+                    if (geometry.type === "point") {
+                        var lonLat = webMercatorUtils.xyToLngLat(geometry.x, geometry.y);
+                        kml += '<Point>\n<coordinates>' + lonLat[0] + ',' + lonLat[1] + '</coordinates>\n</Point>\n';
+                    } else if (geometry.type === "polygon") {
+                        kml += '<Polygon>\n<outerBoundaryIs>\n<LinearRing>\n<coordinates>\n';
+                        geometry.rings[0].forEach(function(point) {
+                            var lonLat = webMercatorUtils.xyToLngLat(point[0], point[1]);
+                            kml += lonLat[0] + ',' + lonLat[1] + ' ';
+                        });
+                        kml += '\n</coordinates>\n</LinearRing>\n</outerBoundaryIs>\n</Polygon>\n';
+                    }
+                    kml += '</Placemark>\n';
+                });
+                kml += '</Document>\n</kml>';
+
+                var blob = new Blob([kml], {type: "application/vnd.google-earth.kml+xml"});
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement("a");
+                a.href = url;
+                a.download = "map_data.kml";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            var exportButton = document.createElement("button");
+            exportButton.innerHTML = "Export to KML";
+            exportButton.className = "btn btn-primary";
+            exportButton.onclick = exportToKML;
+            view.ui.add(exportButton, "bottom-left");
+
+            function togglePanel(panel) {
+                if (panel instanceof HTMLElement) {
+                    if (panel.style.display === "none" || panel.style.display === "") {
+                        panel.style.display = "block";
+                    } else {
+                        panel.style.display = "none";
+                    }
+                } else if (typeof panel === "string") {
+                    var panelElement = document.getElementById(panel);
+                    if (panelElement.style.display === "none" || panelElement.style.display === "") {
+                        panelElement.style.display = "block";
+                    } else {
+                        panelElement.style.display = "none";
+                    }
+                } else {
+                    if (view.ui.find(panel)) {
+                        view.ui.remove(panel);
+                    } else {
+                        view.ui.add(panel, "top-right");
+                    }
+                }
+            }
+
+            // Close panel function
+            window.closePanel = function(panelId) {
+                document.getElementById(panelId).style.display = "none";
+            }
+
+            // Location tracking
+            var track = new Track({
+                view: view,
+                graphic: new Graphic({
+                    symbol: {
+                        type: "simple-marker",
+                        size: "12px",
+                        color: "green",
+                        outline: {
+                            color: "#efefef",
+                            width: "1.5px"
+                        }
+                    }
+                }),
+                useHeadingEnabled: false
+            });
+
+            view.ui.add(track, "top-left");
+
+            var locationBtn = document.getElementById("locationBtn");
+            var isTracking = false;
+
+            locationBtn.addEventListener("click", function() {
+                if (!isTracking) {
+                    track.start();
+                    isTracking = true;
+                    locationBtn.textContent = "Stop Tracking";
+                    locationBtn.classList.remove("btn-primary");
+                    locationBtn.classList.add("btn-danger");
+                } else {
+                    track.stop();
+                    isTracking = false;
+                    locationBtn.textContent = "Track Location";
+                    locationBtn.classList.remove("btn-danger");
+                    locationBtn.classList.add("btn-primary");
+                }
+            });
+
+            track.on("track", function(trackEvent) {
+                var position = trackEvent.position;
+                if (position) {
+                    view.goTo({
+                        center: [position.longitude, position.latitude],
+                        zoom: 15
+                    }, { duration: 500 });
+                }
+            });
+
+            // Initialize UI
+            view.when(function() {
+                view.ui.add("toolPanel", "top-left");
+                view.ui.add(locationBtn, "bottom-left");
+            });
+        });
+    </script>
+</body>
+</html>                        
