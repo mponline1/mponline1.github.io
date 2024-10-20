@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>ArcGIS Map with GeoJSON Upload and Basemap Switcher</title>
+    <style>
+        html, body, #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+        #uploadBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 10px;
+            background-color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #basemapBtn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 10px;
+            background-color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #basemapGallery {
+            position: absolute;
+            bottom: 60px;
+            right: 20px;
+            z-index: 1000;
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .basemap-item {
+            cursor: pointer;
+            padding: 5px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+        }
+        .basemap-item:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css">
+    <script src="https://js.arcgis.com/4.28/"></script>
+</head>
+<body>
+    <div id="viewDiv"></div>
+    <input type="file" id="fileInput" style="display: none;" accept=".geojson" />
+    <button id="uploadBtn">อัพโหลด GeoJSON</button>
+    <button id="basemapBtn">เปลี่ยน Basemap</button>
+    <div id="basemapGallery"></div>
+
+    <script type="module">
+        import Map from "https://js.arcgis.com/4.28/@arcgis/core/Map.js";
+        import MapView from "https://js.arcgis.com/4.28/@arcgis/core/views/MapView.js";
+        import GeoJSONLayer from "https://js.arcgis.com/4.28/@arcgis/core/layers/GeoJSONLayer.js";
+        import Basemap from "https://js.arcgis.com/4.28/@arcgis/core/Basemap.js";
+
+        const map = new Map({
+            basemap: "topo-vector"
+        });
+
+        const view = new MapView({
+            container: "viewDiv",
+            map: map,
+            center: [100.5, 13.7], // กรุงเทพมหานคร
+            zoom: 8
+        });
+
+        let geoJSONLayer;
+
+        document.getElementById('uploadBtn').addEventListener('click', function() {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const geojsonData = e.target.result;
+                const blob = new Blob([geojsonData], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+
+                if (geoJSONLayer) {
+                    map.remove(geoJSONLayer);
+                }
+
+                geoJSONLayer = new GeoJSONLayer({
+                    url: url,
+                    renderer: {
+                        type: "simple",
+                        symbol: {
+                            type: "simple-line",
+                            color: "red",
+                            width: 2
+                        }
+                    }
+                });
+
+                map.add(geoJSONLayer);
+
+                geoJSONLayer.when(() => {
+                    view.goTo(geoJSONLayer.fullExtent);
+                    URL.revokeObjectURL(url);
+                });
+            };
+
+            reader.readAsText(file);
+        });
+
+        // Basemap switcher
+        const basemaps = [
+            { id: "topo-vector", name: "Topographic" },
+            { id: "streets-vector", name: "Streets" },
+            { id: "satellite", name: "Satellite" },
+            { id: "hybrid", name: "Hybrid" },
+            { id: "dark-gray-vector", name: "Dark Gray" },
+            { id: "gray-vector", name: "Light Gray" },
+            { id: "oceans", name: "Oceans" },
+            { id: "national-geographic", name: "National Geographic" }
+        ];
+
+        const basemapGallery = document.getElementById('basemapGallery');
+        basemaps.forEach(basemap => {
+            const div = document.createElement('div');
+            div.className = 'basemap-item';
+            div.textContent = basemap.name;
+            div.onclick = () => {
+                map.basemap = basemap.id;
+                basemapGallery.style.display = 'none';
+            };
+            basemapGallery.appendChild(div);
+        });
+
+        document.getElementById('basemapBtn').addEventListener('click', function() {
+            basemapGallery.style.display = basemapGallery.style.display === 'none' ? 'block' : 'none';
+        });
+    </script>
+</body>
+</html>
