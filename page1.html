@@ -156,10 +156,9 @@
             "esri/layers/GraphicsLayer",
             "esri/Graphic",
             "esri/geometry/Point",
-            "esri/geometry/Polygon",
             "esri/geometry/support/webMercatorUtils",
             "esri/widgets/Track"
-        ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, Sketch, GraphicsLayer, Graphic, Point, Polygon, webMercatorUtils, Track) {
+        ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, Sketch, GraphicsLayer, Graphic, Point, webMercatorUtils, Track) {
             var map = new Map({
                 basemap: "topo-vector"
             });
@@ -173,6 +172,9 @@
 
             var graphicsLayer = new GraphicsLayer();
             map.add(graphicsLayer);
+
+            // Move zoom widget to bottom-right
+            view.ui.move("zoom", "bottom-right");
 
             // Basemap Gallery
             var basemapGallery = new BasemapGallery({
@@ -515,6 +517,7 @@
 
             var locationBtn = document.getElementById("locationBtn");
             var isTracking = false;
+            var hasZoomedToLocation = false;
 
             locationBtn.addEventListener("click", function() {
                 if (!isTracking) {
@@ -523,6 +526,7 @@
                     locationBtn.textContent = "Stop Tracking";
                     locationBtn.classList.remove("btn-primary");
                     locationBtn.classList.add("btn-danger");
+                    hasZoomedToLocation = false;  // Reset zoom flag
                 } else {
                     track.stop();
                     isTracking = false;
@@ -534,11 +538,12 @@
 
             track.on("track", function(trackEvent) {
                 var position = trackEvent.position;
-                if (position) {
+                if (position && !hasZoomedToLocation) {
                     view.goTo({
                         center: [position.longitude, position.latitude],
                         zoom: 15
                     }, { duration: 500 });
+                    hasZoomedToLocation = true;  // Set zoom flag after first zoom
                 }
             });
 
@@ -550,4 +555,4 @@
         });
     </script>
 </body>
-</html>                        
+</html>
