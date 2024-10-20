@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool from Mapraw</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(to right, #00c6ff, #ffeb3b);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+        }
+
+        .header h1 {
+            color: #f7d002;
+            font-size: 4rem;
+            margin-bottom: 3rem;
+            font-weight: bold;
+            text-align: left;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .grid-item {
+            background-color: white;
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .grid-item:hover {
+            transform: scale(1.05);
+        }
+
+        .grid-item img {
+            width: 130px;
+            height: 130px;
+            margin-bottom: 15px;
+        }
+
+        .grid-item p {
+            font-size: 1.5rem;
+            color: #2c66ff; /* เปลี่ยนสีข้อความเป็นสีที่ต้องการ */
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>TOOL FROM MAPRAW</h1>
+        </div>
+        <div class="grid-container">
+            <a href="page1.html" class="grid-item">
+                <img src="map online.png" alt="Map Online">
+                <p>Map Online</p>
+            </a>
+            <a href="page2.html" class="grid-item">
+                <img src="reclass.png" alt="Reclass BLDG">
+                <p>Reclass BLDG</p>
+            </a>
+            <a href="page3.html" class="grid-item">
+                <img src="cal.png" alt="Calculate Landuse">
+                <p>Calculate Landuse</p>
+            </a>
+            <a href="page4.html" class="grid-item">
+                <img src="geojson.png" alt="Test GEOJSON">
+                <p>Test GEOJSON</p>
+            </a>
+            <div class="grid-item">
+                <img src="edit.png" alt="In development">
+                <p>In development</p>
+            </div>
+            <div class="grid-item">
+                <img src="edit.png" alt="In development">
+                <p>In development</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
