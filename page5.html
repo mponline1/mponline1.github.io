@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบปรับข้อมูล PLLU </title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button-group {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #e0e0e0 !important;
+        }
+        .file-input {
+            margin-bottom: 20px;
+        }
+        .numeric-cell {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ระบบปรับข้อมูล PLLU เพื่อการประมวลผล</h1>
+        <div class="file-input">
+            <input type="file" id="fileInput" accept=".xlsx, .xls">
+        </div>
+        <div class="button-group">
+            <button id="processBtn" disabled>ประมวลผล</button>
+            <button id="exportBtn" disabled>Export to Excel</button>
+        </div>
+        <div id="tableContainer"></div>
+    </div>
+
+    <script>
+        const plUseOrder = {
+            '1600': 1, '1110': 2, '1111': 3, '1112': 4, '1113': 5,
+            '1120': 6, '1121': 7, '1122': 8, '1123': 9, '1130': 10,
+            '1131': 11, '1132': 12, '2002': 13, '2003': 14, '2004': 15,
+            '2000': 16, '6900': 17, '3200': 18, '3201': 19, '3202': 20,
+            '3400': 21, '3300': 22, '3500': 23, '3501': 24, '3502': 25,
+            '8600': 26, '8601': 27, '8602': 28, '8603': 29, '8604': 30,
+            '8700': 31, '8701': 32, '7110': 33, '7190': 34, '7350': 35,
+            '7370': 36, '7410': 37, '7180': 38, '6100': 39, '7390': 40,
+            '7380': 41, '7200': 42, '6200': 43, '6300': 44, '6700': 45
+        };
+
+        let processedData = [];
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const tableContainer = document.getElementById('tableContainer');
+
+        fileInput.addEventListener('change', function(e) {
+            processBtn.disabled = !e.target.files.length;
+        });
+
+        processBtn.addEventListener('click', processFile);
+        exportBtn.addEventListener('click', exportToExcel);
+
+        function processFile() {
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                processedData = jsonData
+                    .filter(row => row.PL_USE && plUseOrder[row.PL_USE.toString()])
+                    .sort((a, b) => {
+                        // Primary sort by PL_USE order
+                        const plUseCompare = plUseOrder[a.PL_USE.toString()] - plUseOrder[b.PL_USE.toString()];
+                        if (plUseCompare !== 0) return plUseCompare;
+                        
+                        // Secondary sort by PL_BLOCK
+                        const blockA = (a.PL_BLOCK || '').toString();
+                        const blockB = (b.PL_BLOCK || '').toString();
+                        return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
+                    })
+                    .map((row, index) => {
+                        const area = parseFloat(row.AREA || 0) || 0;
+                        return {
+                            ลำดับ: index + 1,
+                            PL_BLOCK: row.PL_BLOCK || '',
+                            PL_USE: row.PL_USE || '',
+                            AREA: area,
+                            'AREA(rai)': area / 1600
+                        };
+                    });
+
+                displayTable(processedData);
+                exportBtn.disabled = false;
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function displayTable(data) {
+            if (!data.length) {
+                tableContainer.innerHTML = '<p>ไม่พบข้อมูล</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            const headers = Object.keys(data[0]);
+            
+            // Create header row
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            // Create data rows
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    if (header === 'AREA' || header === 'AREA(rai)') {
+                        td.className = 'numeric-cell';
+                        td.textContent = row[header].toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
+                    } else {
+                        td.textContent = row[header];
+                    }
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+
+            // Create total row
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'total-row';
+            headers.forEach(header => {
+                const td = document.createElement('td');
+                if (header === 'ลำดับ') {
+                    td.textContent = 'รวม';
+                } else if (header === 'AREA' || header === 'AREA(rai)') {
+                    td.className = 'numeric-cell';
+                    const total = data.reduce((sum, row) => sum + (row[header] || 0), 0);
+                    td.textContent = total.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                } else {
+                    td.textContent = '';
+                }
+                totalRow.appendChild(td);
+            });
+            table.appendChild(totalRow);
+
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(table);
+        }
+
+        function exportToExcel() {
+            // Create a copy of processed data including the total row
+            const exportData = [...processedData];
+            const totalArea = processedData.reduce((sum, row) => sum + (row.AREA || 0), 0);
+            const totalAreaRai = processedData.reduce((sum, row) => sum + (row['AREA(rai)'] || 0), 0);
+            exportData.push({
+                ลำดับ: 'รวม',
+                PL_BLOCK: '',
+                PL_USE: '',
+                AREA: totalArea,
+                'AREA(rai)': totalAreaRai
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Processed PLLU Data");
+            XLSX.writeFile(wb, "PLLU_Processed.xlsx");
+        }
+    </script>
+</body>
+</html>
