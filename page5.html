@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -160,23 +161,22 @@
 
                 // Convert grouped data to array and sort
                 processedData = Object.values(groupedData)
-                    .sort((a, b) => {
-                        // Primary sort by PL_USE order
-                        const plUseCompare = a.order - b.order;
-                        if (plUseCompare !== 0) return plUseCompare;
-                        
-                        // Secondary sort by PL_BLOCK
-                        const blockA = (a.PL_BLOCK || '').toString();
-                        const blockB = (b.PL_BLOCK || '').toString();
-                        return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
-                    })
-                    .map((row, index) => ({
-                        ลำดับ: index + 1,
-                        PL_BLOCK: row.PL_BLOCK,
-                        PL_USE: row.PL_USE,
-                        AREA: row.AREA,
-                        'AREA(rai)': row.AREA / 1600
-                    }));
+                .sort((a, b) => {
+                    // Primary sort by PL_USE order
+                     const plUseCompare = a.order - b.order;
+                     if (plUseCompare !== 0) return plUseCompare;
+                    // Secondary sort by PL_BLOCK
+                     const blockA = (a.PL_BLOCK || '').toString();
+                     const blockB = (b.PL_BLOCK || '').toString();
+                     return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
+                })
+                .map((row, index) => ({
+                    ลำดับ: index + 1,
+                    PL_BLOCK: row.PL_BLOCK,
+                    PL_USE: row.PL_USE,
+                    AREA: row.AREA,
+                    'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2))
+                }));
 
                 displayTable(processedData);
                 exportBtn.disabled = false;
