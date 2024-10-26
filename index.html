@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,14 +18,15 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            padding: 20px;
         }
 
         .container {
             text-align: center;
-            width: 100%;
-            max-width: 1200px;
-            padding: 20px;
+            width: 95%;
+            max-width: 1600px;
+            margin: 0 auto;
         }
 
         .header h1 {
@@ -37,17 +39,26 @@
 
         .grid-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            padding: 20px;
         }
 
         .grid-item {
             background-color: white;
             border-radius: 25px;
-            padding: 40px;
+            padding: 20px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             text-align: center;
             transition: transform 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            aspect-ratio: 1;
+            position: relative;
+            min-height: 250px;
         }
 
         .grid-item:hover {
@@ -55,23 +66,57 @@
         }
 
         .grid-item img {
-            width: 150px;
-            height: 150px;
+            width: 75%;
+            height: auto;
+            object-fit: contain;
             margin-bottom: 15px;
+            flex-grow: 1;
+            padding: 10px;
         }
 
         .grid-item p {
             font-size: 1.5rem;
-            color: #2c66ff; /* เปลี่ยนสีข้อความเป็นสีที่ต้องการ */
+            color: #2c66ff;
             font-weight: bold;
+            margin-top: auto;
+            padding: 10px;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1200px) {
             .grid-container {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .grid-item img {
+                width: 70%;
             }
         }
 
+        @media (max-width: 900px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .grid-item img {
+                width: 65%;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 3rem;
+            }
+
+            .grid-item {
+                min-height: 200px;
+            }
+
+            .grid-item img {
+                width: 60%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -99,11 +144,11 @@
             <a href="page5.html" class="grid-item">
                 <img src="landuse.png" alt="PREP PLLU">
                 <p>PREP PLLU</p>
-             </a>
+            </a>
             <a href="page6.html" class="grid-item">
                 <img src="pop.png" alt="Calulate Pop">
                 <p>Calulate Pop</p>
-             </a>
+            </a>
             <div class="grid-item">
                 <img src="edit.png" alt="In development">
                 <p>In development</p>
@@ -111,7 +156,7 @@
             <div class="grid-item">
                 <img src="edit.png" alt="In development">
                 <p>In development</p>
-            </div>          
+            </div>
         </div>
     </div>
 </body>
