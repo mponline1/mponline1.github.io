@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -11,152 +10,221 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         .gradient-bg {
-            background: linear-gradient(to right, #e5e7eb, #e0f2fe);
+            background: #f8fafc;
             min-height: 100vh;
         }
-        /* ปรับสไตล์ container หลัก */
+        
         .main-container {
-            max-width: 1800px; /* เพิ่มความกว้างสูงสุด */
-            margin: 0 auto;
-            padding: 2rem;
-            height: 100vh;
             display: flex;
-            align-items: center;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
         }
-        /* ปรับสไตล์ส่วนซ้าย */
+
         .left-section {
             flex: 1;
-            padding-right: 2rem;
-            display: flex;
-            flex-direction: column;
-        }
-        /* สไตล์ container รูปภาพ */
-        .image-container {
-            flex: 1;
             position: relative;
-            width: 100%;
-            height: calc(100vh - 200px); /* ปรับความสูงให้เหมาะสม */
             overflow: hidden;
-            border-radius: 0.5rem;
+            max-width: 65%;
         }
+
         .city-image {
             width: 100%;
-            height: 100%;
+            height: 100vh;
             object-fit: cover;
             object-position: center;
         }
-        /* ปรับสไตล์ส่วนขวา */
+
         .right-section {
-            width: 40%;
-            padding-left: 2rem;
+            flex: 1;
+            max-width: 35%;
+            padding: 2rem 3rem;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
         }
-        .home-button {
-            position: fixed;
-            bottom: 2rem;
-            right: 11rem;
+
+        .title-container {
+            margin-bottom: 2rem;
+        }
+
+        .controls-container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .section-title {
+            color: #134e4a;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-button {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+            border-radius: 4px;
+            transition: all 0.3s;
+            background: #ffffff;
+            text-align: left;
+        }
+
+        .process-button {
+            width: 100%;
+            padding: 0.5rem 1rem;
             background-color: #134e4a;
             color: white;
-            padding: 1rem;
-            border-radius: 9999px;
+            border-radius: 4px;
             transition: all 0.3s;
+            border: none;
+            text-align: center;
         }
-        .landuse-button {
+
+        .file-button:hover {
+            border-color: #134e4a;
+        }
+
+        .process-button:hover {
+            background-color: #115e59;
+        }
+
+        .fixed-buttons {
             position: fixed;
             bottom: 2rem;
             right: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .home-button, .landuse-button {
             background-color: #134e4a;
             color: white;
-            padding: 1rem 2rem;
+            padding: 0.75rem;
             border-radius: 9999px;
             transition: all 0.3s;
             text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
+        .landuse-button {
+            padding: 0.75rem 1.5rem;
+            white-space: nowrap;
+        }
+
         .home-button:hover, .landuse-button:hover {
             background-color: #115e59;
             color: white;
         }
-        .file-button {
-            width: 100%;
-            max-width: 400px;
-            padding: 0.75rem 1.5rem;
-            border: 2px solid #134e4a;
-            color: #134e4a;
-            border-radius: 9999px;
-            transition: all 0.3s;
-            background: transparent;
-        }
-        .process-button {
-            width: 100%;
-            max-width: 400px;
-            padding: 0.75rem 1.5rem;
-            background-color: #134e4a;
-            color: white;
-            border-radius: 9999px;
-            transition: all 0.3s;
-            border: none;
-        }
-        .process-button:hover {
-            background-color: #115e59;
-        }
-        .file-button:hover {
-            background-color: #f0fdfa;
-        }
+
         .custom-progress {
             width: 100%;
-            max-width: 400px;
             background-color: #f0fdfa;
-            border-radius: 9999px;
-            padding: 4px;
-            border: 2px solid #134e4a;
+            border-radius: 4px;
+            padding: 2px;
+            border: 1px solid #134e4a;
         }
+
         .custom-progress-bar {
             background-color: #134e4a;
-            height: 20px;
-            border-radius: 9999px;
+            height: 16px;
+            border-radius: 2px;
             transition: width 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
         }
+
+        .manual-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #134e4a;
+            text-decoration: none;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .manual-link:hover {
+            color: #115e59;
+        }
+
+        .main-title {
+            color: #134e4a;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #1f2937;
+            font-size: 1.1rem;
+        }
+        .file-name-display {
+        font-size: 0.875rem;
+        color: #475569;
+        margin-top: 0.5rem;
+        min-height: 1.25rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .file-input-container {
+        width: 100%;
+    }
     </style>
 </head>
 <body class="gradient-bg">
     <div class="main-container">
         <!-- Left Section -->
         <div class="left-section">
-            <div class="mb-8">
-                <h1 class="text-5xl font-bold text-teal-900 mb-2">Reclass BLDG</h1>
-                <h2 class="text-3xl text-teal-800">จัดประเภทข้อมูลอาคาร</h2>
-            </div>
-            <div class="image-container">
-                <img src="city.png" alt="City skyline" class="city-image">
-            </div>
+            <img src="city.png" alt="City skyline" class="city-image">
         </div>
 
         <!-- Right Section -->
         <div class="right-section">
-            <h2 class="text-3xl mb-8 text-teal-900">นำเข้าไฟล์อาคาร</h2>
-            
-            <div class="w-full max-w-md">
-                <div class="mb-6">
-                    <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden">
-                    <button onclick="document.getElementById('excelFile').click()" class="file-button">
-                        Choose File
-                    </button>
+            <div class="title-container">
+                <h1 class="main-title">Reclass BLDG</h1>
+                <h2 class="subtitle">จัดประเภทข้อมูลอาคาร</h2>
+            </div>
+
+            <div class="controls-container">
+                <a href="page.html" class="manual-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    คู่มือการใช้งาน
+                </a>
+
+                <div class="mt-4">
+                    <div class="section-title">นำเข้าไฟล์อาคาร</div>
+                    <div class="file-input-container">
+                        <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden" onchange="updateFileName(this)">
+                        <button onclick="document.getElementById('excelFile').click()" class="file-button">
+                            Choose File
+                        </button>
+                        <div id="fileName" class="file-name-display"></div>
+                    </div>
                 </div>
-                
-                <button id="processButton" class="process-button mb-6">
+
+                <button id="processButton" class="process-button">
                     RECLASS
                 </button>
 
-                <div id="progressContainer" class="d-none mb-6">
+                <div id="progressContainer" class="d-none w-full">
                     <div class="custom-progress">
                         <div id="progressBar" class="custom-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                     </div>
                 </div>
-                
+
                 <button id="exportButton" class="process-button d-none">
                     นำออกไฟล์ Excel
                 </button>
@@ -165,18 +233,19 @@
     </div>
 
     <!-- Fixed buttons -->
-    <a href="/" class="home-button">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-    </a>
-    <a href="page3.html" class="landuse-button">
-        Landuse Calculation
-    </a>
-</body>
+    <div class="fixed-buttons">
+        <a href="index.html" class="home-button">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+        </a>
+        <a href="page3.html" class="landuse-button">
+            Landuse Calculation
+        </a>
+    </div>
 
     <script>
-    const _0x2eb3f6=_0x5e6d;(function(_0x48859a,_0x265e6a){const _0x1383b8=_0x5e6d,_0x5d2206=_0x48859a();while(!![]){try{const _0x5820d3=parseInt(_0x1383b8(0x170))/0x1+-parseInt(_0x1383b8(0x16e))/0x2*(parseInt(_0x1383b8(0x15c))/0x3)+parseInt(_0x1383b8(0x150))/0x4+-parseInt(_0x1383b8(0x15b))/0x5*(parseInt(_0x1383b8(0x152))/0x6)+parseInt(_0x1383b8(0x154))/0x7*(parseInt(_0x1383b8(0x16f))/0x8)+parseInt(_0x1383b8(0x16d))/0x9*(-parseInt(_0x1383b8(0x173))/0xa)+parseInt(_0x1383b8(0x166))/0xb;if(_0x5820d3===_0x265e6a)break;else _0x5d2206['push'](_0x5d2206['shift']());}catch(_0x4984bc){_0x5d2206['push'](_0x5d2206['shift']());}}}(_0x361b,0x5e7dd));const reuse2Data={'1000':'10','1100':'10','1101':'10','1102':'10','1103':'10','1121':'10','1122':'10','1123':'10','1131':'10','1132':'10','1200':'10','1300':'10','1310':'10','1320':'10','1330':'10','1340':'10','1350':'10','1800':'90','2000':'20','2100':'20','2200':'20','2210':'20','2220':'20','2230':'20','2231':'20','2232':'20','2233':'20','2234':'20','2240':'20','2241':'20','2250':'20','2251':'20','2260':'20','2270':'20','2280':'20','2300':'20','2301':'20','2302':'20','2400':'20','2410':'20','2420':'20','2480':'20','2500':'20','2800':'20','3000':'30','3100':'30','3110':'30','3120':'30','3300':'33','3310':'33','3311':'33','3321':'33','3322':'33','3800':'30','4100':'41','4110':'41','4120':'41','4121':'41','4122':'41','4123':'41','4180':'41','4200':'30','4300':'30','5000':'90','5130':'90','5140':'90','5150':'90','5160':'90','5180':'90','5200':'90','5210':'90','5220':'90','5230':'90','5300':'90','5310':'90','5320':'90','5330':'90','5400':'90','5410':'90','5420':'90','5430':'90','5440':'90','5500':'90','5510':'90','5520':'90','5800':'90','6000':'90','6100':'90','6105':'90','6110':'90','6120':'90','6130':'90','6140':'90','6141':'90','6142':'90','6143':'90','6150':'90','6160':'90','6180':'90','6200':'90','6210':'90','6220':'90','6230':'90','6240':'90','6250':'90','6260':'90','6270':'90','6280':'90','6300':'90','6310':'90','6320':'90','6330':'90','6340':'90','6350':'90','6360':'90','6370':'90','6380':'90','6381':'90','6382':'90','6383':'90','6400':'90','6500':'90','6510':'90','6530':'90','6580':'90','6600':'90','6610':'90','6620':'90','6630':'90','6640':'90','6650':'90','6660':'90','6800':'90','6830':'90','6831':'90','7000':'90','7200':'90','7210':'90','7220':'90','7300':'90','7310':'90','7320':'90','7321':'90','7322':'90','7323':'90','7324':'90','7330':'90','7380':'90','8000':'80','8170':'80','8180':'80','8190':'80','8310':'80','8500':'80','9991':'90','9993':'90','9998':'90','9999':'90'};let processedData=[];function _0x5e6d(_0x1239c4,_0x14e100){const _0x361b15=_0x361b();return _0x5e6d=function(_0x5e6d76,_0x3c4062){_0x5e6d76=_0x5e6d76-0x14f;let _0x531da6=_0x361b15[_0x5e6d76];return _0x531da6;},_0x5e6d(_0x1239c4,_0x14e100);}document['getElementById']('processButton')[_0x2eb3f6(0x177)](_0x2eb3f6(0x15d),processExcel),document['getElementById'](_0x2eb3f6(0x155))[_0x2eb3f6(0x177)](_0x2eb3f6(0x15d),exportToExcel);function processExcel(){const _0x3e3696=_0x2eb3f6,_0x598415=document[_0x3e3696(0x178)](_0x3e3696(0x16a)),_0x22c02b=_0x598415['files'][0x0];if(!_0x22c02b){alert(_0x3e3696(0x159));return;}const _0x7a42c4=new FileReader();_0x7a42c4[_0x3e3696(0x162)]=function(_0x28e55d){const _0x5b9b8e=_0x3e3696,_0x26373d=new Uint8Array(_0x28e55d['target'][_0x5b9b8e(0x15e)]),_0x26e2ce=XLSX[_0x5b9b8e(0x158)](_0x26373d,{'type':_0x5b9b8e(0x169)}),_0x568690=_0x26e2ce['SheetNames'][0x0],_0xe52d6a=_0x26e2ce[_0x5b9b8e(0x164)][_0x568690],_0x408f47=XLSX['utils'][_0x5b9b8e(0x15a)](_0xe52d6a);processData(_0x408f47);},_0x7a42c4[_0x3e3696(0x172)](_0x22c02b);}function processData(_0x1d370a){const _0x1c3c37=_0x2eb3f6,_0x2b97ed=document[_0x1c3c37(0x178)]('progressBar'),_0x129052=document[_0x1c3c37(0x178)]('progressContainer');_0x129052[_0x1c3c37(0x171)][_0x1c3c37(0x176)]('d-none'),processedData=_0x1d370a['map']((_0x7c62a4,_0x5a7ea1)=>{const _0x7fed30=_0x1c3c37,_0x565907=Math[_0x7fed30(0x179)]((_0x5a7ea1+0x1)/_0x1d370a[_0x7fed30(0x16b)]*0x64);_0x2b97ed[_0x7fed30(0x16c)][_0x7fed30(0x167)]=_0x565907+'%',_0x2b97ed['setAttribute'](_0x7fed30(0x160),_0x565907),_0x2b97ed[_0x7fed30(0x153)]=_0x565907+'%';const _0x1f5137={..._0x7c62a4};return _0x1f5137[_0x7fed30(0x163)]=_0x7c62a4[_0x7fed30(0x175)]*_0x7c62a4[_0x7fed30(0x161)],_0x1f5137['Re_BL_CODE']=reuse2Data[_0x7c62a4[_0x7fed30(0x168)]]||'',_0x1f5137[_0x7fed30(0x156)]=determineCode(_0x1f5137),_0x1f5137;}),document[_0x1c3c37(0x178)](_0x1c3c37(0x155))[_0x1c3c37(0x171)][_0x1c3c37(0x176)]('d-none');}function determineCode(_0x2286c1){const _0x4867b8=_0x2eb3f6,{Re_BL_CODE:_0x2921c2,BL_TYPE:_0x8af040,BL_AREA:_0x1314ce,BL_NSTOREY:_0x348cbe}=_0x2286c1,_0x592af2=_0x2286c1[_0x4867b8(0x163)];if(_0x592af2>=0x7d0){if(_0x2921c2==='10'&&_0x1314ce>=0x65&&_0x1314ce<=0x190)return 0x4;if(_0x2921c2==='10'&&_0x1314ce>=0x191)return 0x5;if(_0x2921c2==='20'&&_0x1314ce>=0x65&&_0x1314ce<=0x190)return 0x2;if(_0x2921c2==='20'&&_0x1314ce>=0x191)return 0x3;if(_0x2921c2==='41'&&_0x1314ce>=0x65&&_0x1314ce<=0x190)return 0x2;if(_0x2921c2==='41'&&_0x1314ce>=0x191)return 0x3;}if(_0x592af2>=0x3e8&&_0x348cbe>=0x5){if(_0x2921c2==='10'&&_0x1314ce>=0x65&&_0x1314ce<=0x190)return 0x4;if(_0x2921c2==='10'&&_0x1314ce>=0x191)return 0x5;if(_0x2921c2==='20'&&_0x1314ce>=0x65&&_0x1314ce<=0x190)return 0x2;if(_0x2921c2==='20'&&_0x1314ce>=0x191)return 0x3;if(_0x2921c2==='41'&&_0x1314ce>=0x65&&_0x1314ce<=0x190)return 0x2;if(_0x2921c2==='41'&&_0x1314ce>=0x191)return 0x3;}if(_0x348cbe>=0x8){if(_0x2921c2==='10'&&_0x1314ce>=0x65&&_0x1314ce<=0x190)return 0x4;if(_0x2921c2==='10'&&_0x1314ce>=0x191)return 0x5;if(_0x2921c2==='20'&&_0x1314ce>=0x65&&_0x1314ce<=0x190)return 0x2;if(_0x2921c2==='20'&&_0x1314ce>=0x191)return 0x3;if(_0x2921c2==='41'&&_0x1314ce>=0x65&&_0x1314ce<=0x190)return 0x2;if(_0x2921c2==='41'&&_0x1314ce>=0x191)return 0x3;}if(_0x2921c2==='10'){if(_0x8af040===0x1||_0x8af040===0x2)return 0x1;if(_0x8af040===0x3||_0x8af040===0x4||_0x8af040===0x5)return 0x2;if(_0x8af040===0x6||_0x8af040===0x7||_0x8af040===0x8||_0x8af040===0x62)return 0x3;}if(_0x2921c2==='20'||_0x2921c2==='41')return 0x1;if(_0x2921c2==='30'){if(_0x1314ce<=0xc8)return 0x1;if(_0x1314ce>0xc8&&_0x1314ce<=0x1f4)return 0x2;if(_0x1314ce>0x1f4&&_0x1314ce<=0x3e8)return 0x3;if(_0x1314ce>0x3e8)return 0x4;}if(_0x2921c2==='33'){if(_0x1314ce<=0x64)return 0x1;if(_0x1314ce>0x64&&_0x1314ce<=0x1f4)return 0x2;if(_0x1314ce>0x1f4)return 0x3;}if(_0x2921c2==='80'||_0x2921c2==='90')return 0x1;return 0x0;}function _0x361b(){const _0x4353d2=['writeFile','11346oietlq','textContent','422513jzIHXL','exportButton','code','book_new','read','กรุณาเลือกไฟล์\x20Excel','sheet_to_json','915uUxYgy','1347CqdVTy','click','result','json_to_sheet','aria-valuenow','BL_NSTOREY','onload','พื้นที่ใช้สอย','Sheets','utils','3961859JsTCRr','width','BL_USE','array','excelFile','length','style','479403LvCFNf','1112CmuDWS','8uOAEfC','641448TdSFvl','classList','readAsArrayBuffer','80oSFKht','book_append_sheet','BL_AREA','remove','addEventListener','getElementById','round','processed_building_data.xlsx','1387576WMwfGh'];_0x361b=function(){return _0x4353d2;};return _0x361b();}function exportToExcel(){const _0xbdeb96=_0x2eb3f6,_0x2dc382=XLSX[_0xbdeb96(0x165)][_0xbdeb96(0x15f)](processedData),_0xbd6b01=XLSX[_0xbdeb96(0x165)][_0xbdeb96(0x157)]();XLSX['utils'][_0xbdeb96(0x174)](_0xbd6b01,_0x2dc382,'ProcessedData'),XLSX[_0xbdeb96(0x151)](_0xbd6b01,_0xbdeb96(0x14f));}
+const _0x1a9db1=_0x3c55;function _0x3c55(_0x45786f,_0x158489){const _0x489d7a=_0x489d();return _0x3c55=function(_0x3c55f7,_0x599801){_0x3c55f7=_0x3c55f7-0x14f;let _0x5b8721=_0x489d7a[_0x3c55f7];return _0x5b8721;},_0x3c55(_0x45786f,_0x158489);}(function(_0x3c7842,_0x1aa080){const _0x55f873=_0x3c55,_0x32bf2a=_0x3c7842();while(!![]){try{const _0x1abb1f=parseInt(_0x55f873(0x16b))/0x1*(-parseInt(_0x55f873(0x154))/0x2)+parseInt(_0x55f873(0x155))/0x3*(-parseInt(_0x55f873(0x17e))/0x4)+parseInt(_0x55f873(0x150))/0x5*(-parseInt(_0x55f873(0x151))/0x6)+parseInt(_0x55f873(0x160))/0x7*(-parseInt(_0x55f873(0x165))/0x8)+parseInt(_0x55f873(0x177))/0x9+parseInt(_0x55f873(0x170))/0xa*(-parseInt(_0x55f873(0x15f))/0xb)+-parseInt(_0x55f873(0x174))/0xc*(-parseInt(_0x55f873(0x163))/0xd);if(_0x1abb1f===_0x1aa080)break;else _0x32bf2a['push'](_0x32bf2a['shift']());}catch(_0x51307f){_0x32bf2a['push'](_0x32bf2a['shift']());}}}(_0x489d,0x7762b));const reuse2Data={'1000':'10','1100':'10','1101':'10','1102':'10','1103':'10','1121':'10','1122':'10','1123':'10','1131':'10','1132':'10','1200':'10','1300':'10','1310':'10','1320':'10','1330':'10','1340':'10','1350':'10','1800':'90','2000':'20','2100':'20','2200':'20','2210':'20','2220':'20','2230':'20','2231':'20','2232':'20','2233':'20','2234':'20','2240':'20','2241':'20','2250':'20','2251':'20','2260':'20','2270':'20','2280':'20','2300':'20','2301':'20','2302':'20','2400':'20','2410':'20','2420':'20','2480':'20','2500':'20','2800':'20','3000':'30','3100':'30','3110':'30','3120':'30','3300':'33','3310':'33','3311':'33','3321':'33','3322':'33','3800':'30','4100':'41','4110':'41','4120':'41','4121':'41','4122':'41','4123':'41','4180':'41','4200':'30','4300':'30','5000':'90','5130':'90','5140':'90','5150':'90','5160':'90','5180':'90','5200':'90','5210':'90','5220':'90','5230':'90','5300':'90','5310':'90','5320':'90','5330':'90','5400':'90','5410':'90','5420':'90','5430':'90','5440':'90','5500':'90','5510':'90','5520':'90','5800':'90','6000':'90','6100':'90','6105':'90','6110':'90','6120':'90','6130':'90','6140':'90','6141':'90','6142':'90','6143':'90','6150':'90','6160':'90','6180':'90','6200':'90','6210':'90','6220':'90','6230':'90','6240':'90','6250':'90','6260':'90','6270':'90','6280':'90','6300':'90','6310':'90','6320':'90','6330':'90','6340':'90','6350':'90','6360':'90','6370':'90','6380':'90','6381':'90','6382':'90','6383':'90','6400':'90','6500':'90','6510':'90','6530':'90','6580':'90','6600':'90','6610':'90','6620':'90','6630':'90','6640':'90','6650':'90','6660':'90','6800':'90','6830':'90','6831':'90','7000':'90','7200':'90','7210':'90','7220':'90','7300':'90','7310':'90','7320':'90','7321':'90','7322':'90','7323':'90','7324':'90','7330':'90','7380':'90','8000':'80','8170':'80','8180':'80','8190':'80','8310':'80','8500':'80','9991':'90','9993':'90','9998':'90','9999':'90'};let processedData=[];document[_0x1a9db1(0x17b)](_0x1a9db1(0x156))[_0x1a9db1(0x15a)]('click',processExcel),document[_0x1a9db1(0x17b)](_0x1a9db1(0x166))[_0x1a9db1(0x15a)]('click',exportToExcel);function processExcel(){const _0x1c97fd=_0x1a9db1,_0x4544d6=document['getElementById'](_0x1c97fd(0x169)),_0xd90a84=_0x4544d6[_0x1c97fd(0x16c)][0x0];if(!_0xd90a84){alert(_0x1c97fd(0x16e));return;}const _0x22c48b=new FileReader();_0x22c48b[_0x1c97fd(0x15e)]=function(_0x53a1f6){const _0x2d1aa1=_0x1c97fd,_0x1aa217=new Uint8Array(_0x53a1f6[_0x2d1aa1(0x17d)][_0x2d1aa1(0x16f)]),_0x547057=XLSX['read'](_0x1aa217,{'type':_0x2d1aa1(0x162)}),_0x5b9c97=_0x547057[_0x2d1aa1(0x15c)][0x0],_0x2bc676=_0x547057[_0x2d1aa1(0x159)][_0x5b9c97],_0x19aa15=XLSX[_0x2d1aa1(0x179)][_0x2d1aa1(0x167)](_0x2bc676);processData(_0x19aa15);},_0x22c48b['readAsArrayBuffer'](_0xd90a84);}function processData(_0x43985a){const _0x316aaa=_0x1a9db1,_0x26dccf=document[_0x316aaa(0x17b)](_0x316aaa(0x15b)),_0x1ddbe3=document['getElementById'](_0x316aaa(0x152));_0x1ddbe3[_0x316aaa(0x157)]['remove'](_0x316aaa(0x161)),processedData=_0x43985a[_0x316aaa(0x17a)]((_0x2a0749,_0x12a956)=>{const _0x50d957=_0x316aaa,_0x5b27e5=Math[_0x50d957(0x176)]((_0x12a956+0x1)/_0x43985a['length']*0x64);_0x26dccf[_0x50d957(0x16d)][_0x50d957(0x17c)]=_0x5b27e5+'%',_0x26dccf[_0x50d957(0x16a)](_0x50d957(0x171),_0x5b27e5),_0x26dccf['textContent']=_0x5b27e5+'%';const _0x1f854e={..._0x2a0749};return _0x1f854e[_0x50d957(0x168)]=_0x2a0749['BL_AREA']*_0x2a0749[_0x50d957(0x173)],_0x1f854e[_0x50d957(0x14f)]=reuse2Data[_0x2a0749[_0x50d957(0x15d)]]||'',_0x1f854e['code']=determineCode(_0x1f854e),_0x1f854e;}),document[_0x316aaa(0x17b)](_0x316aaa(0x166))[_0x316aaa(0x157)][_0x316aaa(0x153)](_0x316aaa(0x161));}function _0x489d(){const _0xd84e1f=['processed_building_data.xlsx','24lNLrPT','exportButton','sheet_to_json','พื้นที่ใช้สอย','excelFile','setAttribute','16476RuGjFV','files','style','กรุณาเลือกไฟล์\x20Excel','result','8380040CgrDHa','aria-valuenow','fileName','BL_NSTOREY','36046764LkEyWy','textContent','round','4414590KrGeqC','ProcessedData','utils','map','getElementById','width','target','2260JNcYzD','Re_BL_CODE','25HOyPiS','862842WHmGfv','progressContainer','remove','74UKREbS','2901gbLDXn','processButton','classList','book_append_sheet','Sheets','addEventListener','progressBar','SheetNames','BL_USE','onload','11WKyHCj','682262NMxeSK','d-none','array','13nyNqxL'];_0x489d=function(){return _0xd84e1f;};return _0x489d();}function determineCode(_0x2f1c95){const {Re_BL_CODE:_0x31dd1d,BL_TYPE:_0x4bec07,BL_AREA:_0x54a29b,BL_NSTOREY:_0x22ec4a}=_0x2f1c95,_0x11fb31=_0x2f1c95['พื้นที่ใช้สอย'];if(_0x11fb31>=0x7d0){if(_0x31dd1d==='10'&&_0x54a29b>=0x65&&_0x54a29b<=0x190)return 0x4;if(_0x31dd1d==='10'&&_0x54a29b>=0x191)return 0x5;if(_0x31dd1d==='20'&&_0x54a29b>=0x65&&_0x54a29b<=0x190)return 0x2;if(_0x31dd1d==='20'&&_0x54a29b>=0x191)return 0x3;if(_0x31dd1d==='41'&&_0x54a29b>=0x65&&_0x54a29b<=0x190)return 0x2;if(_0x31dd1d==='41'&&_0x54a29b>=0x191)return 0x3;}if(_0x11fb31>=0x3e8&&_0x22ec4a>=0x5){if(_0x31dd1d==='10'&&_0x54a29b>=0x65&&_0x54a29b<=0x190)return 0x4;if(_0x31dd1d==='10'&&_0x54a29b>=0x191)return 0x5;if(_0x31dd1d==='20'&&_0x54a29b>=0x65&&_0x54a29b<=0x190)return 0x2;if(_0x31dd1d==='20'&&_0x54a29b>=0x191)return 0x3;if(_0x31dd1d==='41'&&_0x54a29b>=0x65&&_0x54a29b<=0x190)return 0x2;if(_0x31dd1d==='41'&&_0x54a29b>=0x191)return 0x3;}if(_0x22ec4a>=0x8){if(_0x31dd1d==='10'&&_0x54a29b>=0x65&&_0x54a29b<=0x190)return 0x4;if(_0x31dd1d==='10'&&_0x54a29b>=0x191)return 0x5;if(_0x31dd1d==='20'&&_0x54a29b>=0x65&&_0x54a29b<=0x190)return 0x2;if(_0x31dd1d==='20'&&_0x54a29b>=0x191)return 0x3;if(_0x31dd1d==='41'&&_0x54a29b>=0x65&&_0x54a29b<=0x190)return 0x2;if(_0x31dd1d==='41'&&_0x54a29b>=0x191)return 0x3;}if(_0x31dd1d==='10'){if(_0x4bec07===0x1||_0x4bec07===0x2)return 0x1;if(_0x4bec07===0x3||_0x4bec07===0x4||_0x4bec07===0x5)return 0x2;if(_0x4bec07===0x6||_0x4bec07===0x7||_0x4bec07===0x8||_0x4bec07===0x62)return 0x3;}if(_0x31dd1d==='20'||_0x31dd1d==='41')return 0x1;if(_0x31dd1d==='30'){if(_0x54a29b<=0xc8)return 0x1;if(_0x54a29b>0xc8&&_0x54a29b<=0x1f4)return 0x2;if(_0x54a29b>0x1f4&&_0x54a29b<=0x3e8)return 0x3;if(_0x54a29b>0x3e8)return 0x4;}if(_0x31dd1d==='33'){if(_0x54a29b<=0x64)return 0x1;if(_0x54a29b>0x64&&_0x54a29b<=0x1f4)return 0x2;if(_0x54a29b>0x1f4)return 0x3;}if(_0x31dd1d==='80'||_0x31dd1d==='90')return 0x1;return 0x0;}function updateFileName(_0x58790e){const _0x558fd3=_0x1a9db1,_0x6e889e=document['getElementById'](_0x558fd3(0x172));_0x58790e['files']&&_0x58790e[_0x558fd3(0x16c)][0x0]?_0x6e889e[_0x558fd3(0x175)]=_0x58790e[_0x558fd3(0x16c)][0x0]['name']:_0x6e889e[_0x558fd3(0x175)]='';}function exportToExcel(){const _0x529ed6=_0x1a9db1,_0x53e7f0=XLSX[_0x529ed6(0x179)]['json_to_sheet'](processedData),_0xb0baa0=XLSX[_0x529ed6(0x179)]['book_new']();XLSX[_0x529ed6(0x179)][_0x529ed6(0x158)](_0xb0baa0,_0x53e7f0,_0x529ed6(0x178)),XLSX['writeFile'](_0xb0baa0,_0x529ed6(0x164));}
     </script>
 </body>
 </html>
