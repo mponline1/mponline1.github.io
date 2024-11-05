@@ -1,109 +1,297 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเตรียมข้อมูล PLLU</title>
+    <title>Prepare PLLU</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Sarabun', sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            background-color: #ffffff;
         }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            background-color: white;
-            border-radius: 8px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .title {
+            color: #5e17ab;
+            font-size: 24px;
+            margin: 0;
+        }
+
+        .subtitle {
+            color: #5e17ab;
+            font-size: 18px;
+            margin: 5px 0;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-button {
+            background-color: #5e17ab;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+
+        .nav-button:hover {
+            background-color: #4a1289;
+        }
+
+        .home-button {
+            background-color: #5e17ab;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .button-group {
-            margin: 20px 0;
+
+        .home-button:hover {
+            background-color: #4a1289;
         }
-        button {
-            padding: 10px 20px;
-            margin-right: 10px;
-            background-color: #4CAF50;
+
+        .home-button i {
+            font-size: 20px;
+        }
+
+        .manual-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 30px 0;
+            text-decoration: none;
+            color: #5e17ab;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        .manual-section:hover {
+            background-color: #F3F4F6;
+        }
+
+        .manual-icon {
+            background-color: #f0e6fa;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .manual-icon i {
+            font-size: 20px;
+            color: #5e17ab;
+        }
+
+        .manual-text {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .file-section {
+            margin: 40px 0;
+            padding: 20px;
+            background-color: #F9FAFB;
+            border-radius: 12px;
+        }
+
+        .file-label {
+            color: #5e17ab;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: block;
+            font-weight: 500;
+        }
+
+        .choose-file {
+            border: 2px solid #E5E7EB;
+            border-radius: 6px;
+            padding: 8px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+
+        .choose-file::-webkit-file-upload-button {
+            background-color: #5e17ab;
             color: white;
+            padding: 8px 16px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
         }
-        button:hover {
-            background-color: #45a049;
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
         }
+
+        .process-button {
+            background-color: #5e17ab;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .process-button:hover {
+            background-color: #4a1289;
+        }
+
+        .benefits-section {
+            margin-top: 40px;
+            display: flex;
+            align-items: flex-start;
+            gap: 25px;
+            padding: 20px;
+            background-color: #F3F4F6;
+            border-radius: 12px;
+        }
+
+        .benefits-icon {
+            background-color: #5e17ab;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .benefits-icon i {
+            font-size: 32px;
+            color: white;
+        }
+
+        .benefits-text {
+            color: #6B7280;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
         button:disabled {
-            background-color: #cccccc;
+            background-color: #D1D5DB;
             cursor: not-allowed;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+
+        th {
+            background-color: #5e17ab;
+            color: white;
+            padding: 12px;
             text-align: left;
         }
-        th {
-            background-color: #4CAF50;
-            color: white;
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #E5E7EB;
         }
+
         tr:nth-child(even) {
-            background-color: #f2f2f2;
+            background-color: #f8f5fb;
         }
-        .total-row {
-            font-weight: bold;
-            background-color: #e0e0e0 !important;
+
+        tr:last-child td {
+            border-bottom: none;
         }
-        .file-input {
-            margin-bottom: 20px;
-        }
+
         .numeric-cell {
             text-align: right;
         }
-        .benefit-box {
-            border: 2px solid #4CAF50;
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 8px;
-            background-color: #f9fff9;
-        }
-        .benefit-box h2 {
-            color: #4CAF50;
-        }
-        .benefit-box ul {
-            padding-left: 20px;
-        }
-        .benefit-box ul li {
-            margin-bottom: 10px;
+
+        .total-row {
+            background-color: #F3F4F6;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>ระบบเตรียมข้อมูล PLLU</h1>
-        <div class="benefit-box">
-            <h2>ประโยชน์ที่ได้รับ</h2>
-            <ul>
-                <li>สามารถเรียงรายการบริเวณ/ประเภทการใช้ประโยชน์ที่ดิน เหมือนประกาศผังเมืองรวมบังคับใช้</li>
-                <li>บริเวณการใช้ประโยชน์ที่ดินที่มีรายการซ้ำจากการ Digitize ถูกปรับให้เหลือรายการเดียว </li>
-                <li>ในกรณีที่ AREA มีหน่วยเป็นตารางเมตร สามารถคำนวณรายการให้มีหน่วยเป็นไร่อัตโนมัติ</li>
-            </ul>
-        </div> <br>
-        <div class="file-input">
-            <input type="file" id="fileInput" accept=".xlsx, .xls">
+        <div class="header">
+            <div>
+                <h1 class="title">Prepare PLLU</h1>
+                <h2 class="subtitle">เตรียมไฟล์ผังการใช้ประโยชน์ที่ดิน</h2>
+            </div>
+            <div class="button-container">
+                <a href="page3.html" class="nav-button">Calculate Landuse</a>
+                <a href="page6.html" class="nav-button">Calculate Pop</a>
+                <a href="index.html" class="home-button">
+                    <i class="fas fa-home"></i>
+                </a>
+            </div>
         </div>
-        <div class="button-group">
-            <button id="processBtn" disabled>ประมวลผล</button>
-            <button id="exportBtn" disabled>Export to Excel</button>
+
+        <a href="page.html" class="manual-section">
+            <div class="manual-icon">
+                <i class="fas fa-book"></i>
+            </div>
+            <span class="manual-text">คู่มือการใช้งาน</span>
+        </a>
+
+        <div class="file-section">
+            <label class="file-label">ไฟล์ pllu (Excel):</label>
+            <input type="file" id="fileInput" accept=".xlsx, .xls" class="choose-file">
+
+            <div class="action-buttons">
+                <button id="processBtn" class="process-button" disabled>Prepare</button>
+                <button id="exportBtn" class="process-button" disabled>นำออกข้อมูลแผนผังการใช้ประโยชน์ที่ดิน (Excel)</button>
+            </div>
         </div>
+
+        <div class="benefits-section">
+            <div class="benefits-icon">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="benefits-text">
+                เรียงรายการตามบริเวณการใช้ประโยชน์ที่ดิน<br>
+                ปรับข้อมูลบริเวณการใช้ประโยชน์ที่ดินที่มีรายการซ้ำให้เหลือรายการเดียว<br>
+                ในกรณีที่ฟิลด์ AREA มีหน่วยเป็นตารางเมตร สามารถคำนวณพื้นที่ให้มีหน่วยเป็นไร่ได้
+            </div>
+        </div>
+
         <div id="tableContainer"></div>
     </div>
+</body>
 
     <script>
         const plUseOrder = {
@@ -144,15 +332,17 @@
 
                 // First, group by PL_USE and PL_BLOCK
                 const groupedData = jsonData.reduce((acc, curr) => {
-                    if (!curr.PL_USE || !plUseOrder[curr.PL_USE.toString()]) return acc;
+                    // Convert PL_USE to string format
+                    const plUse = curr.PL_USE ? curr.PL_USE.toString().padStart(4, '0') : '';
+                    if (!plUse || !plUseOrder[plUse]) return acc;
                     
-                    const key = `${curr.PL_USE}_${curr.PL_BLOCK}`;
+                    const key = `${plUse}_${curr.PL_BLOCK}`;
                     if (!acc[key]) {
                         acc[key] = {
-                            PL_USE: curr.PL_USE,
+                            PL_USE: plUse, // Store as string
                             PL_BLOCK: curr.PL_BLOCK || '',
                             AREA: 0,
-                            order: plUseOrder[curr.PL_USE.toString()]
+                            order: plUseOrder[plUse]
                         };
                     }
                     acc[key].AREA += parseFloat(curr.AREA || 0) || 0;
@@ -163,17 +353,17 @@
                 processedData = Object.values(groupedData)
                 .sort((a, b) => {
                     // Primary sort by PL_USE order
-                     const plUseCompare = a.order - b.order;
-                     if (plUseCompare !== 0) return plUseCompare;
+                    const plUseCompare = a.order - b.order;
+                    if (plUseCompare !== 0) return plUseCompare;
                     // Secondary sort by PL_BLOCK
-                     const blockA = (a.PL_BLOCK || '').toString();
-                     const blockB = (b.PL_BLOCK || '').toString();
-                     return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
+                    const blockA = (a.PL_BLOCK || '').toString();
+                    const blockB = (b.PL_BLOCK || '').toString();
+                    return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
                 })
                 .map((row, index) => ({
                     ลำดับ: index + 1,
                     PL_BLOCK: row.PL_BLOCK,
-                    PL_USE: row.PL_USE,
+                    PL_USE: row.PL_USE, // Will be stored as string
                     AREA: row.AREA,
                     'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2))
                 }));
