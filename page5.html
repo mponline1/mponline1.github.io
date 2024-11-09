@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -292,7 +291,6 @@
 
         <div id="tableContainer"></div>
     </div>
-</body>
 
     <script>
         const plUseOrder = {
@@ -313,6 +311,26 @@
         const exportBtn = document.getElementById('exportBtn');
         const tableContainer = document.getElementById('tableContainer');
 
+        function checkPLBlock(plBlock) {
+            if (!plBlock) return '';
+            
+            const patterns = [
+                'อย.', 'ย.1', 'ย.2', 'ย.3', 'ย.4', 'ย.5', 'ย.6', 'ย.7', 'ย.8',
+                'พ.1', 'พ.2', 'พ.3', 'พ.4', 'ขก.',
+                'อ.1', 'อ.2', 'อ.3', 'อ.4',
+                'ก.1', 'ก.2', 'ก.3', 'ก.4', 'ก.5',
+                'อก.', 'ปก.', 'อท.', 'ล.', 'ลล.', 'สล.', 'อป.',
+                'ศษ.', 'ลช.', 'ลส.', 'อศ.', 'ศน.', 'ส.'
+            ];
+
+            for (const pattern of patterns) {
+                if (plBlock.includes(pattern)) {
+                    return pattern;
+                }
+            }
+            return '';
+        }
+
         fileInput.addEventListener('change', function(e) {
             processBtn.disabled = !e.target.files.length;
         });
@@ -331,19 +349,19 @@
                 const worksheet = workbook.Sheets[firstSheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-                // First, group by PL_USE and PL_BLOCK
+                // Group by PL_USE and PL_BLOCK
                 const groupedData = jsonData.reduce((acc, curr) => {
-                    // Convert PL_USE to string format
                     const plUse = curr.PL_USE ? curr.PL_USE.toString().padStart(4, '0') : '';
                     if (!plUse || !plUseOrder[plUse]) return acc;
                     
                     const key = `${plUse}_${curr.PL_BLOCK}`;
                     if (!acc[key]) {
                         acc[key] = {
-                            PL_USE: plUse, // Store as string
+                            PL_USE: plUse,
                             PL_BLOCK: curr.PL_BLOCK || '',
                             AREA: 0,
-                            order: plUseOrder[plUse]
+                            order: plUseOrder[plUse],
+                            PL_BLOCK2: checkPLBlock(curr.PL_BLOCK || '')
                         };
                     }
                     acc[key].AREA += parseFloat(curr.AREA || 0) || 0;
@@ -353,10 +371,8 @@
                 // Convert grouped data to array and sort
                 processedData = Object.values(groupedData)
                 .sort((a, b) => {
-                    // Primary sort by PL_USE order
                     const plUseCompare = a.order - b.order;
                     if (plUseCompare !== 0) return plUseCompare;
-                    // Secondary sort by PL_BLOCK
                     const blockA = (a.PL_BLOCK || '').toString();
                     const blockB = (b.PL_BLOCK || '').toString();
                     return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
@@ -364,9 +380,10 @@
                 .map((row, index) => ({
                     ลำดับ: index + 1,
                     PL_BLOCK: row.PL_BLOCK,
-                    PL_USE: row.PL_USE, // Will be stored as string
+                    PL_USE: row.PL_USE,
                     AREA: row.AREA,
-                    'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2))
+                    'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2)),
+                    PL_BLOCK2: row.PL_BLOCK2
                 }));
 
                 displayTable(processedData);
@@ -439,7 +456,6 @@
         }
 
         function exportToExcel() {
-            // Create a copy of processed data including the total row
             const exportData = [...processedData];
             const totalArea = processedData.reduce((sum, row) => sum + (row.AREA || 0), 0);
             const totalAreaRai = processedData.reduce((sum, row) => sum + (row['AREA(rai)'] || 0), 0);
@@ -448,7 +464,8 @@
                 PL_BLOCK: '',
                 PL_USE: '',
                 AREA: totalArea,
-                'AREA(rai)': totalAreaRai
+                'AREA(rai)': totalAreaRai,
+                PL_BLOCK2: ''
             });
 
             const ws = XLSX.utils.json_to_sheet(exportData);
@@ -458,4 +475,4 @@
         }
     </script>
 </body>
-</html>
+</html>               
