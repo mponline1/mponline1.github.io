@@ -71,22 +71,22 @@
             overflow-y: auto;
         }
         .draw-tools {
-            position: absolute;
-            top: 60px;
-            left: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            display: none;
-        }
-        .color-picker {
-            margin: 5px 0;
-        }
-        .buffer-control {
-            margin: 5px 0;
-        }
+    position: absolute;
+    top: 60px;
+    left: 10px;
+    z-index: 1000;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    display: none;
+}
+.color-picker {
+    margin: 5px 0;
+}
+.buffer-control {
+    margin: 5px 0;
+}
         .close-btn {
             position: absolute;
             top: 5px;
@@ -209,11 +209,11 @@
         </button>
         <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location">
             <i class="fas fa-location-dot"></i>
-        </button>
+        </button> <!-- 
         <button id="exportKmlBtn" class="btn btn-toolbar-custom" title="Export to KML">
-            <i class="fas fa-download"></i>
-        </button>
-    </div>
+            <i class="fas fa-download"></i> 
+        </button> 
+    </div> -->
 
     <!-- Home Button -->
     <a href="index.html" class="home-button" title="Home">
@@ -223,17 +223,6 @@
     <!-- Draw Tools Panel -->
     <div id="drawTools" class="draw-tools">
         <h6>Draw Tools</h6>
-        <div class="btn-group mb-2">
-            <button class="btn btn-sm btn-light" data-tool="point" title="Draw Point">
-                <i class="fas fa-dot-circle"></i>
-            </button>
-            <button class="btn btn-sm btn-light" data-tool="polyline" title="Draw Line">
-                <i class="fas fa-minus"></i>
-            </button>
-            <button class="btn btn-sm btn-light" data-tool="polygon" title="Draw Polygon">
-                <i class="fas fa-draw-polygon"></i>
-            </button>
-        </div>
         <div class="color-picker">
             <label>Color:</label>
             <input type="color" id="drawColor" value="#ff0000">
@@ -334,7 +323,7 @@
                 container: "viewDiv",
                 map: map,
                 center: [100.5, 13.7],
-                zoom: 5
+                zoom: 6
             });
 
             var print = new Print({
@@ -354,8 +343,17 @@
     }
 });
 
-            var graphicsLayer = new GraphicsLayer();
-            map.add(graphicsLayer);
+            // สร้าง GraphicsLayer สำหรับการวาด
+var graphicsLayer = new GraphicsLayer({
+    title: "Drawing Layer"
+});
+map.add(graphicsLayer);
+
+// สร้างตัวแปรสำหรับเก็บค่าที่ใช้ในการวาด
+var activeColor = "#ff0000";
+var bufferDistance = 0;
+var sketch;
+var selectedGraphic = null;
 
             var searchGraphicsLayer = new GraphicsLayer();
 map.add(searchGraphicsLayer);
