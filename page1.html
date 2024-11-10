@@ -6,6 +6,7 @@
     <title>ArcGIS Map Website</title>
     <link rel="stylesheet" href="https://js.arcgis.com/4.22/esri/themes/light/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         html, body, #viewDiv {
             padding: 0;
@@ -16,11 +17,33 @@
         .esri-view .esri-view-surface--inset-outline:focus::after {
             outline: none !important;
         }
-        #toolPanel {
+        .top-toolbar {
             position: absolute;
             top: 10px;
-            left: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 1000;
+            background: white;
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .home-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 8px;
+            border-radius: 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+        }
+        .home-button:hover {
+            background: #f0f0f0;
+            color: #000;
         }
         .panel {
             position: absolute;
@@ -32,7 +55,7 @@
             z-index: 1000;
         }
         #layerPanel { 
-            top: 10px; 
+            top: 60px; 
             right: 10px; 
             width: 300px; 
             max-height: 80%; 
@@ -40,13 +63,29 @@
         }
         #searchPanel { top: 60px; left: 10px; }
         #addServicePanel { top: 60px; left: 10px; }
-        #attributePanel { bottom: 20px; right: 20px; }
         #basemapGalleryPanel, #printPanel { 
-            top: 10px; 
+            top: 60px; 
             right: 10px; 
             width: 280px; 
             max-height: 400px; 
             overflow-y: auto;
+        }
+        .draw-tools {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            display: none;
+        }
+        .color-picker {
+            margin: 5px 0;
+        }
+        .buffer-control {
+            margin: 5px 0;
         }
         .close-btn {
             position: absolute;
@@ -69,29 +108,143 @@
             display: flex;
             gap: 5px;
         }
-        #locationBtn {
-            position: flex;
-            bottom: 20px;
-            left: 20px;
-            z-index: 1000;
+        .custom-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 2000;
+            min-width: 300px;
         }
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1999;
+        }
+        .btn-toolbar-custom {
+            padding: 6px 12px;
+            margin: 0 2px;
+            border: none;
+            background: transparent;
+            color: #333;
+        }
+        .btn-toolbar-custom:hover {
+            background: #f0f0f0;
+        }
+        .tool-active {
+            background: #e0e0e0;
+            color: #000;
+        }
+        .esri-layer-list__item--background-white {
+    background-color: white !important;
+}
+
+.map .wms-layer {
+    image-rendering: -webkit-optimize-contrast;  /* สำหรับ Chrome/Safari */
+    image-rendering: crisp-edges;                /* สำหรับ Firefox */
+    background-color: transparent !important;
+}
+#printPanel { 
+    top: 60px; 
+    right: 10px; 
+    width: 300px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* เพิ่ม CSS สำหรับปรับแต่ง Print Widget */
+#printDiv {
+    padding: 10px 0;
+}
+
+#printDiv .esri-print__form-section {
+    padding: 5px 0;
+}
+
+#printDiv .esri-print__input-text {
+    width: 100%;
+}
+
+#printDiv .esri-print__export-button {
+    margin-top: 10px;
+    width: 100%;
+}
     </style>
 </head>
 <body>
     <div id="viewDiv"></div>
 
-    <div id="toolPanel" class="btn-group">
-        <button id="basemapBtn" class="btn btn-primary">Basemap</button>
-        <button id="fullscreenBtn" class="btn btn-secondary">Fullscreen</button>
-        <button id="searchBtn" class="btn btn-info">Search</button>
-        <button id="printBtn" class="btn btn-success">Print</button>
-        <button id="addServiceBtn" class="btn btn-warning">Add Service</button>
-        <button id="drawBtn" class="btn btn-danger">Draw</button>
-        <button id="layerListBtn" class="btn btn-light">Layer List</button>
+    <!-- Top Toolbar -->
+    <div class="top-toolbar btn-group">
+        <button id="basemapBtn" class="btn btn-toolbar-custom" title="Basemap Gallery">
+            <i class="fas fa-layer-group"></i>
+        </button>
+        <button id="fullscreenBtn" class="btn btn-toolbar-custom" title="Fullscreen">
+            <i class="fas fa-expand"></i>
+        </button>
+        <button id="searchBtn" class="btn btn-toolbar-custom" title="Search">
+            <i class="fas fa-search"></i>
+        </button>
+        <button id="printBtn" class="btn btn-toolbar-custom" title="Print">
+            <i class="fas fa-print"></i>
+        </button>
+        <button id="addServiceBtn" class="btn btn-toolbar-custom" title="Add Service">
+            <i class="fas fa-plus"></i>
+        </button>
+        <button id="drawBtn" class="btn btn-toolbar-custom" title="Draw">
+            <i class="fas fa-pen"></i>
+        </button>
+        <button id="layerListBtn" class="btn btn-toolbar-custom" title="Layer List">
+            <i class="fas fa-list"></i>
+        </button>
+        <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location">
+            <i class="fas fa-location-dot"></i>
+        </button>
+        <button id="exportKmlBtn" class="btn btn-toolbar-custom" title="Export to KML">
+            <i class="fas fa-download"></i>
+        </button>
     </div>
 
-    <button id="locationBtn" class="btn btn-primary">Track Location</button>
+    <!-- Home Button -->
+    <a href="index.html" class="home-button" title="Home">
+        <i class="fas fa-home"></i>
+    </a>
 
+    <!-- Draw Tools Panel -->
+    <div id="drawTools" class="draw-tools">
+        <h6>Draw Tools</h6>
+        <div class="btn-group mb-2">
+            <button class="btn btn-sm btn-light" data-tool="point" title="Draw Point">
+                <i class="fas fa-dot-circle"></i>
+            </button>
+            <button class="btn btn-sm btn-light" data-tool="polyline" title="Draw Line">
+                <i class="fas fa-minus"></i>
+            </button>
+            <button class="btn btn-sm btn-light" data-tool="polygon" title="Draw Polygon">
+                <i class="fas fa-draw-polygon"></i>
+            </button>
+        </div>
+        <div class="color-picker">
+            <label>Color:</label>
+            <input type="color" id="drawColor" value="#ff0000">
+        </div>
+        <div class="buffer-control">
+            <label>Buffer (meters):</label>
+            <input type="number" id="bufferDistance" value="0" min="0" class="form-control form-control-sm">
+        </div>
+    </div>
+
+    <!-- Panels -->
     <div id="layerPanel" class="panel">
         <span class="close-btn" onclick="closePanel('layerPanel')">&times;</span>
         <h5>Layer List</h5>
@@ -100,28 +253,24 @@
 
     <div id="searchPanel" class="panel">
         <span class="close-btn" onclick="closePanel('searchPanel')">&times;</span>
-        <input type="text" id="searchInput" placeholder="Latitude, Longitude">
+        <input type="text" id="searchInput" class="form-control mb-2" placeholder="Latitude, Longitude">
         <button id="searchCoordBtn" class="btn btn-primary btn-sm">Search</button>
     </div>
 
     <div id="addServicePanel" class="panel">
         <span class="close-btn" onclick="closePanel('addServicePanel')">&times;</span>
-        <input type="text" id="serviceUrl" placeholder="Service URL">
-        <select id="serviceType">
-            <option value="featureLayer">Feature Layer</option>
-            <option value="mapImageLayer">Map Image Layer</option>
-            <option value="wmsLayer">WMS Layer</option>
-            <option value="tileLayer">Tile Layer</option>
-        </select>
+        <div class="mb-3">
+            <input type="text" id="serviceUrl" class="form-control" placeholder="Service URL">
+        </div>
+        <div class="mb-3">
+            <select id="serviceType" class="form-select">
+                <option value="featureLayer">Feature Layer</option>
+                <option value="mapImageLayer">Map Image Layer</option>
+                <option value="wmsLayer">WMS Layer</option>
+                <option value="tileLayer">Tile Layer</option>
+            </select>
+        </div>
         <button id="addServiceConfirmBtn" class="btn btn-primary btn-sm">Add Service</button>
-    </div>
-
-    <div id="attributePanel" class="panel">
-        <span class="close-btn" onclick="closePanel('attributePanel')">&times;</span>
-        <h5>Attributes</h5>
-        <div id="attributeContent"></div>
-        <button id="editAttributeBtn" class="btn btn-primary btn-sm">Edit</button>
-        <button id="deleteFeatureBtn" class="btn btn-danger btn-sm">Delete</button>
     </div>
 
     <div id="basemapGalleryPanel" class="panel">
@@ -131,13 +280,24 @@
 
     <div id="printPanel" class="panel">
         <span class="close-btn" onclick="closePanel('printPanel')">&times;</span>
+        <h5>Print Map</h5>
         <div id="printDiv"></div>
     </div>
 
-    <div id="attributeTablePanel" class="panel">
-        <span class="close-btn" onclick="closePanel('attributeTablePanel')">&times;</span>
-        <h5>Attribute Table</h5>
-        <div id="attributeTableContent"></div>
+    <!-- Attribute Input Modal -->
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="custom-modal" id="attributeModal">
+        <h5>Enter Feature Attributes</h5>
+        <form id="attributeForm">
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <input type="text" class="form-control" id="description" required>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" onclick="closeAttributeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
     </div>
 
     <script src="https://js.arcgis.com/4.22/"></script>
@@ -155,10 +315,17 @@
             "esri/widgets/Sketch",
             "esri/layers/GraphicsLayer",
             "esri/Graphic",
+            "esri/geometry/geometryEngine",
+            "esri/symbols/SimpleMarkerSymbol",
+            "esri/symbols/SimpleLineSymbol",
+            "esri/symbols/SimpleFillSymbol",
+            "esri/widgets/Track",
             "esri/geometry/Point",
-            "esri/geometry/support/webMercatorUtils",
-            "esri/widgets/Track"
-        ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, Sketch, GraphicsLayer, Graphic, Point, webMercatorUtils, Track) {
+            "esri/geometry/support/webMercatorUtils"
+        ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, 
+                   Sketch, GraphicsLayer, Graphic, geometryEngine, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol,
+                   Track, Point, webMercatorUtils) {
+            
             var map = new Map({
                 basemap: "topo-vector"
             });
@@ -170,8 +337,38 @@
                 zoom: 5
             });
 
+            var print = new Print({
+    view: view,
+    container: "printDiv",
+    // เพิ่มการตั้งค่าเริ่มต้นสำหรับการพิมพ์
+    templateOptions: {
+        title: "My Map",
+        author: "ArcGIS Web Map",
+        copyright: "© ArcGIS Web Map",
+        legendEnabled: true,
+        scalebarEnabled: true
+    },
+    // กำหนดรูปแบบเอกสารที่สามารถพิมพ์ได้
+    format: {
+        formats: ["pdf", "png32", "jpg"]
+    }
+});
+
             var graphicsLayer = new GraphicsLayer();
             map.add(graphicsLayer);
+
+            var searchGraphicsLayer = new GraphicsLayer();
+map.add(searchGraphicsLayer);
+
+// สร้าง Symbol สำหรับ marker
+var markerSymbol = new SimpleMarkerSymbol({
+    color: [255, 0, 0, 0.8],  // สีแดง
+    size: "24px",             // ขนาดใหญ่
+    outline: {
+        color: [255, 255, 255], // ขอบสีขาว
+        width: 2
+    }
+});
 
             // Move zoom widget to bottom-right
             view.ui.move("zoom", "bottom-right");
@@ -182,11 +379,32 @@
                 container: "basemapGalleryDiv"
             });
 
+            // Panel toggling
+            function togglePanel(panelId) {
+                var panels = document.querySelectorAll('.panel');
+                panels.forEach(function(panel) {
+                    if (panel.id !== panelId) {
+                        panel.style.display = 'none';
+                    }
+                });
+
+                var panel = document.getElementById(panelId);
+                if (panel.style.display === 'none' || panel.style.display === '') {
+                    panel.style.display = 'block';
+                } else {
+                    panel.style.display = 'none';
+                }
+            }
+
+            window.closePanel = function(panelId) {
+                document.getElementById(panelId).style.display = 'none';
+            }
+
+            // Button event listeners
             document.getElementById("basemapBtn").addEventListener("click", function() {
                 togglePanel("basemapGalleryPanel");
             });
 
-            // Fullscreen
             document.getElementById("fullscreenBtn").addEventListener("click", function() {
                 if (!document.fullscreenElement) {
                     document.documentElement.requestFullscreen();
@@ -197,37 +415,158 @@
                 }
             });
 
-            // Search
-            var search = new Search({view: view});
-            view.ui.add(search, "top-right");
-
             document.getElementById("searchBtn").addEventListener("click", function() {
                 togglePanel("searchPanel");
-            });
-
-            document.getElementById("searchCoordBtn").addEventListener("click", function() {
-                var coords = document.getElementById("searchInput").value.split(",");
-                if (coords.length === 2) {
-                    var point = new Point({
-                        latitude: parseFloat(coords[0]),
-                        longitude: parseFloat(coords[1])
-                    });
-                    view.goTo({target: point, zoom: 15});
-                }
-            });
-
-            // Print
-            var print = new Print({
-                view: view,
-                container: "printDiv",
-                printServiceUrl: "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task"
             });
 
             document.getElementById("printBtn").addEventListener("click", function() {
                 togglePanel("printPanel");
             });
 
-            // Add Service
+            document.getElementById("layerListBtn").addEventListener("click", function() {
+                togglePanel("layerPanel");
+                updateLayerList();
+            });
+
+            // Draw tools functionality
+            var activeColor = "#ff0000";
+            var bufferDistance = 0;
+            var sketch;
+
+            document.getElementById("drawBtn").addEventListener("click", function() {
+                var drawTools = document.getElementById("drawTools");
+                var button = document.getElementById("drawBtn");
+
+                if (drawTools.style.display === "none" || drawTools.style.display === "") {
+                    drawTools.style.display = "block";
+                    button.classList.add("tool-active");
+                    initializeSketch();
+                } else {
+                    drawTools.style.display = "none";
+                    button.classList.remove("tool-active");
+                    if (sketch) {
+                        view.ui.remove(sketch);
+                    }
+                }
+            });
+
+            document.getElementById("drawColor").addEventListener("change", function(e) {
+                activeColor = e.target.value;
+                updateSketchSymbols();
+            });
+
+            document.getElementById("bufferDistance").addEventListener("change", function(e) {
+                bufferDistance = parseFloat(e.target.value);
+            });
+
+            function initializeSketch() {
+                if (sketch) {
+                    view.ui.remove(sketch);
+                }
+
+                sketch = new Sketch({
+                    layer: graphicsLayer,
+                    view: view,
+                    creationMode: "single",
+                    availableCreateTools: ["point", "polyline", "polygon"],
+                    visibleElements: {
+                        createTools: {
+                            point: true,
+                            polyline: true,
+                            polygon: true,
+                            rectangle: false,
+                            circle: false
+                        },
+                        selectionTools: {
+                            "lasso-selection": false,
+                            "rectangle-selection": false
+                        },
+                        settingsMenu: false,
+                        undoRedoMenu: true
+                    }
+                });
+
+                updateSketchSymbols();
+                
+                sketch.on("create", function(event) {
+                    if (event.state === "complete") {
+                        if (bufferDistance > 0) {
+                            var bufferGeometry = geometryEngine.buffer(event.graphic.geometry, bufferDistance, "meters");
+                            var bufferGraphic = new Graphic({
+                                geometry: bufferGeometry,
+                                symbol: new SimpleFillSymbol({
+                                    color: [parseInt(activeColor.substr(1,2), 16), 
+                                           parseInt(activeColor.substr(3,2), 16),
+                                           parseInt(activeColor.substr(5,2), 16), 0.3],
+                                    outline: {
+                                        color: activeColor,
+                                        width: 2
+                                    }
+                                })
+                            });
+                            graphicsLayer.add(bufferGraphic);
+                        }
+                        showAttributeModal(event.graphic);
+                    }
+                });
+
+                view.ui.add(sketch, "top-left");
+            }
+
+            function updateSketchSymbols() {
+                if (sketch) {
+                    // Point symbol
+                    sketch.viewModel.pointSymbol = new SimpleMarkerSymbol({
+                        color: activeColor,
+                        size: "8px",
+                        outline: {
+                            color: [255, 255, 255],
+                            width: 1
+                        }
+                    });
+
+                    // Line symbol
+                    sketch.viewModel.polylineSymbol = new SimpleLineSymbol({
+                        color: activeColor,
+                        width: 2
+                    });
+
+                    // Polygon symbol
+                    sketch.viewModel.polygonSymbol = new SimpleFillSymbol({
+                        color: [parseInt(activeColor.substr(1,2), 16), 
+                               parseInt(activeColor.substr(3,2), 16),
+                               parseInt(activeColor.substr(5,2), 16), 0.3],
+                        outline: {
+                            color: activeColor,
+                            width: 2
+                        }
+                    });
+                }
+            }
+
+            // Modal functions
+            window.showAttributeModal = function(graphic) {
+                document.getElementById('modalBackdrop').style.display = 'block';
+                document.getElementById('attributeModal').style.display = 'block';
+                
+                document.getElementById('attributeForm').onsubmit = function(e) {
+                    e.preventDefault();
+                    var description = document.getElementById('description').value;
+                    graphic.attributes = {
+                        description: description,
+                        timestamp: new Date().toISOString()
+                    };
+                    closeAttributeModal();
+                };
+            }
+
+            window.closeAttributeModal = function() {
+                document.getElementById('modalBackdrop').style.display = 'none';
+                document.getElementById('attributeModal').style.display = 'none';
+                document.getElementById('attributeForm').reset();
+            }
+
+            // Layer handling
             document.getElementById("addServiceBtn").addEventListener("click", function() {
                 togglePanel("addServicePanel");
             });
@@ -237,33 +576,59 @@
                 var serviceType = document.getElementById("serviceType").value;
                 var layer;
 
-                switch (serviceType) {
-                    case "featureLayer":
-                        layer = new FeatureLayer({url: serviceUrl});
-                        break;
-                    case "mapImageLayer":
-                        layer = new MapImageLayer({url: serviceUrl});
-                        break;
-                    case "wmsLayer":
-                        layer = new WMSLayer({url: serviceUrl});
-                        break;
-                    case "tileLayer":
-                        layer = new TileLayer({url: serviceUrl});
-                        break;
+                if (serviceType === "wmsLayer") {
+    layer = new WMSLayer({
+        url: serviceUrl,
+        opacity: 1,
+        format: "png32",
+        transparent: true,
+        imageTransparency: false, // ปิดการโปร่งแสงของรูปภาพ
+        imageFormat: "png32",     // ใช้รูปแบบที่รองรับความโปร่งใส
+        version: "1.3.0",         // ใช้เวอร์ชั่น WMS ล่าสุด
+        customParameters: {      
+            transparent: true,     // เปิดใช้งาน transparent ใน WMS request
+            format: "image/png32"  // กำหนดรูปแบบภาพที่ร้องขอ
+        }
+    });
+
+    // เพิ่ม event listener สำหรับจัดการ error
+    layer.on("error", function(error) {
+        console.error("WMS Layer error:", error);
+    });
+
+    // เพิ่ม event listener เมื่อ layer โหลดสำเร็จ
+    layer.on("layerview-create", function(event) {
+        console.log("WMS Layer loaded successfully");
+    });
+} else {
+                    switch (serviceType) {
+                        case "featureLayer":
+                            layer = new FeatureLayer({
+                                url: serviceUrl,
+                                outFields: ["*"]
+                            });
+                            break;
+                        case "mapImageLayer":
+                            layer = new MapImageLayer({
+                                url: serviceUrl
+                            });
+                            break;
+                        case "tileLayer":
+                            layer = new TileLayer({
+                                url: serviceUrl
+                            });
+                            break;
+                    }
                 }
 
                 if (layer) {
                     map.add(layer);
                     updateLayerList();
+                    closePanel('addServicePanel');
                 }
             });
 
-            // Layer List
-            document.getElementById("layerListBtn").addEventListener("click", function() {
-                togglePanel("layerPanel");
-                updateLayerList();
-            });
-
+            // Layer list functions
             function updateLayerList() {
                 var layerList = document.getElementById("layerList");
                 layerList.innerHTML = "";
@@ -276,10 +641,18 @@
                             <div class="layer-controls">
                                 <input type="range" min="0" max="1" step="0.1" value="${layer.opacity}" 
                                     onchange="updateLayerOpacity('${layer.id}', this.value)">
-                                <button class="btn btn-sm btn-info" onclick="openAttributeTable('${layer.id}')">Attributes</button>
-                                <button class="btn btn-sm btn-secondary" onclick="moveLayerUp('${layer.id}')">↑</button>
-                                <button class="btn btn-sm btn-secondary" onclick="moveLayerDown('${layer.id}')">↓</button>
-                                <button class="btn btn-sm btn-danger" onclick="removeLayer('${layer.id}')">Remove</button>
+                                <button class="btn btn-sm btn-info" onclick="openAttributeTable('${layer.id}')">
+                                    <i class="fas fa-table"></i>
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="moveLayerUp('${layer.id}')">
+                                    <i class="fas fa-arrow-up"></i>
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="moveLayerDown('${layer.id}')">
+                                    <i class="fas fa-arrow-down"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="removeLayer('${layer.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         `;
                         layerList.appendChild(li);
@@ -287,41 +660,11 @@
                 });
             }
 
+            // Layer control functions
             window.updateLayerOpacity = function(layerId, opacity) {
                 var layer = map.findLayerById(layerId);
                 if (layer) {
                     layer.opacity = parseFloat(opacity);
-                }
-            };
-
-            window.openAttributeTable = function(layerId) {
-                var layer = map.findLayerById(layerId);
-                if (layer && layer.type === "feature") {
-                    layer.queryFeatures().then(function(results) {
-                        var features = results.features;
-                        var fields = layer.fields;
-                        
-                        var table = '<table class="table table-striped"><thead><tr>';
-                        fields.forEach(function(field) {
-                            table += '<th>' + field.name + '</th>';
-                        });
-                        table += '</tr></thead><tbody>';
-                        
-                        features.forEach(function(feature) {
-                            table += '<tr>';
-                            fields.forEach(function(field) {
-                                table += '<td>' + (feature.attributes[field.name] || '') + '</td>';
-                            });
-                            table += '</tr>';
-                        });
-                        
-                        table += '</tbody></table>';
-                        
-                        document.getElementById('attributeTableContent').innerHTML = table;
-                        togglePanel('attributeTablePanel');
-                    });
-                } else {
-                    alert("This layer does not support attribute table view.");
                 }
             };
 
@@ -351,104 +694,121 @@
                 }
             };
 
-            // Draw
-            var sketch = new Sketch({
-                layer: graphicsLayer,
-                view: view,
-                creationMode: "update",
-                availableCreateTools: ["point", "polygon"]
+            // Search functionality
+            document.getElementById("searchCoordBtn").addEventListener("click", function() {
+    var coords = document.getElementById("searchInput").value.split(",");
+    if (coords.length === 2) {
+        var lat = parseFloat(coords[0].trim());
+        var lon = parseFloat(coords[1].trim());
+        if (!isNaN(lat) && !isNaN(lon)) {
+            // สร้าง Point
+            var point = new Point({
+                latitude: lat,
+                longitude: lon
             });
 
-            document.getElementById("drawBtn").addEventListener("click", function() {
-                togglePanel(sketch);
+            // ลบ markers เก่าออก
+            searchGraphicsLayer.removeAll();
+
+            // สร้าง Graphic ใหม่
+            var graphic = new Graphic({
+                geometry: point,
+                symbol: markerSymbol
             });
 
-            sketch.on("create", function(event) {
-                if (event.state === "complete") {
-                    promptAttributes(event.graphic);
+            // เพิ่ม marker ลงในแผนที่
+            searchGraphicsLayer.add(graphic);
+
+            // เลื่อนแผนที่ไปยังตำแหน่งที่ค้นหา
+            view.goTo({
+                target: point,
+                zoom: 18
+            }, { duration: 1000 });
+        }
+    }
+});
+
+            function loadWMSCapabilities(url) {
+    // สร้าง URL สำหรับร้องขอ GetCapabilities
+    var getCapabilitiesUrl = `${url}?service=WMS&request=GetCapabilities&version=1.3.0`;
+    
+    fetch(getCapabilitiesUrl)
+        .then(response => response.text())
+        .then(data => {
+            // แปลง XML response เป็น DOM
+            var parser = new DOMParser();
+            var xmlDoc = parser.parseFromString(data, "text/xml");
+            
+            // ดึงรายการ layers
+            var layers = xmlDoc.getElementsByTagName("Layer");
+            
+            // สร้าง array ของ sublayers
+            var sublayers = [];
+            for (var i = 0; i < layers.length; i++) {
+                var name = layers[i].getElementsByTagName("Name")[0]?.textContent;
+                var title = layers[i].getElementsByTagName("Title")[0]?.textContent;
+                if (name) {
+                    sublayers.push({
+                        name: name,
+                        title: title || name,
+                        visible: true
+                    });
                 }
-            });
-
-            function promptAttributes(graphic) {
-                var attributes = {};
-                attributes["description"] = prompt("Enter description:");
-                graphic.attributes = attributes;
             }
-
-            view.on("click", function(event) {
-                view.hitTest(event).then(function(response) {
-                    var graphic = response.results.filter(function(result) {
-                        return result.graphic.layer === graphicsLayer;
-                    })[0];
-                    if (graphic) {
-                        showAttributePanel(graphic.graphic);
-                    } else {
-                        hideAttributePanel();
-                    }
-                });
-            });
-
-            function showAttributePanel(graphic) {
-                var panel = document.getElementById("attributePanel");
-                var content = document.getElementById("attributeContent");
-                content.innerHTML = "";
-                for (var key in graphic.attributes) {
-                    content.innerHTML += `<p><strong>${key}:</strong> ${graphic.attributes[key]}</p>`;
-                }
-                panel.style.display = "block";
-
-                document.getElementById("editAttributeBtn").onclick = function() {
-                    editAttributes(graphic);
-                };
-
-                document.getElementById("deleteFeatureBtn").onclick = function() {
-                    deleteFeature(graphic);
-                };
+            
+            // อัพเดท WMS Layer ด้วย sublayers ที่พบ
+            if (layer && sublayers.length > 0) {
+                layer.sublayers = sublayers;
             }
-
-            function hideAttributePanel() {
-                document.getElementById("attributePanel").style.display = "none";
-            }
-
-            function editAttributes(graphic) {
-                var newAttributes = {};
-                for (var key in graphic.attributes) {
-                    var value = prompt(`Edit ${key}:`, graphic.attributes[key]);
-                    if (value !== null) {
-                        newAttributes[key] = value;
-                    }
-                }
-                graphic.attributes = newAttributes;
-                showAttributePanel(graphic);
-            }
-
-            function deleteFeature(graphic) {
-                graphicsLayer.remove(graphic);
-                hideAttributePanel();
-            }
+        })
+        .catch(error => {
+            console.error("Error loading WMS capabilities:", error);
+        });
+}
 
             // Export to KML
+            document.getElementById("exportKmlBtn").addEventListener("click", function() {
+                exportToKML();
+            });
+
             function exportToKML() {
                 var kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
+                
                 graphicsLayer.graphics.forEach(function(graphic) {
                     var geometry = graphic.geometry;
-                    var attributes = graphic.attributes;
+                    var attributes = graphic.attributes || {};
+                    
                     kml += '<Placemark>\n';
-                    kml += '<name>' + (attributes.description || "Untitled") + '</name>\n';
-                    kml += '<description>' + (attributes.description || "") + '</description>\n';
+                    kml += `<name>${attributes.description || "Untitled"}</name>\n`;
+                    kml += `<description>${attributes.description || ""}</description>\n`;
+                    
                     if (geometry.type === "point") {
-                        var lonLat = webMercatorUtils.xyToLngLat(geometry.x, geometry.y);
-                        kml += '<Point>\n<coordinates>' + lonLat[0] + ',' + lonLat[1] + '</coordinates>\n</Point>\n';
+                        var lonLat = webMercatorUtils.webMercatorToGeographic(geometry);
+                        kml += '<Point>\n<coordinates>' + lonLat.longitude + ',' + lonLat.latitude + '</coordinates>\n</Point>\n';
+                    } else if (geometry.type === "polyline") {
+                        kml += '<LineString>\n<coordinates>\n';
+                        geometry.paths[0].forEach(function(point) {
+                            var lonLat = webMercatorUtils.webMercatorToGeographic({
+                                x: point[0],
+                                y: point[1]
+                            });
+                            kml += lonLat.longitude + ',' + lonLat.latitude + ' ';
+                        });
+                        kml += '\n</coordinates>\n</LineString>\n';
                     } else if (geometry.type === "polygon") {
                         kml += '<Polygon>\n<outerBoundaryIs>\n<LinearRing>\n<coordinates>\n';
                         geometry.rings[0].forEach(function(point) {
-                            var lonLat = webMercatorUtils.xyToLngLat(point[0], point[1]);
-                            kml += lonLat[0] + ',' + lonLat[1] + ' ';
+                            var lonLat = webMercatorUtils.webMercatorToGeographic({
+                                x: point[0],
+                                y: point[1]
+                            });
+                            kml += lonLat.longitude + ',' + lonLat.latitude + ' ';
                         });
                         kml += '\n</coordinates>\n</LinearRing>\n</outerBoundaryIs>\n</Polygon>\n';
                     }
                     kml += '</Placemark>\n';
                 });
+                
                 kml += '</Document>\n</kml>';
 
                 var blob = new Blob([kml], {type: "application/vnd.google-earth.kml+xml"});
@@ -460,40 +820,6 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-            }
-
-            var exportButton = document.createElement("button");
-            exportButton.innerHTML = "Export to KML";
-            exportButton.className = "btn btn-primary";
-            exportButton.onclick = exportToKML;
-            view.ui.add(exportButton, "bottom-left");
-
-            function togglePanel(panel) {
-                if (panel instanceof HTMLElement) {
-                    if (panel.style.display === "none" || panel.style.display === "") {
-                        panel.style.display = "block";
-                    } else {
-                        panel.style.display = "none";
-                    }
-                } else if (typeof panel === "string") {
-                    var panelElement = document.getElementById(panel);
-                    if (panelElement.style.display === "none" || panelElement.style.display === "") {
-                        panelElement.style.display = "block";
-                    } else {
-                        panelElement.style.display = "none";
-                    }
-                } else {
-                    if (view.ui.find(panel)) {
-                        view.ui.remove(panel);
-                    } else {
-                        view.ui.add(panel, "top-right");
-                    }
-                }
-            }
-
-            // Close panel function
-            window.closePanel = function(panelId) {
-                document.getElementById(panelId).style.display = "none";
             }
 
             // Location tracking
@@ -513,44 +839,27 @@
                 useHeadingEnabled: false
             });
 
-            view.ui.add(track, "top-left");
-
             var locationBtn = document.getElementById("locationBtn");
             var isTracking = false;
-            var hasZoomedToLocation = false;
-
+            
             locationBtn.addEventListener("click", function() {
                 if (!isTracking) {
                     track.start();
                     isTracking = true;
-                    locationBtn.textContent = "Stop Tracking";
-                    locationBtn.classList.remove("btn-primary");
-                    locationBtn.classList.add("btn-danger");
-                    hasZoomedToLocation = false;  // Reset zoom flag
+                    locationBtn.classList.add("tool-active");
                 } else {
                     track.stop();
                     isTracking = false;
-                    locationBtn.textContent = "Track Location";
-                    locationBtn.classList.remove("btn-danger");
-                    locationBtn.classList.add("btn-primary");
-                }
-            });
-
-            track.on("track", function(trackEvent) {
-                var position = trackEvent.position;
-                if (position && !hasZoomedToLocation) {
-                    view.goTo({
-                        center: [position.longitude, position.latitude],
-                        zoom: 15
-                    }, { duration: 500 });
-                    hasZoomedToLocation = true;  // Set zoom flag after first zoom
+                    locationBtn.classList.remove("tool-active");
                 }
             });
 
             // Initialize UI
             view.when(function() {
-                view.ui.add("toolPanel", "top-left");
-                view.ui.add(locationBtn, "bottom-left");
+                // Hide all panels initially
+                document.querySelectorAll('.panel').forEach(function(panel) {
+                    panel.style.display = 'none';
+                });
             });
         });
     </script>
