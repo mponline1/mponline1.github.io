@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -7,7 +8,8 @@
     <link rel="stylesheet" href="https://js.arcgis.com/4.22/esri/themes/light/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=hVo5rzO9qMX_smhfPGIP9cANzeiOUoYg_cMoAd_GNVykT9sa4IDVTr8g9KWfosFVjbYQv-KdRVBsuensANvPyQ" charset="UTF-8"></script><style>
         html, body, #viewDiv {
             padding: 0;
             margin: 0;
@@ -179,6 +181,21 @@
     margin-top: 10px;
     width: 100%;
 }
+.excel-import-panel {
+    position: absolute;
+    top: 60px;
+    left: 10px;
+    z-index: 1000;
+    background: white;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    display: none;
+    width: 300px;
+}
+.column-select {
+    margin: 10px 0;
+}
     </style>
 </head>
 <body>
@@ -209,10 +226,13 @@
         </button>
         <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location">
             <i class="fas fa-location-dot"></i>
-        </button> <!-- 
+        </button> 
         <button id="exportKmlBtn" class="btn btn-toolbar-custom" title="Export to KML">
             <i class="fas fa-download"></i> 
-        </button> -->
+        </button> 
+        <button id="excelImportBtn" class="btn btn-toolbar-custom" title="Import Excel">
+            <i class="fas fa-file-excel"></i>
+        </button>
     </div> 
 
     <!-- Home Button -->
@@ -271,6 +291,23 @@
         <span class="close-btn" onclick="closePanel('printPanel')">&times;</span>
         <h5>Print Map</h5>
         <div id="printDiv"></div>
+    </div>
+
+    <div id="excelImportPanel" class="excel-import-panel">
+        <span class="close-btn" onclick="closePanel('excelImportPanel')">&times;</span>
+        <h5>Import Excel Points</h5>
+        <div class="mb-3">
+            <input type="file" id="excelFile" class="form-control" accept=".xlsx, .xls">
+        </div>
+        <div class="column-select">
+            <label>Latitude Column:</label>
+            <select id="latColumn" class="form-select mb-2"></select>
+            <label>Longitude Column:</label>
+            <select id="lonColumn" class="form-select mb-2"></select>
+            <label>Label Column (optional):</label>
+            <select id="labelColumn" class="form-select"></select>
+        </div>
+        <button id="importExcelBtn" class="btn btn-primary" disabled>Import Points</button>
     </div>
 
     <!-- Attribute Input Modal -->
@@ -851,6 +888,144 @@ var markerSymbol = new SimpleMarkerSymbol({
                     locationBtn.classList.remove("tool-active");
                 }
             });
+
+// Create a new graphics layer for Excel points
+var excelPointsLayer = new GraphicsLayer({
+    title: "Excel Points"
+});
+map.add(excelPointsLayer);
+
+// Excel import button event
+document.getElementById("excelImportBtn").addEventListener("click", function() {
+    togglePanel("excelImportPanel");
+});
+
+// File input change handler
+document.getElementById("excelFile").addEventListener("change", function(e) {
+    var file = e.target.files[0];
+    if (file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var data = new Uint8Array(e.target.result);
+            var workbook = XLSX.read(data, { type: 'array' });
+            var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            var jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+            if (jsonData.length > 0) {
+                var headers = jsonData[0];
+                updateColumnSelects(headers);
+                document.getElementById("importExcelBtn").disabled = false;
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+});
+
+// Update column select dropdowns
+function updateColumnSelects(headers) {
+    var selects = ['latColumn', 'lonColumn', 'labelColumn'];
+    selects.forEach(function(selectId) {
+        var select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Select Column</option>';
+        headers.forEach(function(header, index) {
+            var option = document.createElement('option');
+            option.value = index;
+            option.textContent = header;
+            select.appendChild(option);
+        });
+    });
+}
+
+// Import button click handler
+document.getElementById("importExcelBtn").addEventListener("click", function() {
+    var file = document.getElementById("excelFile").files[0];
+    var latColIndex = parseInt(document.getElementById("latColumn").value);
+    var lonColIndex = parseInt(document.getElementById("lonColumn").value);
+    var labelColIndex = parseInt(document.getElementById("labelColumn").value);
+
+    if (file && !isNaN(latColIndex) && !isNaN(lonColIndex)) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var data = new Uint8Array(e.target.result);
+            var workbook = XLSX.read(data, { type: 'array' });
+            var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            var jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+            // Clear existing points
+            excelPointsLayer.removeAll();
+
+            // Create points starting from row 1 (skip headers)
+            var points = [];
+            for (var i = 1; i < jsonData.length; i++) {
+                var row = jsonData[i];
+                var lat = parseFloat(row[latColIndex]);
+                var lon = parseFloat(row[lonColIndex]);
+                var label = !isNaN(labelColIndex) ? row[labelColIndex] : '';
+
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    var point = new Point({
+                        latitude: lat,
+                        longitude: lon
+                    });
+
+                    var graphic = new Graphic({
+                        geometry: point,
+                        symbol: new SimpleMarkerSymbol({
+                            color: [255, 0, 0, 0.8],
+                            size: "12px",
+                            outline: {
+                                color: [255, 255, 255],
+                                width: 2
+                            }
+                        }),
+                        attributes: {
+                            label: label || `Point ${i}`,
+                            latitude: lat,
+                            longitude: lon
+                        },
+                        popupTemplate: {
+                            title: "Point Information",
+                            content: [
+                                {
+                                    type: "fields",
+                                    fieldInfos: [
+                                        {
+                                            fieldName: "label",
+                                            label: "Label"
+                                        },
+                                        {
+                                            fieldName: "latitude",
+                                            label: "Latitude"
+                                        },
+                                        {
+                                            fieldName: "longitude",
+                                            label: "Longitude"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    });
+
+                    points.push(graphic);
+                }
+            }
+
+            // Add all points to the layer
+            excelPointsLayer.addMany(points);
+
+            // Zoom to the extent of all points
+            if (points.length > 0) {
+                view.goTo(points);
+            }
+
+            // Update layer list
+            updateLayerList();
+            closePanel('excelImportPanel');
+        };
+        reader.readAsArrayBuffer(file);
+    }
+});
 
             // Initialize UI
             view.when(function() {
