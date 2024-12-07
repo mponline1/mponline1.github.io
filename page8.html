@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>SHAPEFILE TO EXCEL</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ag-grid/31.0.1/ag-grid-community.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/ag-grid/31.0.1/styles/ag-grid.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/ag-grid/31.0.1/styles/ag-theme-alpine.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-green: #4CAF50;
+            --light-green: #e8f5e9;
+            --bg-green: #f1f8e9;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-green);
+            min-height: 100vh;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .header-card {
+            padding: 20px;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .header h1 {
+            color: var(--primary-green);
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .header .subtitle {
+            color: var(--primary-green);
+            font-size: 18px;
+            margin-top: 5px;
+        }
+        
+        .home-icon {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        
+        .home-icon:hover {
+            transform: translateY(-2px);
+            background-color: #45a049;
+        }
+        
+        .content-card {
+            background-color: white;
+            padding: 30px;
+        }
+        
+        .manual-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 25px;
+            text-decoration: none;
+        }
+        
+        .manual-title:hover {
+            color: var(--primary-green);
+        }
+        
+        .manual-title i {
+            color: var(--primary-green);
+            font-size: 24px;
+        }
+        
+        .file-input-section {
+            margin-bottom: 25px;
+        }
+        
+        .file-label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .file-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .choose-file {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: white;
+            flex-grow: 1;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-process {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .btn-export {
+            background-color: var(--primary-green);
+            color: white;
+        }
+        
+        .btn-clear {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .grid-card {
+            background-color: white;
+            padding: 20px;
+            min-height: 400px;
+        }
+        
+        #grid {
+            width: 100%;
+            height: calc(100vh - 400px);
+            min-height: 400px;
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        #status {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: var(--light-green);
+            display: none;
+        }
+
+        .ag-header-cell-filtered {
+            background-color: var(--light-green) !important;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="card header-card">
+        <div class="header">
+            <div>
+                <h1>SHAPEFILE TO EXCEL</h1>
+                <div class="subtitle">แปลง shapefile เป็น excel</div>
+            </div>
+            <a href="index.html" class="home-icon">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+    </div>
+    
+    <div class="card content-card">
+        <a href="SHP TO EXCEL HANDBOOK.pdf" class="manual-title">
+            <i class="fas fa-book"></i>
+            <span>คู่มือการใช้งาน</span>
+        </a>
+        
+        <div class="file-input-section">
+            <label class="file-label">ไฟล์ shapefile (zip file)</label>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" accept=".zip" />
+                <input type="text" class="choose-file" id="fileDisplay" placeholder="เลือกไฟล์" readonly onclick="document.getElementById('fileInput').click();" />
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn btn-process" onclick="processShapefile()">
+                <i class="fas fa-cog"></i>
+                ประมวลผล
+            </button>
+            <button class="btn btn-export" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i>
+                ส่งออกเป็น Excel
+            </button>
+            <button class="btn btn-clear" onclick="clearAllFilters()">
+                <i class="fas fa-trash"></i>
+                ล้างตัวกรองทั้งหมด
+            </button>
+        </div>
+    </div>
+    
+    <div class="card grid-card">
+        <div id="status"></div>
+        <div id="grid" class="ag-theme-alpine"></div>
+    </div>
+
+    <script>
+        let gridApi;
+        let columnDefs = [];
+        let rowData = [];
+
+        // Update file input display
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : 'เลือกไฟล์';
+            document.getElementById('fileDisplay').value = fileName;
+        });
+
+        async function processShapefile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const status = document.getElementById('status');
+            
+            if (!file) {
+                alert('กรุณาเลือกไฟล์ Shapefile (.zip)');
+                return;
+            }
+
+            status.style.display = 'block';
+            status.textContent = 'กำลังประมวลผล...';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const geojson = await shp(arrayBuffer);
+                
+                rowData = geojson.features.map(feature => feature.properties);
+
+                if (rowData.length > 0) {
+                    columnDefs = Object.keys(rowData[0]).map(key => ({
+                        field: key,
+                        filter: true,
+                        floatingFilter: true,
+                        sortable: true,
+                        minWidth: 200,
+                        filterParams: {
+                            buttons: ['apply', 'clear', 'reset'],
+                            closeOnApply: false,
+                            suppressAndOrCondition: false,
+                            values: getUniqueValues(rowData, key)
+                        },
+                        valueFormatter: params => {
+                            if (typeof params.value === 'number') {
+                                return params.value.toLocaleString();
+                            }
+                            return params.value;
+                        },
+                        comparator: (valueA, valueB) => {
+                            if (typeof valueA === 'number' && typeof valueB === 'number') {
+                                return valueA - valueB;
+                            }
+                            return valueA > valueB ? 1 : -1;
+                        }
+                    }));
+
+                    const gridOptions = {
+                        columnDefs: columnDefs,
+                        rowData: rowData,
+                        pagination: true,
+                        paginationPageSize: 20,
+                        domLayout: 'normal',
+                        onFilterChanged: onFilterChanged,
+                        defaultColDef: {
+                            flex: 1,
+                            minWidth: 200,
+                            filter: 'agSetColumnFilter',
+                            floatingFilter: true,
+                            resizable: true,
+                            sortable: true,
+                            filterParams: {
+                                buttons: ['apply', 'clear', 'reset'],
+                                closeOnApply: false
+                            }
+                        }
+                    };
+
+                    const gridDiv = document.querySelector('#grid');
+                    gridApi = new agGrid.Grid(gridDiv, gridOptions);
+                    gridApi = gridOptions.api;
+
+                    status.textContent = `จำนวนข้อมูลทั้งหมด: ${rowData.length.toLocaleString()} แถว`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                status.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
+            }
+        }
+
+        function getUniqueValues(data, field) {
+            return [...new Set(data.map(item => item[field]))].filter(value => value !== null && value !== undefined);
+        }
+
+        function clearAllFilters() {
+            if (gridApi) {
+                gridApi.setFilterModel(null);
+                gridApi.onFilterChanged();
+            }
+        }
+
+        function onFilterChanged() {
+            if (gridApi) {
+                const filteredCount = gridApi.getDisplayedRowCount();
+                const totalCount = rowData.length;
+                const status = document.getElementById('status');
+                status.style.display = 'block';
+                status.textContent = `จำนวนข้อมูลที่แสดง: ${filteredCount.toLocaleString()} จาก ${totalCount.toLocaleString()} แถว`;
+            }
+        }
+
+        function exportToExcel() {
+            if (!gridApi) {
+                alert('ไม่มีข้อมูลที่จะส่งออก');
+                return;
+            }
+
+            const filteredData = [];
+            gridApi.forEachNodeAfterFilter(node => {
+                filteredData.push(node.data);
+            });
+
+            const ws = XLSX.utils.json_to_sheet(filteredData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ShapefileData");
+            XLSX.writeFile(wb, "shapefile_data.xlsx");
+        }
+    </script>
+</body>
+</html>
