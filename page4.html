@@ -1,154 +1,485 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>ArcGIS Map with GeoJSON Upload and Basemap Switcher</title>
-    <style>
-        html, body, #viewDiv {
-            padding: 0;
-            margin: 0;
-            height: 100%;
-            width: 100%;
-        }
-        #uploadBtn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            padding: 10px;
-            background-color: white;
-            border: none;
-            cursor: pointer;
-        }
-        #basemapBtn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            padding: 10px;
-            background-color: white;
-            border: none;
-            cursor: pointer;
-        }
-        #basemapGallery {
-            position: absolute;
-            bottom: 60px;
-            right: 20px;
-            z-index: 1000;
-            background-color: white;
-            border: 1px solid #ccc;
-            padding: 10px;
-            display: none;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .basemap-item {
-            cursor: pointer;
-            padding: 5px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-        }
-        .basemap-item:hover {
-            background-color: #f0f0f0;
-        }
-    </style>
-    <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css">
-    <script src="https://js.arcgis.com/4.28/"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Town Planning Laws</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 </head>
-<body>
-    <div id="viewDiv"></div>
-    <input type="file" id="fileInput" style="display: none;" accept=".geojson" />
-    <button id="uploadBtn">อัพโหลด GeoJSON</button>
-    <button id="basemapBtn">เปลี่ยน Basemap</button>
-    <div id="basemapGallery"></div>
+<body class="bg-[#B5C7BC]">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-    <script type="module">
-        import Map from "https://js.arcgis.com/4.28/@arcgis/core/Map.js";
-        import MapView from "https://js.arcgis.com/4.28/@arcgis/core/views/MapView.js";
-        import GeoJSONLayer from "https://js.arcgis.com/4.28/@arcgis/core/layers/GeoJSONLayer.js";
-        import Basemap from "https://js.arcgis.com/4.28/@arcgis/core/Basemap.js";
+        function App() {
+            const [data, setData] = useState([]);
+            const [filteredData, setFilteredData] = useState([]);
+            const [provinces, setProvinces] = useState([]);
+            const [townPlans, setTownPlans] = useState([]);
+            const [lawTypes, setLawTypes] = useState([]);
+            const [announceDetails, setAnnounceDetails] = useState([]);
+            const [planTypes, setPlanTypes] = useState([]); // New state for plan types
+            const [currentPage, setCurrentPage] = useState(1);
+            const [filters, setFilters] = useState({
+                province: '',
+                townPlan: '',
+                startDate: '',
+                endDate: '',
+                lawType: '',
+                announceDetail: '',
+                planType: '', // New filter for plan type
+                searchText: ''
+            });
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+            const itemsPerPage = isMobileView ? 5 : 10;
 
-        const map = new Map({
-            basemap: "topo-vector"
-        });
+            // Date range constants for the calendar
+            const minDate = "2547-01-01";
+            const maxDate = "2568-12-31";
 
-        const view = new MapView({
-            container: "viewDiv",
-            map: map,
-            center: [100.5, 13.7], // กรุงเทพมหานคร
-            zoom: 8
-        });
+            const supabaseUrl = 'https://pujxymngzwitcnjavmfi.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1anh5bW5nendpdGNuamF2bWZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ3NTM4ODUsImV4cCI6MjA1MDMyOTg4NX0.FfgtwiVm-CItYomYTOLn7bzc5PRXmcg0f0A95E8sG3w';
 
-        let geoJSONLayer;
+            useEffect(() => {
+                const handleResize = () => {
+                    setIsMobileView(window.innerWidth < 768);
+                };
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
 
-        document.getElementById('uploadBtn').addEventListener('click', function() {
-            document.getElementById('fileInput').click();
-        });
+            const fetchData = async () => {
+                try {
+                    setLoading(true);
+                    setError(null);
 
-        document.getElementById('fileInput').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
+                    const response = await fetch(
+                        `${supabaseUrl}/rest/v1/lawtownplan?select=*`,
+                        {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': `Bearer ${supabaseKey}`,
+                            },
+                        }
+                    );
 
-            reader.onload = function(e) {
-                const geojsonData = e.target.result;
-                const blob = new Blob([geojsonData], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
 
-                if (geoJSONLayer) {
-                    map.remove(geoJSONLayer);
+                    const lawData = await response.json();
+
+                    if (!Array.isArray(lawData)) {
+                        throw new Error('Invalid data format received');
+                    }
+
+                    // Sort data by announcement date in descending order
+                    const sortedData = lawData.sort((a, b) => {
+                        return new Date(b.วันที่ประกาศ) - new Date(a.วันที่ประกาศ);
+                    });
+
+                    if (sortedData) {
+                        setData(sortedData);
+                        setFilteredData(sortedData);
+                        
+                        const uniqueProvinces = [...new Set(sortedData.map(item => item.จังหวัด))].filter(Boolean).sort();
+                        const uniqueTownPlans = [...new Set(sortedData.map(item => item.ชื่อผังเมืองรวม))].filter(Boolean).sort();
+                        const uniqueLawTypes = [...new Set(sortedData.map(item => item.ประเภทกฎหมาย))].filter(Boolean).sort();
+                        const uniqueAnnounceDetails = [...new Set(sortedData.map(item => item.รายละเอียดประกาศ))].filter(Boolean).sort();
+                        const uniquePlanTypes = [...new Set(sortedData.map(item => item.ประเภทผัง))].filter(Boolean).sort();
+
+                        setProvinces(uniqueProvinces);
+                        setTownPlans(uniqueTownPlans);
+                        setLawTypes(uniqueLawTypes);
+                        setAnnounceDetails(uniqueAnnounceDetails);
+                        setPlanTypes(uniquePlanTypes);
+                    }
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                fetchData();
+            }, []);
+
+            useEffect(() => {
+                if (filters.province && data.length > 0) {
+                    const filteredTownPlans = [...new Set(
+                        data
+                            .filter(item => item.จังหวัด === filters.province)
+                            .map(item => item.ชื่อผังเมืองรวม)
+                    )].filter(Boolean).sort();
+                    setTownPlans(filteredTownPlans);
+                } else {
+                    const allTownPlans = [...new Set(data.map(item => item.ชื่อผังเมืองรวม))].filter(Boolean).sort();
+                    setTownPlans(allTownPlans);
+                }
+            }, [filters.province, data]);
+
+            useEffect(() => {
+                if (!data.length) return;
+
+                let filtered = [...data];
+
+                if (filters.province) {
+                    filtered = filtered.filter(item => item.จังหวัด === filters.province);
+                }
+                if (filters.townPlan) {
+                    filtered = filtered.filter(item => item.ชื่อผังเมืองรวม === filters.townPlan);
+                }
+                if (filters.lawType) {
+                    filtered = filtered.filter(item => item.ประเภทกฎหมาย === filters.lawType);
+                }
+                if (filters.announceDetail) {
+                    filtered = filtered.filter(item => item.รายละเอียดประกาศ === filters.announceDetail);
+                }
+                if (filters.planType) { // New filter for plan type
+                    filtered = filtered.filter(item => item.ประเภทผัง === filters.planType);
+                }
+                if (filters.startDate && filters.endDate) {
+                    filtered = filtered.filter(item => {
+                        if (!item.วันที่ประกาศ) return false;
+                        const date = new Date(item.วันที่ประกาศ);
+                        const start = new Date(filters.startDate);
+                        const end = new Date(filters.endDate);
+                        return date >= start && date <= end;
+                    });
+                }
+                if (filters.searchText) {
+                    const searchLower = filters.searchText.toLowerCase();
+                    filtered = filtered.filter(item => 
+                        Object.values(item).some(value => 
+                            value && value.toString().toLowerCase().includes(searchLower)
+                        )
+                    );
                 }
 
-                geoJSONLayer = new GeoJSONLayer({
-                    url: url,
-                    renderer: {
-                        type: "simple",
-                        symbol: {
-                            type: "simple-line",
-                            color: "red",
-                            width: 2
-                        }
-                    }
-                });
+                setFilteredData(filtered);
+                setCurrentPage(1);
+            }, [filters, data]);
 
-                map.add(geoJSONLayer);
+            const handleFilterChange = (name, value) => {
+                setFilters(prev => ({
+                    ...prev,
+                    [name]: value,
+                    ...(name === 'province' ? { townPlan: '' } : {})
+                }));
+            };
 
-                geoJSONLayer.when(() => {
-                    view.goTo(geoJSONLayer.fullExtent);
-                    URL.revokeObjectURL(url);
+            const clearFilters = () => {
+                setFilters({
+                    province: '',
+                    townPlan: '',
+                    startDate: '',
+                    endDate: '',
+                    lawType: '',
+                    announceDetail: '',
+                    planType: '', // Reset plan type filter
+                    searchText: ''
                 });
             };
 
-            reader.readAsText(file);
-        });
-
-        // Basemap switcher
-        const basemaps = [
-            { id: "topo-vector", name: "Topographic" },
-            { id: "streets-vector", name: "Streets" },
-            { id: "satellite", name: "Satellite" },
-            { id: "hybrid", name: "Hybrid" },
-            { id: "dark-gray-vector", name: "Dark Gray" },
-            { id: "gray-vector", name: "Light Gray" },
-            { id: "oceans", name: "Oceans" },
-            { id: "national-geographic", name: "National Geographic" }
-        ];
-
-        const basemapGallery = document.getElementById('basemapGallery');
-        basemaps.forEach(basemap => {
-            const div = document.createElement('div');
-            div.className = 'basemap-item';
-            div.textContent = basemap.name;
-            div.onclick = () => {
-                map.basemap = basemap.id;
-                basemapGallery.style.display = 'none';
+            const handleHomeClick = () => {
+                window.location.href = 'index.html';
             };
-            basemapGallery.appendChild(div);
-        });
 
-        document.getElementById('basemapBtn').addEventListener('click', function() {
-            basemapGallery.style.display = basemapGallery.style.display === 'none' ? 'block' : 'none';
-        });
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentData = filteredData.slice(startIndex, endIndex);
+
+            const MobileCard = ({ item, index }) => (
+                <div className="bg-white/90 rounded-lg shadow-lg p-6 mb-4 hover:shadow-xl transition-all duration-300">
+                    <div className="flex justify-between items-center mb-4">
+                        <span className="text-sm font-medium text-[#4A5D54]">#{startIndex + index + 1}</span>
+                        {item.ไฟล์แนบ && (
+                            <a 
+                                href={item.ไฟล์แนบ}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#98AFA4] hover:text-[#7A8D82] text-sm underline flex items-center"
+                            >
+                                <i className="fas fa-file-pdf mr-1"></i>
+                                ดูไฟล์
+                            </a>
+                        )}
+                    </div>
+                    <div className="space-y-3">
+                        <p><span className="font-semibold text-[#4A5D54]">จังหวัด:</span> {item.จังหวัด}</p>
+                        <p><span className="font-semibold text-[#4A5D54]">ชื่อผังเมืองรวม:</span> {item.ชื่อผังเมืองรวม}</p>
+                        <p><span className="font-semibold text-[#4A5D54]">รายการประกาศ:</span> {item.รายการประกาศ}</p>
+                        <p><span className="font-semibold text-[#4A5D54]">ประเภทกฎหมาย:</span> {item.ประเภทกฎหมาย}</p>
+                        <p><span className="font-semibold text-[#4A5D54]">รายละเอียดประกาศ:</span> {item.รายละเอียดประกาศ}</p>
+                        <p><span className="font-semibold text-[#4A5D54]">รายละเอียดเล่ม:</span> {item.รายละเอียดเล่ม}</p>
+                        <p><span className="font-semibold text-[#4A5D54]">วันที่ประกาศ:</span> {item.วันที่ประกาศ}</p>
+                    </div>
+                </div>
+            );
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen flex justify-center items-center bg-gradient-to-b from-[#D4B69C] via-[#F2DEB1] to-[#B5C7BC]">
+                        <div className="text-xl text-[#4A5D54]">
+                            <i className="fas fa-circle-notch fa-spin mr-2"></i>
+                            กำลังโหลดข้อมูล...
+                        </div>
+                    </div>
+                );
+            }
+
+            if (error) {
+                return (
+                    <div className="min-h-screen flex justify-center items-center bg-gradient-to-b from-[#D4B69C] via-[#F2DEB1] to-[#B5C7BC]">
+                        <div className="text-xl text-red-600">
+                            <i className="fas fa-exclamation-circle mr-2"></i>
+                            {error}
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-b from-[#D4B69C] via-[#F2DEB1] to-[#B5C7BC]">
+                    {/* Home Button */}
+                    <div className="fixed top-4 right-4 z-50">
+                        <button 
+                            onClick={handleHomeClick}
+                            className="bg-[#98AFA4] hover:bg-[#7A8D82] text-white p-3 rounded-full shadow-lg transition-all duration-300"
+                            aria-label="กลับสู่หน้าหลัก"
+                        >
+                            <i className="fas fa-home text-xl"></i>
+                        </button>
+                    </div>
+
+                    <div className="container mx-auto px-4 py-8 max-w-7xl">
+                        {/* Header */}
+                        <div className="text-center mb-12">
+                            <h1 className="text-3xl md:text-4xl font-bold text-[#4A5D54] mb-2">
+                                Town Planning Laws
+                            </h1>
+                            <h2 className="text-xl md:text-2xl text-[#6B7F78]">
+                                ระบบสืบค้นข้อมูลกฎหมายผังเมืองรวม
+                            </h2>
+                        </div>
+
+                        {/* Search Box */}
+                        <div className="mb-8">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="ค้นหาข้อมูล..."
+                                    className="w-full p-4 pr-12 border rounded-lg shadow-lg focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4] bg-white/90"
+                                    value={filters.searchText}
+                                    onChange={(e) => handleFilterChange('searchText', e.target.value)}
+                                />
+                                <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                                    <i className="fas fa-search text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="bg-white/80 rounded-lg shadow-lg p-6 mb-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-[#4A5D54] mb-2">จังหวัด</label>
+                                    <select
+                                        className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
+                                        value={filters.province}
+                                        onChange={(e) => handleFilterChange('province', e.target.value)}
+                                    >
+                                        <option value="">ทั้งหมด</option>
+                                        {provinces.map(province => (
+                                            <option key={province} value={province}>{province}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#4A5D54] mb-2">ชื่อผังเมืองรวม</label>
+                                    <select
+                                        className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
+                                        value={filters.townPlan}
+                                        onChange={(e) => handleFilterChange('townPlan', e.target.value)}
+                                    >
+                                        <option value="">ทั้งหมด</option>
+                                        {townPlans.map(plan => (
+                                            <option key={plan} value={plan}>{plan}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#4A5D54] mb-2">ประเภทกฎหมาย</label>
+                                    <select
+                                        className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
+                                        value={filters.lawType}
+                                        onChange={(e) => handleFilterChange('lawType', e.target.value)}
+                                    >
+                                        <option value="">ทั้งหมด</option>
+                                        {lawTypes.map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#4A5D54] mb-2">รายละเอียดประกาศ</label>
+                                    <select
+                                        className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
+                                        value={filters.announceDetail}
+                                        onChange={(e) => handleFilterChange('announceDetail', e.target.value)}
+                                    >
+                                        <option value="">ทั้งหมด</option>
+                                        {announceDetails.map(detail => (
+                                            <option key={detail} value={detail}>{detail}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#4A5D54] mb-2">ประเภทผัง</label>
+                                    <select
+                                        className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
+                                        value={filters.planType}
+                                        onChange={(e) => handleFilterChange('planType', e.target.value)}
+                                    >
+                                        <option value="">ทั้งหมด</option>
+                                        {planTypes.map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-span-full md:col-span-2">
+                                    <label className="block text-sm font-medium text-[#4A5D54] mb-2">ช่วงวันที่ประกาศ</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input
+                                            type="date"
+                                            className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
+                                            value={filters.startDate}
+                                            min={minDate}
+                                            max={maxDate}
+                                            onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                                        />
+                                        <input
+                                            type="date"
+                                            className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
+                                            value={filters.endDate}
+                                            min={minDate}
+                                            max={maxDate}
+                                            onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="col-span-full md:col-span-1">
+                                    <button
+                                        onClick={clearFilters}
+                                        className="w-full p-3 mt-6 bg-[#98AFA4] text-white rounded-lg hover:bg-[#7A8D82] transition-colors shadow-md flex items-center justify-center"
+                                    >
+                                        <i className="fas fa-undo-alt mr-2"></i>
+                                        ล้างตัวกรอง
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Results count */}
+                        <div className="mb-6 p-4 bg-white/80 rounded-lg shadow-md text-[#4A5D54] font-medium">
+                            <i className="fas fa-list-ul mr-2"></i>
+                            แสดงผล {filteredData.length} รายการ จากทั้งหมด {data.length} รายการ
+                        </div>
+
+                        {/* Table/Cards */}
+                        {isMobileView ? (
+                            <div className="space-y-6">
+                                {currentData.map((item, index) => (
+                                    <MobileCard key={index} item={item} index={index} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="overflow-hidden bg-white/90 rounded-lg shadow-lg">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-[#98AFA4]">
+                                        <tr>
+                                            <th className="px-6 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">ลำดับ</th>
+                                            <th className="px-6 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">จังหวัด</th>
+                                            <th className="px-6 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">ชื่อผังเมืองรวม</th>
+                                            <th className="px-6 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">รายการประกาศ</th>
+                                            <th className="px-6 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">ประเภทกฎหมาย</th>
+                                            <th className="px-6 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">รายละเอียดประกาศ</th>
+                                            <th className="px-6 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">รายละเอียดเล่ม</th>
+                                            <th className="px-6 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">วันที่ประกาศ</th>
+                                            <th className="px-6 py-4 text-center text-sm font-semibold text-white uppercase tracking-wider">ไฟล์แนบ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {currentData.map((item, index) => (
+                                            <tr key={index} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4A5D54]">{startIndex + index + 1}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4A5D54]">{item.จังหวัด}</td>
+                                                <td className="px-6 py-4 text-sm text-[#4A5D54]">{item.ชื่อผังเมืองรวม}</td>
+                                                <td className="px-6 py-4 text-sm text-[#4A5D54]">{item.รายการประกาศ}</td>
+                                                <td className="px-6 py-4 text-sm text-[#4A5D54]">{item.ประเภทกฎหมาย}</td>
+                                                <td className="px-6 py-4 text-sm text-[#4A5D54]">{item.รายละเอียดประกาศ}</td>
+                                                <td className="px-6 py-4 text-sm text-[#4A5D54]">{item.รายละเอียดเล่ม}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4A5D54]">{item.วันที่ประกาศ}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                                    {item.ไฟล์แนบ && (
+                                                        <a 
+                                                            href={item.ไฟล์แนบ} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="text-[#98AFA4] hover:text-[#7A8D82] underline flex items-center justify-center"
+                                                        >
+                                                            <i className="fas fa-file-pdf mr-1"></i>
+                                                            ดูไฟล์
+                                                        </a>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* Pagination */}
+                        <div className="mt-8 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                            <div className="text-[#4A5D54] font-medium">
+                                หน้า {currentPage} จาก {totalPages}
+                            </div>
+                            <div className="flex space-x-4">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-6 py-2 bg-[#98AFA4] text-white rounded-lg disabled:opacity-50 hover:bg-[#7A8D82] transition-colors shadow-md flex items-center"
+                                >
+                                    <i className="fas fa-chevron-left mr-2"></i>
+                                    ก่อนหน้า
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-6 py-2 bg-[#98AFA4] text-white rounded-lg disabled:opacity-50 hover:bg-[#7A8D82] transition-colors shadow-md flex items-center"
+                                >
+                                    ถัดไป
+                                    <i className="fas fa-chevron-right ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
