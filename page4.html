@@ -8,12 +8,64 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/th.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        input[type="date"] {
+            position: relative;
+            color: transparent;
+            background: transparent;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #98AFA4;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            z-index: 2;
+        }
+
+        .date-display {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            padding: 0.75rem;
+            background-color: white;
+            pointer-events: none;
+            border-radius: 0.5rem;
+            color: #4A5D54;
+            z-index: 1;
+        }
+
+        .date-container {
+            position: relative;
+            width: 100%;
+        }
+    </style>
 </head>
 <body class="bg-[#B5C7BC]">
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
+
+        // Format date to Thai locale for display
+        const formatThaiDate = (dateString) => {
+            if (!dateString) return '';
+            return moment(dateString).locale('th').format('D MMMM YYYY');
+        };
+
+        // Format date for comparison
+        const formatDateForComparison = (dateString) => {
+            if (!dateString) return null;
+            return moment(dateString).format('YYYY-MM-DD');
+        };
 
         function App() {
             const [data, setData] = useState([]);
@@ -22,7 +74,7 @@
             const [townPlans, setTownPlans] = useState([]);
             const [lawTypes, setLawTypes] = useState([]);
             const [announceDetails, setAnnounceDetails] = useState([]);
-            const [planTypes, setPlanTypes] = useState([]); // New state for plan types
+            const [planTypes, setPlanTypes] = useState([]);
             const [currentPage, setCurrentPage] = useState(1);
             const [filters, setFilters] = useState({
                 province: '',
@@ -31,7 +83,7 @@
                 endDate: '',
                 lawType: '',
                 announceDetail: '',
-                planType: '', // New filter for plan type
+                planType: '',
                 searchText: ''
             });
             const [loading, setLoading] = useState(true);
@@ -39,7 +91,6 @@
             const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
             const itemsPerPage = isMobileView ? 5 : 10;
 
-            // Date range constants for the calendar
             const minDate = "2547-01-01";
             const maxDate = "2568-12-31";
 
@@ -79,7 +130,6 @@
                         throw new Error('Invalid data format received');
                     }
 
-                    // Sort data by announcement date in descending order
                     const sortedData = lawData.sort((a, b) => {
                         return new Date(b.วันที่ประกาศ) - new Date(a.วันที่ประกาศ);
                     });
@@ -143,16 +193,20 @@
                 if (filters.announceDetail) {
                     filtered = filtered.filter(item => item.รายละเอียดประกาศ === filters.announceDetail);
                 }
-                if (filters.planType) { // New filter for plan type
+                if (filters.planType) {
                     filtered = filtered.filter(item => item.ประเภทผัง === filters.planType);
                 }
                 if (filters.startDate && filters.endDate) {
                     filtered = filtered.filter(item => {
                         if (!item.วันที่ประกาศ) return false;
-                        const date = new Date(item.วันที่ประกาศ);
-                        const start = new Date(filters.startDate);
-                        const end = new Date(filters.endDate);
-                        return date >= start && date <= end;
+                        
+                        const itemDate = formatDateForComparison(item.วันที่ประกาศ);
+                        const startDate = formatDateForComparison(filters.startDate);
+                        const endDate = formatDateForComparison(filters.endDate);
+                        
+                        if (!itemDate || !startDate || !endDate) return false;
+                        
+                        return itemDate >= startDate && itemDate <= endDate;
                     });
                 }
                 if (filters.searchText) {
@@ -184,7 +238,7 @@
                     endDate: '',
                     lawType: '',
                     announceDetail: '',
-                    planType: '', // Reset plan type filter
+                    planType: '',
                     searchText: ''
                 });
             };
@@ -221,7 +275,7 @@
                         <p><span className="font-semibold text-[#4A5D54]">ประเภทกฎหมาย:</span> {item.ประเภทกฎหมาย}</p>
                         <p><span className="font-semibold text-[#4A5D54]">รายละเอียดประกาศ:</span> {item.รายละเอียดประกาศ}</p>
                         <p><span className="font-semibold text-[#4A5D54]">รายละเอียดเล่ม:</span> {item.รายละเอียดเล่ม}</p>
-                        <p><span className="font-semibold text-[#4A5D54]">วันที่ประกาศ:</span> {item.วันที่ประกาศ}</p>
+                        <p><span className="font-semibold text-[#4A5D54]">วันที่ประกาศ:</span> {formatThaiDate(item.วันที่ประกาศ)}</p>
                     </div>
                 </div>
             );
@@ -250,7 +304,6 @@
 
             return (
                 <div className="min-h-screen bg-gradient-to-b from-[#D4B69C] via-[#F2DEB1] to-[#B5C7BC]">
-                    {/* Home Button */}
                     <div className="fixed top-4 right-4 z-50">
                         <button 
                             onClick={handleHomeClick}
@@ -262,7 +315,6 @@
                     </div>
 
                     <div className="container mx-auto px-4 py-8 max-w-7xl">
-                        {/* Header */}
                         <div className="text-center mb-12">
                             <h1 className="text-3xl md:text-4xl font-bold text-[#4A5D54] mb-2">
                                 Town Planning Laws
@@ -272,7 +324,6 @@
                             </h2>
                         </div>
 
-                        {/* Search Box */}
                         <div className="mb-8">
                             <div className="relative">
                                 <input
@@ -288,7 +339,6 @@
                             </div>
                         </div>
 
-                        {/* Filters */}
                         <div className="bg-white/80 rounded-lg shadow-lg p-6 mb-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 <div>
@@ -304,6 +354,7 @@
                                         ))}
                                     </select>
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-[#4A5D54] mb-2">ชื่อผังเมืองรวม</label>
                                     <select
@@ -317,6 +368,7 @@
                                         ))}
                                     </select>
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-[#4A5D54] mb-2">ประเภทกฎหมาย</label>
                                     <select
@@ -330,6 +382,7 @@
                                         ))}
                                     </select>
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-[#4A5D54] mb-2">รายละเอียดประกาศ</label>
                                     <select
@@ -343,6 +396,7 @@
                                         ))}
                                     </select>
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-[#4A5D54] mb-2">ประเภทผัง</label>
                                     <select
@@ -356,27 +410,39 @@
                                         ))}
                                     </select>
                                 </div>
+
                                 <div className="col-span-full md:col-span-2">
                                     <label className="block text-sm font-medium text-[#4A5D54] mb-2">ช่วงวันที่ประกาศ</label>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <input
-                                            type="date"
-                                            className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
-                                            value={filters.startDate}
-                                            min={minDate}
-                                            max={maxDate}
-                                            onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                                        />
-                                        <input
-                                            type="date"
-                                            className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
-                                            value={filters.endDate}
-                                            min={minDate}
-                                            max={maxDate}
-                                            onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                                        />
+                                        <div className="date-container">
+                                            <input
+                                                type="date"
+                                                className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
+                                                value={filters.startDate}
+                                                min={minDate}
+                                                max={maxDate}
+                                                onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                                            />
+                                            <div className="date-display">
+                                                {filters.startDate ? formatThaiDate(filters.startDate) : 'เลือกวันที่เริ่มต้น'}
+                                            </div>
+                                        </div>
+                                        <div className="date-container">
+                                            <input
+                                                type="date"
+                                                className="w-full p-3 border rounded-lg bg-white/90 focus:ring-2 focus:ring-[#98AFA4] focus:border-[#98AFA4]"
+                                                value={filters.endDate}
+                                                min={minDate}
+                                                max={maxDate}
+                                                onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                                            />
+                                            <div className="date-display">
+                                                {filters.endDate ? formatThaiDate(filters.endDate) : 'เลือกวันที่สิ้นสุด'}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+
                                 <div className="col-span-full md:col-span-1">
                                     <button
                                         onClick={clearFilters}
@@ -389,13 +455,11 @@
                             </div>
                         </div>
 
-                        {/* Results count */}
                         <div className="mb-6 p-4 bg-white/80 rounded-lg shadow-md text-[#4A5D54] font-medium">
                             <i className="fas fa-list-ul mr-2"></i>
                             แสดงผล {filteredData.length} รายการ จากทั้งหมด {data.length} รายการ
                         </div>
 
-                        {/* Table/Cards */}
                         {isMobileView ? (
                             <div className="space-y-6">
                                 {currentData.map((item, index) => (
@@ -428,7 +492,7 @@
                                                 <td className="px-6 py-4 text-sm text-[#4A5D54]">{item.ประเภทกฎหมาย}</td>
                                                 <td className="px-6 py-4 text-sm text-[#4A5D54]">{item.รายละเอียดประกาศ}</td>
                                                 <td className="px-6 py-4 text-sm text-[#4A5D54]">{item.รายละเอียดเล่ม}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4A5D54]">{item.วันที่ประกาศ}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4A5D54]">{formatThaiDate(item.วันที่ประกาศ)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                                                     {item.ไฟล์แนบ && (
                                                         <a 
@@ -449,7 +513,6 @@
                             </div>
                         )}
 
-                        {/* Pagination */}
                         <div className="mt-8 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
                             <div className="text-[#4A5D54] font-medium">
                                 หน้า {currentPage} จาก {totalPages}
@@ -460,7 +523,7 @@
                                     disabled={currentPage === 1}
                                     className="px-6 py-2 bg-[#98AFA4] text-white rounded-lg disabled:opacity-50 hover:bg-[#7A8D82] transition-colors shadow-md flex items-center"
                                 >
-                                    <i className="fas fa-chevron-left mr-2"></i>
+                                <i className="fas fa-chevron-left mr-2"></i>
                                     ก่อนหน้า
                                 </button>
                                 <button
