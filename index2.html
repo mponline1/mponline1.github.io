@@ -1,82 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CSV API</title>
-    <script>
-        // อ่านไฟล์ CSV และแปลงเป็น JSON
-        async function loadCSV() {
-            const response = await fetch('data.csv');
-            const csvText = await response.text();
-            
-            const lines = csvText.split('\n');
-            const headers = lines[0].split(',').map(header => header.trim());
-            
-            return lines.slice(1).map(line => {
-                const values = line.split(',');
-                return headers.reduce((obj, header, index) => {
-                    obj[header] = values[index]?.trim();
-                    return obj;
-                }, {});
-            });
-        }
-
-        async function init() {
-            const { searchParams } = new URL(window.location.href);
-            const isApiRequest = searchParams.get('format') === 'json';
-            
-            if (isApiRequest) {
-                // ถ้าเป็น API request
-                try {
-                    // เซ็ต headers สำหรับ JSON response
-                    document.contentType = 'application/json';
-                    
-                    // โหลดข้อมูล
-                    const data = await loadCSV();
-                    
-                    // สร้าง response object
-                    const response = {
-                        status: 200,
-                        data: searchParams.get('id') 
-                            ? data.find(item => item.id === searchParams.get('id')) || { status: 404, error: 'Not found' }
-                            : data
-                    };
-                    
-                    // ล้าง document และส่ง pure JSON response
-                    document.open();
-                    document.write(JSON.stringify(response));
-                    document.close();
-                } catch (error) {
-                    document.open();
-                    document.write(JSON.stringify({ 
-                        status: 500, 
-                        error: 'Internal server error' 
-                    }));
-                    document.close();
-                }
-            } else {
-                // ถ้าเป็นการเข้าชมหน้าเว็บปกติ
-                try {
-                    const data = await loadCSV();
-                    document.getElementById('response').textContent = 
-                        JSON.stringify(data, null, 2);
-                } catch (error) {
-                    document.getElementById('response').textContent = 
-                        'Error loading data';
-                }
-            }
-        }
-
-        window.addEventListener('load', init);
-    </script>
+    <title>CSV API Documentation</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 5px; }
+        .endpoint { margin-bottom: 20px; }
+    </style>
 </head>
 <body>
-    <h1>CSV API</h1>
-    <p>API Endpoints:</p>
-    <ul>
-        <li>GET /?format=json - แสดงข้อมูลทั้งหมดในรูปแบบ JSON</li>
-        <li>GET /?format=json&id=123 - แสดงข้อมูลตาม ID ในรูปแบบ JSON</li>
-    </ul>
-    <h2>ตัวอย่างข้อมูล:</h2>
-    <pre id="response"></pre>
+    <h1>CSV API Documentation</h1>
+    
+    <div class="endpoint">
+        <h2>Get All Data</h2>
+        <p>Endpoint: <code>GET /data.json</code></p>
+        <h3>Example:</h3>
+        <pre>
+fetch('https://[username].github.io/[repository-name]/data.json')
+    .then(response => response.json())
+    .then(data => console.log(data));</pre>
+    </div>
+    
+    <div class="endpoint">
+        <h2>Get Data by ID</h2>
+        <p>Endpoint: <code>GET /data_{id}.json</code></p>
+        <h3>Example:</h3>
+        <pre>
+fetch('https://[username].github.io/[repository-name]/data_123.json')
+    .then(response => response.json())
+    .then(data => console.log(data));</pre>
+    </div>
+    
+    <h2>Response Format</h2>
+    <pre>
+{
+    "status": 200,
+    "data": [
+        // ข้อมูลจาก CSV
+    ]
+}</pre>
 </body>
 </html>
