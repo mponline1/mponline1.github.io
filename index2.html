@@ -2,7 +2,6 @@
 <html>
 <head>
     <title>CSV API</title>
-    <!-- เพิ่ม Meta tags สำหรับ CORS -->
     <meta http-equiv="Access-Control-Allow-Origin" content="*">
     <meta http-equiv="Access-Control-Allow-Methods" content="GET, OPTIONS">
     <meta http-equiv="Access-Control-Allow-Headers" content="Origin, X-Requested-With, Content-Type, Accept">
@@ -30,8 +29,7 @@
             return jsonData;
         }
 
-        // API Endpoints
-        // เพิ่มฟังก์ชันสำหรับสร้าง CORS Response
+        // สร้าง CORS Response
         function createCORSResponse(responseData) {
             return {
                 headers: {
@@ -44,7 +42,12 @@
             };
         }
 
+        // API Endpoints
         async function handleRequest() {
+            // ตรวจสอบว่าเป็น API request หรือไม่
+            const isApiRequest = window.location.search.includes('format=json') || 
+                               (window.location.pathname.startsWith('/api/'));
+
             let data = localStorage.getItem('apiData');
             if (!data) {
                 data = await loadCSV();
@@ -52,40 +55,55 @@
                 data = JSON.parse(data);
             }
 
-            // ดึง path จาก URL
-            const path = window.location.hash.slice(1) || '/';
-            
-            // จัดการ routes
-            switch (path) {
-                case '/':
-                    return createCORSResponse({
-                        status: 200,
-                        data: data
-                    });
-                default:
-                    // ถ้ามีการระบุ ID
-                    const id = path.split('/')[1];
-                    if (id) {
-                        const item = data.find(item => item.id === id);
-                        if (item) {
-                            return createCORSResponse({
-                                status: 200,
-                                data: item
-                            });
+            // ถ้าเป็น API request ให้ส่งคืน JSON
+            if (isApiRequest) {
+                const path = window.location.hash.slice(1) || '/';
+                
+                switch (path) {
+                    case '/':
+                        return createCORSResponse({
+                            status: 200,
+                            data: data
+                        });
+                    default:
+                        const id = path.split('/')[1];
+                        if (id) {
+                            const item = data.find(item => item.id === id);
+                            if (item) {
+                                return createCORSResponse({
+                                    status: 200,
+                                    data: item
+                                });
+                            }
                         }
-                    }
-                    return createCORSResponse({
-                        status: 404,
-                        error: 'Not found'
-                    });
+                        return createCORSResponse({
+                            status: 404,
+                            error: 'Not found'
+                        });
+                }
             }
+
+            // ถ้าไม่ใช่ API request ให้แสดงหน้า UI ปกติ
+            return {
+                status: 200,
+                isHtml: true,
+                data: data
+            };
         }
 
         // แสดงผลลัพธ์
         async function displayResponse() {
             const result = await handleRequest();
-            document.getElementById('response').textContent = 
-                JSON.stringify(result, null, 2);
+            
+            if (result.isHtml) {
+                // แสดงผลในหน้าเว็บ
+                document.getElementById('response').textContent = 
+                    JSON.stringify(result.data, null, 2);
+            } else {
+                // ส่งคืน JSON response
+                document.getElementById('content').style.display = 'none';
+                document.write(JSON.stringify(result));
+            }
         }
 
         // Event Listeners
@@ -94,12 +112,15 @@
     </script>
 </head>
 <body>
-    <h1>CSV API</h1>
-    <p>API Endpoints:</p>
-    <ul>
-        <li>GET / - แสดงข้อมูลทั้งหมด</li>
-        <li>GET /#/:id - แสดงข้อมูลตาม ID</li>
-    </ul>
-    <pre id="response"></pre>
+    <div id="content">
+        <h1>CSV API</h1>
+        <p>API Endpoints:</p>
+        <ul>
+            <li>GET /api/ หรือ /?format=json - แสดงข้อมูลทั้งหมดในรูปแบบ JSON</li>
+            <li>GET /api/#/:id หรือ /?format=json#/:id - แสดงข้อมูลตาม ID ในรูปแบบ JSON</li>
+        </ul>
+        <h2>ตัวอย่างข้อมูล:</h2>
+        <pre id="response"></pre>
+    </div>
 </body>
 </html>
