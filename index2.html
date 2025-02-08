@@ -42,11 +42,19 @@
             };
         }
 
+        // ดึง query parameters จาก URL
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                format: params.get('format'),
+                id: params.get('id')
+            };
+        }
+
         // API Endpoints
         async function handleRequest() {
-            // ตรวจสอบว่าเป็น API request หรือไม่
-            const isApiRequest = window.location.search.includes('format=json') || 
-                               (window.location.pathname.startsWith('/api/'));
+            const { format, id } = getQueryParams();
+            const isApiRequest = format === 'json';
 
             let data = localStorage.getItem('apiData');
             if (!data) {
@@ -57,36 +65,31 @@
 
             // ถ้าเป็น API request ให้ส่งคืน JSON
             if (isApiRequest) {
-                const path = window.location.hash.slice(1) || '/';
-                
-                switch (path) {
-                    case '/':
-                        return createCORSResponse({
+                if (id) {
+                    const item = data.find(item => item.id === id);
+                    if (item) {
+                        document.write(JSON.stringify({
                             status: 200,
-                            data: data
-                        });
-                    default:
-                        const id = path.split('/')[1];
-                        if (id) {
-                            const item = data.find(item => item.id === id);
-                            if (item) {
-                                return createCORSResponse({
-                                    status: 200,
-                                    data: item
-                                });
-                            }
-                        }
-                        return createCORSResponse({
+                            data: item
+                        }));
+                    } else {
+                        document.write(JSON.stringify({
                             status: 404,
                             error: 'Not found'
-                        });
+                        }));
+                    }
+                } else {
+                    document.write(JSON.stringify({
+                        status: 200,
+                        data: data
+                    }));
                 }
+                return null;
             }
 
             // ถ้าไม่ใช่ API request ให้แสดงหน้า UI ปกติ
             return {
                 status: 200,
-                isHtml: true,
                 data: data
             };
         }
@@ -94,21 +97,14 @@
         // แสดงผลลัพธ์
         async function displayResponse() {
             const result = await handleRequest();
-            
-            if (result.isHtml) {
-                // แสดงผลในหน้าเว็บ
+            if (result) {
                 document.getElementById('response').textContent = 
                     JSON.stringify(result.data, null, 2);
-            } else {
-                // ส่งคืน JSON response
-                document.getElementById('content').style.display = 'none';
-                document.write(JSON.stringify(result));
             }
         }
 
         // Event Listeners
         window.addEventListener('load', displayResponse);
-        window.addEventListener('hashchange', displayResponse);
     </script>
 </head>
 <body>
@@ -116,8 +112,8 @@
         <h1>CSV API</h1>
         <p>API Endpoints:</p>
         <ul>
-            <li>GET /api/ หรือ /?format=json - แสดงข้อมูลทั้งหมดในรูปแบบ JSON</li>
-            <li>GET /api/#/:id หรือ /?format=json#/:id - แสดงข้อมูลตาม ID ในรูปแบบ JSON</li>
+            <li>GET /?format=json - แสดงข้อมูลทั้งหมดในรูปแบบ JSON</li>
+            <li>GET /?format=json&id=123 - แสดงข้อมูลตาม ID ในรูปแบบ JSON</li>
         </ul>
         <h2>ตัวอย่างข้อมูล:</h2>
         <pre id="response"></pre>
