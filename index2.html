@@ -2,6 +2,10 @@
 <html>
 <head>
     <title>CSV API</title>
+    <!-- เพิ่ม Meta tags สำหรับ CORS -->
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+    <meta http-equiv="Access-Control-Allow-Methods" content="GET, OPTIONS">
+    <meta http-equiv="Access-Control-Allow-Headers" content="Origin, X-Requested-With, Content-Type, Accept">
     <script>
         // อ่านไฟล์ CSV และแปลงเป็น JSON
         async function loadCSV() {
@@ -27,6 +31,19 @@
         }
 
         // API Endpoints
+        // เพิ่มฟังก์ชันสำหรับสร้าง CORS Response
+        function createCORSResponse(responseData) {
+            return {
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
+                    'Content-Type': 'application/json'
+                },
+                ...responseData
+            };
+        }
+
         async function handleRequest() {
             let data = localStorage.getItem('apiData');
             if (!data) {
@@ -41,26 +58,26 @@
             // จัดการ routes
             switch (path) {
                 case '/':
-                    return {
+                    return createCORSResponse({
                         status: 200,
                         data: data
-                    };
+                    });
                 default:
                     // ถ้ามีการระบุ ID
                     const id = path.split('/')[1];
                     if (id) {
                         const item = data.find(item => item.id === id);
                         if (item) {
-                            return {
+                            return createCORSResponse({
                                 status: 200,
                                 data: item
-                            };
+                            });
                         }
                     }
-                    return {
+                    return createCORSResponse({
                         status: 404,
                         error: 'Not found'
-                    };
+                    });
             }
         }
 
