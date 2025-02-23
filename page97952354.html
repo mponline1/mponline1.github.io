@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parcel Polygon</title>
+    <title>แผนที่ออนไลน์</title>
     <link rel="stylesheet" href="https://js.arcgis.com/4.27/esri/themes/light/main.css">
+    <script src="https://unpkg.com/shp-write@0.3.2/shp-write.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         html, body {
             height: 100%;
@@ -50,10 +52,11 @@
             flex: 1;
             min-height: 400px;
         }
-        .download-btn {
+        .download-btn, .shapefile-btn {
             background: #28a745;
+            margin-right: 5px;
         }
-        .download-btn:hover {
+        .download-btn:hover, .shapefile-btn:hover {
             background: #218838;
         }
         .popup-overlay {
@@ -112,6 +115,52 @@
             font-size: 1.1em;
             padding: 15px;
         }
+        .history-panel {
+            background: white;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .history-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .history-item:hover {
+            background-color: #f5f5f5;
+        }
+        .history-item.selected {
+            background-color: #e3f2fd;
+        }
+        .history-item-info {
+            flex: 1;
+        }
+        .history-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -143,89 +192,33 @@
                 <button id="downloadBtn" class="download-btn" onclick="downloadGeoJSON()" style="display: none;">
                     ดาวน์โหลด GeoJSON
                 </button>
+                <button id="shapefileBtn" class="shapefile-btn" onclick="downloadShapefile()" style="display: none;">
+                    ดาวน์โหลด Shapefile
+                </button>
             </div>
         </div>
         <div id="mapView"></div>
+        
+        <div class="history-panel">
+            <div class="history-title">
+                <h3>ประวัติการค้นหา</h3>
+                <button onclick="clearHistory()">ล้างประวัติ</button>
+            </div>
+            <div class="history-list" id="historyList"></div>
+            <div class="history-actions">
+                <button onclick="downloadSelectedGeoJSON()">ดาวน์โหลด GeoJSON ที่เลือก</button>
+                <button onclick="downloadSelectedShapefile()">ดาวน์โหลด Shapefile ที่เลือก</button>
+                <button onclick="showSelectedParcels()">แสดงแปลงที่เลือก</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://js.arcgis.com/4.27/"></script>
     <script>
-        // Secure configuration implementation
-        (function() {
-            const _0x4f8a=['base64','fromCharCode','replace','split','join','reverse','map'];
-            (function(_0x2d8f1d,_0x4f8a89){const _0x41b2c9=function(_0x43c56c){
-                while(--_0x43c56c){_0x2d8f1d['push'](_0x2d8f1d['shift']());}};
-                _0x41b2c9(++_0x4f8a89);}(_0x4f8a,0x1f4));
-
-            // Enhanced security through multiple layers of encoding
-            const encode = function(str, key) {
-                return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
-                    function toSolidBytes(match, p1) {
-                        return String.fromCharCode('0x' + p1);
-                    }));
-            };
-
-            const decode = function(str) {
-                try {
-                    return decodeURIComponent(atob(str).split('').map(function(c) {
-                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                    }).join(''));
-                } catch(e) {
-                    console.error('Decoding error');
-                    return '';
-                }
-            };
-
-            // Encoded configuration values
-            const _0xe2f9c1 = "aHR0cHM6Ly9hcGkuc2hlZXRiZXN0LmNvbS9zaGVldHMvMTM2MWU1NTUtZjFjNy00NjA3LWJhYzctYzJlZDRmZDk4ZmM4";
-            const _0xe2f9c2 = "aHR0cHM6Ly9kcHRkYXRhLmRwdC5nby50aC9kcHRzZXJ2aWNlL2RwdGFwaWFjY2Vzcy5waHA=";
-            const _0xe2f9c3 = "a0ZlUVF4cEhNckVpbXp1c2VCRjZFS3NwZlJtdXBnVmxmWFpNRGR5SFd0dEphbmpYUVpJdG1raFFXUkswZUxzc1BkNnBjdEFCNnlGZXhjMDZxNm5iUjY2Nm9qU2hvckFsWHB6RGdqWUxYT1lrTXVNME15aDYwdTZFME9XUmtBbVNuRmllTGxIT0pMTWV4T1FCaEFjNm02cGxEV1VSa0xlTFQwUFlmVGJXSnVaTEpMMDZQelRXNmNEcmI2NjY1bGFkUmI2Y2hyWXI=";
-            const _0xe2f9c4 = "SDJFOWdESzJqMDltZEtIcG9Za3lpWTgyWnRJZ1FPcnJDQ2J5Qm9wZ3I4cnBKWWFRY3BIbVdiQWRYNk1sVTVsRVNlWGR1VWdJUmxJQUZvUzFFb2JXTHljTHdnMWtIaDZGcjcybGkzdTd5alJTVWp3SXB3dFd3WHdJRW1qd0JhbDE=";
-
-            // Create secure configuration object
-            const secureConfig = Object.create(null, {
-                _data: {
-                    value: new Map([
-                        ['api', decode(_0xe2f9c1)],
-                        ['base', decode(_0xe2f9c2)],
-                        ['key1', decode(_0xe2f9c3)],
-                        ['key2', decode(_0xe2f9c4)]
-                    ]),
-                    writable: false
-                },
-                getApiUrl: {
-                    value: function() {
-                        return this._data.get('api');
-                    },
-                    enumerable: false
-                },
-                getDptUrl: {
-                    value: function(pvcode, amcode, parcelno) {
-                        const params = new URLSearchParams({
-                            filetokenkey: this._data.get('key1'),
-                            token: this._data.get('key2'),
-                            pvcode, amcode, parcelno
-                        });
-                        return `${this._data.get('base')}?${params.toString()}`;
-                    },
-                    enumerable: false
-                }
-            });
-
-            // Prevent configuration tampering
-            Object.freeze(secureConfig);
-            
-            // Secure global CONFIG object
-            Object.defineProperty(window, 'CONFIG', {
-                value: secureConfig,
-                writable: false,
-                configurable: false
-            });
-        })();
-
         let map, view, parcelLayer;
         let currentGeoJSON = null;
         let currentParcelData = null;
+        let searchHistory = [];
 
         require([
             "esri/Map",
@@ -246,8 +239,7 @@
             window.GeoJSONLayer = GeoJSONLayer;
         });
 
-        // Initialize provinces
-        fetch(CONFIG.getApiUrl())
+        fetch('https://mponline1.github.io/data.json')
             .then(response => response.json())
             .then(data => {
                 const provinceMap = new Map();
@@ -274,12 +266,11 @@
             })
             .catch(error => console.error('Error fetching provinces:', error));
 
-        // Province change handler
         document.getElementById('provinceSelect').addEventListener('change', function(e) {
             const pvcode = e.target.value;
             if (!pvcode) return;
 
-            fetch(CONFIG.getApiUrl())
+            fetch('https://mponline1.github.io/data.json')
                 .then(response => response.json())
                 .then(data => {
                     const amphurs = data.filter(item => item.pvcode === pvcode)
@@ -351,6 +342,7 @@
                 tableHtml += `<tr><td>พิกัด E</td><td>${formatValue(parcelData.e)}</td></tr>`;
                 tableHtml += `<tr><td>พิกัดแปลง</td><td>LAT: ${formatValue(parcelData.parcellat)}, LON: ${formatValue(parcelData.parcellon)}</td></tr>`;
                 tableHtml += `<tr><td>SRID</td><td>${formatValue(parcelData.srid)}</td></tr>`;
+
                 tableHtml += '</table>';
                 
                 contentDiv.innerHTML = tableHtml;
@@ -423,46 +415,69 @@
         }
 
         function searchParcel() {
-            const pvcode = document.getElementById('provinceSelect').value;
-            const amcode = document.getElementById('amphurSelect').value;
-            const parcelno = document.getElementById('parcelInput').value;
+    const pvcode = document.getElementById('provinceSelect').value;
+    const amcode = document.getElementById('amphurSelect').value;
+    const parcelno = document.getElementById('parcelInput').value;
 
-            if (!pvcode || !amcode || !parcelno) {
-                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-                return;
+    if (!pvcode || !amcode || !parcelno) {
+        alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+        return;
+    }
+
+    // Encoded URL components
+    const encodedParts = {
+        base: 'aHR0cHM6Ly9kcHRkYXRhLmRwdC5nby50aC9kcHRzZXJ2aWNlL2RwdGFwaWFjY2Vzcy5waHA=',
+        key: 'a0ZlUVF4cEhNckVpbXp1c2VCRjZFS3NwZlJtdXBnVmxmWFpNRGR5SFd0dEphbmpYUVpJdG1raFFXUkswZUxzc1BkNnBjdEFCNnlGZXhjMDZxNm5iUjY2Nm9qU2hvckFsWHB6RGdqWUxYT1lrTXVNME15aDYwdTZFME9XUmtBbVNuRmllTGxIT0pMTWV4T1FCaEFjNm02cGxEV1VSa0xlTFQwUFlmVGJXSnVaTEpMMDZQelRXNmNEcmI2NjY1bGFkUmI2Y2hyWXI=',
+        token: 'SDJFOWdESzJqMDltZEtIcG9Za3lpWTgyWnRJZ1FPcnJDQ2J5Qm9wZ3I4cnBKWWFRY3BIbVdiQWRYNk1sVTVsRVNlWGR1VWdJUmxJQUZvUzFFb2JXTHljTHdnMWtIaDZGcjcybGkzdTd5alJTVWp3SXB3dFd3WHdJRW1qd0JhbDE='
+    };
+
+    // Decode URL parts
+    const decodeBase64 = (str) => atob(str);
+    
+    // Build the URL
+    const baseUrl = decodeBase64(encodedParts.base);
+    const key = decodeBase64(encodedParts.key);
+    const token = decodeBase64(encodedParts.token);
+    
+    // Construct final URL
+    const url = `${baseUrl}?filetokenkey=${key}&token=${token}&pvcode=${pvcode}&amcode=${amcode}&parcelno=${parcelno}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            showPopup(data);
+
+            if (data.result && data.result.length > 0 && data.result[0].parcelbound_latlon) {
+                try {
+                    const coordinates = parseWKTToCoordinates(data.result[0].parcelbound_latlon);
+                    const geojson = createGeoJSON(coordinates, {
+                        ...data.result[0],
+                        pvcode,
+                        amcode,
+                        parcelno
+                    });
+
+                    displayGeoJSON(geojson);
+                    document.getElementById('downloadBtn').style.display = 'inline-block';
+                    document.getElementById('shapefileBtn').style.display = 'inline-block';
+                    
+                    currentGeoJSON = geojson;
+                    currentParcelData = data;
+                    
+                    addToHistory(data, geojson);
+                } catch (error) {
+                    console.error('Error processing WKT data:', error);
+                    alert('เกิดข้อผิดพลาดในการประมวลผลข้อมูล WKT');
+                }
+            } else {
+                alert('ไม่พบข้อมูลแปลงที่ดิน หรือข้อมูล parcelbound_latlon');
             }
-
-            fetch(CONFIG.getDptUrl(pvcode, amcode, parcelno))
-                .then(response => response.json())
-                .then(data => {
-                    showPopup(data);
-
-                    if (data.result && data.result.length > 0 && data.result[0].parcelbound_latlon) {
-                        try {
-                            const coordinates = parseWKTToCoordinates(data.result[0].parcelbound_latlon);
-                            const geojson = createGeoJSON(coordinates, {
-                                ...data.result[0],
-                                pvcode,
-                                amcode,
-                                parcelno
-                            });
-
-                            displayGeoJSON(geojson);
-                            document.getElementById('downloadBtn').style.display = 'inline-block';
-                            currentGeoJSON = geojson;
-                        } catch (error) {
-                            console.error('Error processing WKT data:', error);
-                            alert('เกิดข้อผิดพลาดในการประมวลผลข้อมูล WKT');
-                        }
-                    } else {
-                        alert('ไม่พบข้อมูลแปลงที่ดิน หรือข้อมูล parcelbound_latlon');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching parcel data:', error);
-                    alert('เกิดข้อผิดพลาดในการดึงข้อมูล');
-                });
-        }
+        })
+        .catch(error => {
+            console.error('Error fetching parcel data:', error);
+            alert('เกิดข้อผิดพลาดในการดึงข้อมูล');
+        });
+}
 
         function changeBasemap() {
             const basemapValue = document.getElementById('basemapSelect').value;
@@ -486,6 +501,224 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        }
+
+        function downloadShapefile() {
+            if (!currentGeoJSON || typeof shapefile === 'undefined') return;
+
+            const parcelno = currentGeoJSON.features[0].properties.parcelno;
+            
+            // Process GeoJSON to ensure all properties are strings
+            const processedGeoJSON = {
+                ...currentGeoJSON,
+                features: currentGeoJSON.features.map(feature => ({
+                    ...feature,
+                    properties: Object.keys(feature.properties).reduce((acc, key) => {
+                        acc[key] = String(feature.properties[key] || '');
+                        return acc;
+                    }, {})
+                }))
+            };
+
+            try {
+                const zip = new JSZip();
+                shapefile.write(processedGeoJSON, zip, {
+                    folder: `parcel_${parcelno}`,
+                    types: {
+                        point: 'points',
+                        polygon: 'polygons',
+                        line: 'lines'
+                    }
+                });
+                
+                zip.generateAsync({type: "blob"})
+                    .then(function(content) {
+                        const url = URL.createObjectURL(content);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `parcel_${parcelno}.zip`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    })
+                    .catch(function(error) {
+                        console.error('Error generating shapefile:', error);
+                        alert('เกิดข้อผิดพลาดในการสร้างไฟล์ Shapefile');
+                    });
+            } catch (error) {
+                console.error('Error creating shapefile:', error);
+                alert('เกิดข้อผิดพลาดในการสร้างไฟล์ Shapefile');
+            }
+        }
+
+        function addToHistory(data, geojson) {
+            const historyItem = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleString('th-TH'),
+                parcelno: data.result[0].parcelno,
+                province: data.result[0].provname,
+                amphur: data.result[0].amphurname,
+                data: data,
+                geojson: geojson,
+                selected: false
+            };
+            
+            searchHistory.unshift(historyItem);
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            searchHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `history-item ${item.selected ? 'selected' : ''}`;
+                
+                div.innerHTML = `
+                    <div class="checkbox-container">
+                        <input type="checkbox" 
+                               ${item.selected ? 'checked' : ''} 
+                               onchange="toggleHistorySelection(${item.id})">
+                    </div>
+                    <div class="history-item-info">
+                        <strong>เลขที่: ${item.parcelno}</strong><br>
+                        ${item.province} > ${item.amphur}<br>
+                        <small>${item.timestamp}</small>
+                    </div>
+                `;
+                
+                div.onclick = (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        showHistoryItem(item);
+                    }
+                };
+                
+                historyList.appendChild(div);
+            });
+        }
+
+        function toggleHistorySelection(id) {
+            const item = searchHistory.find(item => item.id === id);
+            if (item) {
+                item.selected = !item.selected;
+                updateHistoryDisplay();
+            }
+        }
+
+        function showHistoryItem(item) {
+            showPopup(item.data);
+            displayGeoJSON(item.geojson);
+            currentGeoJSON = item.geojson;
+            currentParcelData = item.data;
+        }
+
+        function showSelectedParcels() {
+            const selectedItems = searchHistory.filter(item => item.selected);
+            if (selectedItems.length === 0) {
+                alert('กรุณาเลือกแปลงที่ดินอย่างน้อย 1 แปลง');
+                return;
+            }
+
+            const combinedGeoJSON = {
+                type: 'FeatureCollection',
+                features: selectedItems.flatMap(item => item.geojson.features)
+            };
+
+            displayGeoJSON(combinedGeoJSON);
+        }
+
+        function downloadSelectedGeoJSON() {
+            const selectedItems = searchHistory.filter(item => item.selected);
+            if (selectedItems.length === 0) {
+                alert('กรุณาเลือกแปลงที่ดินอย่างน้อย 1 แปลง');
+                return;
+            }
+
+            const combinedGeoJSON = {
+                type: 'FeatureCollection',
+                features: selectedItems.flatMap(item => item.geojson.features)
+            };
+
+            const blob = new Blob([JSON.stringify(combinedGeoJSON, null, 2)], {
+                type: 'application/json'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `combined_parcels_${Date.now()}.geojson`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadSelectedShapefile() {
+            const selectedItems = searchHistory.filter(item => item.selected);
+            if (selectedItems.length === 0) {
+                alert('กรุณาเลือกแปลงที่ดินอย่างน้อย 1 แปลง');
+                return;
+            }
+
+            if (typeof shapefile === 'undefined') {
+                alert('ไม่สามารถสร้างไฟล์ Shapefile ได้ กรุณาลองใหม่อีกครั้ง');
+                return;
+            }
+
+            const combinedGeoJSON = {
+                type: 'FeatureCollection',
+                features: selectedItems.flatMap(item => item.geojson.features)
+            };
+
+            const processedGeoJSON = {
+                ...combinedGeoJSON,
+                features: combinedGeoJSON.features.map(feature => ({
+                    ...feature,
+                    properties: Object.keys(feature.properties).reduce((acc, key) => {
+                        acc[key] = String(feature.properties[key] || '');
+                        return acc;
+                    }, {})
+                }))
+            };
+
+            try {
+                const zip = new JSZip();
+                shapefile.write(processedGeoJSON, zip, {
+                    folder: `combined_parcels_${Date.now()}`,
+                    types: {
+                        point: 'points',
+                        polygon: 'polygons',
+                        line: 'lines'
+                    }
+                });
+                
+                zip.generateAsync({type: "blob"})
+                    .then(function(content) {
+                        const url = URL.createObjectURL(content);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `combined_parcels_${Date.now()}.zip`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    })
+                    .catch(function(error) {
+                        console.error('Error generating shapefile:', error);
+                        alert('เกิดข้อผิดพลาดในการสร้างไฟล์ Shapefile');
+                    });
+            } catch (error) {
+                console.error('Error creating shapefile:', error);
+                alert('เกิดข้อผิดพลาดในการสร้างไฟล์ Shapefile');
+            }
+        }
+
+        function clearHistory() {
+            if (confirm('คุณแน่ใจหรือไม่ที่จะล้างประวัติการค้นหาทั้งหมด?')) {
+                searchHistory = [];
+                updateHistoryDisplay();
+            }
         }
 
         document.querySelector('.popup-overlay').addEventListener('click', function(e) {
