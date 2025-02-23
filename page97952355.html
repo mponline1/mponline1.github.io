@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แผนที่ขอบเขตผังและถนน</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css">
+    <style>
+        html, body, #mapDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+        #searchContainer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            width: 300px;
+        }
+        .search-input, .search-select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .search-input:focus, .search-select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        #loadingMessage {
+            display: none;
+            color: #666;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        .button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #previewButton {
+            background-color: #2196F3;
+            color: white;
+        }
+        #previewButton:hover {
+            background-color: #1976D2;
+        }
+        #exportButton {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #exportButton:hover {
+            background-color: #45a049;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #drawTools {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .tool-button {
+            padding: 8px 12px;
+            margin: 4px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            transition: all 0.3s ease;
+        }
+        .tool-button.active {
+            background-color: #2196F3;
+            color: white;
+            border-color: #1976D2;
+        }
+        .tool-button:hover {
+            background-color: #f0f0f0;
+        }
+        .tool-button.active:hover {
+            background-color: #1976D2;
+        }
+        /* Widget positioning */
+        .esri-layer-list {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            max-height: calc(100vh - 240px);
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .esri-legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .esri-sketch {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        @media screen and (max-height: 800px) {
+            .esri-layer-list {
+                max-height: calc(100vh - 400px);
+            }
+            .esri-legend {
+                max-height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="searchContainer">
+        <input type="text" id="searchInput" class="search-input" placeholder="ค้นหาขอบเขตผัง...">
+        <select id="boundarySelect" class="search-select">
+            <option value="">เลือกขอบเขตผัง</option>
+        </select>
+        <button id="previewButton" class="button" disabled>แสดงตัวอย่างถนนที่จะส่งออก</button>
+        <button id="exportButton" class="button" disabled>ส่งออก GeoJSON</button>
+        <div id="loadingMessage">กำลังโหลดข้อมูล...</div>
+    </div>
+
+    <div id="drawTools">
+        <button id="drawPolygonButton" class="tool-button">วาดพื้นที่เลือก</button>
+        <button id="clearSelectionButton" class="tool-button">ล้างการเลือก</button>
+    </div>
+
+    <div id="mapDiv"></div>
+
+    <script src="https://js.arcgis.com/4.28/"></script>
+
+<script>
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer",
+            "esri/layers/GraphicsLayer",
+            "esri/geometry/geometryEngine",
+            "esri/rest/support/Query",
+            "esri/geometry/Polygon",
+            "esri/widgets/LayerList",
+            "esri/widgets/Legend",
+            "esri/widgets/Sketch",
+            "esri/Graphic",
+            "esri/geometry/support/webMercatorUtils",
+            "esri/geometry/SpatialReference",
+            "esri/geometry/projection"
+        ], function(
+            Map, MapView, FeatureLayer, GraphicsLayer, geometryEngine, 
+            Query, Polygon, LayerList, Legend, Sketch, Graphic, 
+            webMercatorUtils, SpatialReference, projection
+        ) {
+            // Load the projection engine
+            projection.load().then(() => {
+                // Initialize the app after projection engine is loaded
+                initializeApp();
+            });
+
+            function initializeApp() {
+                const loadingMessage = document.getElementById("loadingMessage");
+                const exportButton = document.getElementById("exportButton");
+                const previewButton = document.getElementById("previewButton");
+                let selectedRoads = null;
+                loadingMessage.style.display = "block";
+
+                const map = new Map({
+                    basemap: "streets"
+                });
+
+                const view = new MapView({
+                    container: "mapDiv",
+                    map: map,
+                    center: [100.5234, 13.7563],
+                    zoom: 6
+                });
+
+                const selectionLayer = new GraphicsLayer({
+                    title: "พื้นที่ที่เลือก"
+                });
+
+                const roadsLayer = new FeatureLayer({
+                    url: "https://tcpebps.dpt.go.th/arcgis/rest/services/service/ROAD/MapServer/4",
+                    outFields: ["*"],
+                    title: "ถนน",
+                    renderer: {
+                        type: "simple",
+                        symbol: {
+                            type: "simple-line",
+                            color: [0, 0, 0],
+                            width: "1.5px"
+                        }
+                    }
+                });
+
+                const exportPreviewLayer = new GraphicsLayer({
+                    title: "ถนนที่จะส่งออก",
+                    visible: false
+                });
+
+                const boundariesLayer = new FeatureLayer({
+                    url: "https://dptgis.dpt.go.th/arcgis/rest/services/Compbnd/MapServer/0",
+                    outFields: ["*"],
+                    title: "ขอบเขตผัง",
+                    renderer: {
+                        type: "simple",
+                        symbol: {
+                            type: "simple-fill",
+                            color: [0, 0, 0, 0],
+                            outline: {
+                                color: [255, 0, 0],
+                                width: 2
+                            }
+                        }
+                    }
+                });
+
+                map.addMany([roadsLayer, exportPreviewLayer, boundariesLayer, selectionLayer]);
+
+                const sketch = new Sketch({
+                    view: view,
+                    layer: selectionLayer,
+                    creationMode: "single",
+                    availableCreateTools: ["polygon"],
+                    visibleElements: {
+                        createTools: {
+                            point: false,
+                            polyline: false,
+                            rectangle: false,
+                            circle: false
+                        },
+                        selectionTools: {
+                            "lasso-selection": false,
+                            "rectangle-selection": false
+                        },
+                        settingsMenu: false,
+                        undoRedoMenu: false
+                    }
+                });
+
+                const layerList = new LayerList({
+                    view: view,
+                    container: document.createElement("div")
+                });
+
+                const legend = new Legend({
+                    view: view,
+                    container: document.createElement("div")
+                });
+
+                // Add widgets with manual positioning
+                view.ui.add(layerList, {
+                    position: "manual"
+                });
+
+                view.ui.add(legend, {
+                    position: "manual"
+                });
+
+                const drawPolygonButton = document.getElementById("drawPolygonButton");
+                const clearSelectionButton = document.getElementById("clearSelectionButton");
+                let isDrawing = false;
+
+                function toggleDrawingMode() {
+                    isDrawing = !isDrawing;
+                    drawPolygonButton.classList.toggle("active");
+                    if (isDrawing) {
+                        sketch.create("polygon");
+                    } else {
+                        sketch.cancel();
+                    }
+                }
+
+                function clearSelection() {
+                    selectionLayer.removeAll();
+                    exportPreviewLayer.removeAll();
+                    selectedRoads = null;
+                    exportButton.disabled = true;
+                    previewButton.disabled = true;
+                }
+
+                drawPolygonButton.addEventListener("click", toggleDrawingMode);
+                clearSelectionButton.addEventListener("click", clearSelection);
+
+                sketch.on("create", async (event) => {
+                    if (event.state === "complete") {
+                        const polygon = event.graphic.geometry;
+                        
+                        const query = roadsLayer.createQuery();
+                        query.geometry = polygon;
+                        query.spatialRelationship = "intersects";
+                        query.returnGeometry = true;
+                        query.outFields = ["*"];
+
+                        try {
+                            const results = await roadsLayer.queryFeatures(query);
+                            selectedRoads = results.features;
+                            
+                            if (selectedRoads.length > 0) {
+                                previewButton.disabled = false;
+                            }
+
+                            const polygonGraphic = new Graphic({
+                                geometry: polygon,
+                                symbol: {
+                                    type: "simple-fill",
+                                    color: [33, 150, 243, 0.2],
+                                    outline: {
+                                        color: [33, 150, 243],
+                                        width: 2
+                                    }
+                                }
+                            });
+                            selectionLayer.removeAll();
+                            selectionLayer.add(polygonGraphic);
+
+                            isDrawing = false;
+                            drawPolygonButton.classList.remove("active");
+                        } catch (error) {
+                            console.error("Error querying roads:", error);
+                        }
+                    }
+                });
+
+                function updateSelectOptions(boundaries) {
+                    const select = document.getElementById("boundarySelect");
+                    select.innerHTML = '<option value="">เลือกขอบเขตผัง</option>';
+                    
+                    boundaries.forEach(name => {
+                        const option = document.createElement("option");
+                        option.value = name;
+                        option.textContent = name;
+                        select.appendChild(option);
+                    });
+                }
+
+                function loadBoundaries() {
+                    const query = new Query({
+                        where: "1=1",
+                        outFields: ["NAME"],
+                        returnDistinctValues: true,
+                        returnGeometry: false
+                    });
+
+                    boundariesLayer.queryFeatures(query)
+                        .then(function(results) {
+                            const select = document.getElementById("boundarySelect");
+                            const boundaries = results.features
+                                .map(feature => feature.attributes.NAME)
+                                .filter(name => name)
+                                .sort();
+                            
+                            select.dataset.allBoundaries = JSON.stringify(boundaries);
+                            updateSelectOptions(boundaries);
+                            loadingMessage.style.display = "none";
+                        })
+                        .catch(function(error) {
+                            console.error("Error loading boundaries:", error);
+                            loadingMessage.textContent = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+                        });
+                }
+
+                function filterBoundaries() {
+                    const input = document.getElementById("searchInput");
+                    const select = document.getElementById("boundarySelect");
+                    const searchTerm = input.value.toLowerCase();
+                    
+                    const allBoundaries = JSON.parse(select.dataset.allBoundaries || '[]');
+                    const filteredBoundaries = allBoundaries.filter(name => 
+                        name.toLowerCase().includes(searchTerm)
+                    );
+                    
+                    updateSelectOptions(filteredBoundaries);
+                }
+
+                async function handleBoundarySelect(name) {
+                    exportPreviewLayer.removeAll();
+                    selectionLayer.removeAll();
+                    
+                    if (!name) {
+                        exportButton.disabled = true;
+                        previewButton.disabled = true;
+                        roadsLayer.definitionExpression = "1=1";
+                        boundariesLayer.definitionExpression = "1=1";
+                        return;
+                    }
+
+                    exportButton.disabled = true;
+                    previewButton.disabled = false;
+                    boundariesLayer.definitionExpression = `NAME = '${name}'`;
+
+                    const query = boundariesLayer.createQuery();
+                    query.where = `NAME = '${name}'`;
+                    query.returnGeometry = true;
+                    
+                    try {
+                        const results = await boundariesLayer.queryFeatures(query);
+                        if (results.features.length > 0) {
+                            const boundaryGeometry = results.features[0].geometry;
+                            view.goTo(boundaryGeometry.extent.expand(1.2));
+
+                            const roadsQuery = roadsLayer.createQuery();
+                            roadsQuery.geometry = boundaryGeometry;
+                            roadsQuery.spatialRelationship = "intersects";
+                            roadsQuery.returnGeometry = true;
+                            roadsQuery.outFields = ["*"];
+                            const roadsResult = await roadsLayer.queryFeatures(roadsQuery);
+                            
+                            selectedRoads = roadsResult.features;
+                            previewButton.disabled = false;
+                        }
+                    } catch (error) {
+                        console.error("Error querying features:", error);
+                    }
+                }
+                async function previewExportRoads() {
+                    if (!selectedRoads) return;
+
+                    loadingMessage.style.display = "block";
+                    loadingMessage.textContent = "กำลังวิเคราะห์ข้อมูล...";
+                    previewButton.disabled = true;
+
+                    try {
+                        exportPreviewLayer.removeAll();
+                        
+                        const totalRoads = selectedRoads.length;
+                        loadingMessage.textContent = `พบถนนทั้งหมด ${totalRoads.toLocaleString()} เส้น`;
+
+                        const processVisibleRoads = async () => {
+                            const viewExtent = view.extent;
+                            
+                            const batchSize = 5000;
+                            const chunks = [];
+                            
+                            for (let i = 0; i < selectedRoads.length; i += batchSize) {
+                                chunks.push(selectedRoads.slice(i, i + batchSize));
+                            }
+
+                            const processChunk = async (roads) => {
+                                return roads
+                                    .filter(road => geometryEngine.intersects(road.geometry, viewExtent))
+                                    .map(road => ({
+                                        road,
+                                        priority: road.geometry.length || 0,
+                                        width: road.attributes.WIDTH || 0
+                                    }));
+                            };
+
+                            const maxConcurrentProcessing = 4;
+                            let processedRoads = [];
+                            
+                            for (let i = 0; i < chunks.length; i += maxConcurrentProcessing) {
+                                const currentChunks = chunks.slice(i, i + maxConcurrentProcessing);
+                                const results = await Promise.all(
+                                    currentChunks.map(async (chunk, index) => {
+                                        const result = await processChunk(chunk);
+                                        const progress = Math.round(((i + index + 1) / chunks.length) * 100);
+                                        loadingMessage.textContent = `กำลังวิเคราะห์ข้อมูล... ${progress}%`;
+                                        return result;
+                                    })
+                                );
+                                processedRoads = processedRoads.concat(results.flat());
+                            }
+
+                            processedRoads.sort((a, b) => {
+                                const aPriority = (a.priority * 0.7) + (a.width * 0.3);
+                                const bPriority = (b.priority * 0.7) + (b.width * 0.3);
+                                return bPriority - aPriority;
+                            });
+
+                            const highPriority = processedRoads.slice(0, Math.min(20000, processedRoads.length));
+                            const mediumPriority = processedRoads.slice(20000, Math.min(60000, processedRoads.length));
+                            const lowPriority = processedRoads.slice(60000);
+
+                            const createGraphicsBatch = async (roads, symbolWidth, delay = 0) => {
+                                const graphicsBatchSize = 2000;
+                                let graphics = [];
+
+                                for (let i = 0; i < roads.length; i += graphicsBatchSize) {
+                                    const batch = roads.slice(i, i + graphicsBatchSize);
+                                    
+                                    const batchGraphics = batch.map(item => new Graphic({
+                                        geometry: item.road.geometry,
+                                        attributes: item.road.attributes,
+                                        symbol: {
+                                            type: "simple-line",
+                                            color: [255, 0, 0],
+                                            width: symbolWidth
+                                        }
+                                    }));
+
+                                    graphics = graphics.concat(batchGraphics);
+                                    
+                                    if (graphics.length >= 10000 || i + graphicsBatchSize >= roads.length) {
+                                        exportPreviewLayer.addMany(graphics);
+                                        graphics = [];
+                                        
+                                        if (delay > 0) {
+                                            await new Promise(resolve => setTimeout(resolve, delay));
+                                        }
+                                    }
+                                }
+                            };
+
+                            loadingMessage.textContent = "กำลังแสดงถนนสายหลัก...";
+                            await createGraphicsBatch(highPriority, "2.5px", 1);
+                            
+                            loadingMessage.textContent = "กำลังแสดงถนนสายรอง...";
+                            await createGraphicsBatch(mediumPriority, "1.5px", 2);
+                            
+                            if (lowPriority.length > 0) {
+                                loadingMessage.textContent = "กำลังแสดงถนนสายย่อย...";
+                                await createGraphicsBatch(lowPriority, "1px", 3);
+                            }
+                        };
+
+                        let updateTimeout;
+                        const debouncedUpdate = () => {
+                            clearTimeout(updateTimeout);
+                            updateTimeout = setTimeout(async () => {
+                                exportPreviewLayer.removeAll();
+                                await processVisibleRoads();
+                            }, 800);
+                        };
+
+                        await processVisibleRoads();
+                        
+                        view.watch("extent", debouncedUpdate);
+                        view.watch("rotation", debouncedUpdate);
+
+                        exportPreviewLayer.visible = true;
+                        exportButton.disabled = false;
+
+                        loadingMessage.textContent = `พร้อมส่งออกข้อมูลถนน ${totalRoads.toLocaleString()} เส้น`;
+                        setTimeout(() => {
+                            loadingMessage.style.display = "none";
+                        }, 3000);
+
+                    } catch (error) {
+                        console.error("Error previewing roads:", error);
+                        loadingMessage.textContent = "เกิดข้อผิดพลาดในการสร้างตัวอย่าง";
+                    } finally {
+                        previewButton.disabled = false;
+                    }
+                }
+
+                async function exportRoadsToGeoJSON() {
+                    if (!selectedRoads) return;
+
+                    loadingMessage.style.display = "block";
+                    loadingMessage.textContent = "กำลังส่งออกข้อมูล...";
+
+                    try {
+                        const name = document.getElementById("boundarySelect").value || "selected_area";
+                        
+                        // กำหนด spatial reference สำหรับ UTM Zone 47N
+                        const utmSR = new SpatialReference({
+                            wkid: 32647
+                        });
+
+                        // สร้างโครงสร้าง GeoJSON
+                        const geojson = {
+                            type: "FeatureCollection",
+                            name: `roads_${name}`,
+                            crs: {
+                                type: "name",
+                                properties: {
+                                    name: "EPSG:32647"
+                                }
+                            },
+                            features: await Promise.all(selectedRoads.map(async feature => {
+                                // แปลงพิกัดเป็น UTM Zone 47N
+                                const utmGeometry = projection.project(
+                                    feature.geometry,
+                                    utmSR
+                                );
+
+                                const coordinates = utmGeometry.paths[0];
+                                
+                                return {
+                                    type: "Feature",
+                                    geometry: {
+                                        type: "LineString",
+                                        coordinates: coordinates
+                                    },
+                                    properties: {
+                                        ...feature.attributes,
+                                        length_m: feature.geometry.length || 0,
+                                        road_id: feature.attributes.OBJECTID || feature.attributes.FID || null,
+                                        style: {
+                                            color: "#FF0000",
+                                            weight: 2
+                                        }
+                                    }
+                                };
+                            }))
+                        };
+
+                        const blob = new Blob([JSON.stringify(geojson, null, 2)], { 
+                            type: "application/json" 
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `roads_${name}_utm47n_${new Date().getTime()}.geojson`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+
+                        loadingMessage.style.display = "none";
+                    } catch (error) {
+                        console.error("Error exporting data:", error);
+                        loadingMessage.textContent = "เกิดข้อผิดพลาดในการส่งออกข้อมูล";
+                    }
+                }
+
+                // Event listeners
+                document.getElementById("searchInput").addEventListener("input", filterBoundaries);
+                document.getElementById("boundarySelect").addEventListener("change", function(e) {
+                    handleBoundarySelect(e.target.value);
+                });
+                document.getElementById("previewButton").addEventListener("click", previewExportRoads);
+                document.getElementById("exportButton").addEventListener("click", exportRoadsToGeoJSON);
+
+                // Initialize
+                view.when(() => {
+                    loadBoundaries();
+                    view.ui.add(sketch, {
+                        position: "manual"
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
