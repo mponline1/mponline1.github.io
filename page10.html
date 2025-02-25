@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ArcGIS Map with EPSG:4326 Georeferenced Export</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css">
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    
+    .panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 320px;
+      background-color: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      max-height: 90vh;
+      overflow-y: auto;
+      z-index: 99;
+      transition: opacity 0.3s ease;
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+    }
+    
+    .panel-title {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    .panel-toggle {
+      cursor: pointer;
+      padding: 5px;
+    }
+    
+    .panel-content {
+      display: block;
+    }
+    
+    .panel.collapsed .panel-content {
+      display: none;
+    }
+    
+    .layers-panel {
+      left: 10px;
+      right: auto;
+    }
+    
+    .grid-status {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 10px 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+      display: none;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background-color: #4CAF50;
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    button {
+      padding: 8px 12px;
+      background-color: #0078ca;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px 0;
+    }
+    
+    button:hover {
+      background-color: #005fa3;
+    }
+    
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    .form-group {
+      margin-bottom: 10px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    select, input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .image-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    
+    .image-item {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .image-item:last-child {
+      border-bottom: none;
+    }
+    
+    .download-btn {
+      background-color: #4CAF50;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    
+    .sketch-panel {
+      left: 10px;
+      top: 250px;
+    }
+    
+    .mini-preview {
+      width: 60px;
+      height: 40px;
+      border: 1px solid #ddd;
+      margin-right: 10px;
+      background-size: cover;
+      background-position: center;
+    }
+    
+    .image-info {
+      display: flex;
+      align-items: center;
+      flex: 1;
+    }
+    
+    .select-all {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .drawing-tools {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    .drawing-tool {
+      flex: 1;
+      margin: 0 5px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    /* เมนูเพิ่มสำหรับรองรับหน้าจอเล็ก */
+    @media (max-width: 768px) {
+      .panel {
+        width: 280px;
+      }
+    }
+    
+    /* ตัวระบบสำหรับการแสดงผลขณะประมวลผล */
+    .processing-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 24px;
+      display: none;
+    }
+    
+    .processing-content {
+      background-color: #333;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    
+    .spinner {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 2s linear infinite;
+      margin: 0 auto 15px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* ป้ายแสดงระบบพิกัด */
+    .coordinate-badge {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #333;
+      z-index: 98;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .coordinate-badge span {
+      color: #0078ca;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  
+  <!-- ป้ายแสดงระบบพิกัด -->
+  <div class="coordinate-badge">
+    ระบบพิกัด: <span>EPSG:4326 (WGS84)</span>
+  </div>
+  
+  <!-- Processing Overlay -->
+  <div id="processingOverlay" class="processing-overlay">
+    <div class="processing-content">
+      <div class="spinner"></div>
+      <div id="processingMessage">กำลังประมวลผลภาพ...</div>
+    </div>
+  </div>
+  
+  <!-- Map Tools Panel -->
+  <div class="panel" id="toolsPanel">
+    <div class="panel-header">
+      <div class="panel-title">แผนที่และเครื่องมือ</div>
+      <div class="panel-toggle" id="toolsPanelToggle">
+        <i class="fas fa-chevron-up"></i>
+      </div>
+    </div>
+    <div class="panel-content">
+      <div class="form-group">
+        <label for="basemapSelect">พื้นหลังแผนที่:</label>
+        <select id="basemapSelect">
+          <option value="streets-vector">ถนน (Vector)</option>
+          <option value="satellite">ดาวเทียม</option>
+          <option value="hybrid">ผสม</option>
+          <option value="topo-vector">ภูมิประเทศ</option>
+          <option value="gray-vector">สีเทา</option>
+          <option value="dark-gray-vector">สีเทาเข้ม</option>
+          <option value="oceans">มหาสมุทร</option>
+          <option value="osm">OpenStreetMap</option>
+        </select>
+      </div>
+      
+      <div class="drawing-tools">
+        <button id="drawPolygonBtn" class="drawing-tool">
+          <i class="fas fa-draw-polygon"></i><br>วาดรูปหลายเหลี่ยม
+        </button>
+        <button id="drawRectangleBtn" class="drawing-tool">
+          <i class="fas fa-square"></i><br>วาดสี่เหลี่ยม
+        </button>
+      </div>
+      
+      <button id="clearBtn">ล้างแผนที่</button>
+      <button id="processBtn" disabled>ประมวลผลภาพ</button>
+    </div>
+  </div>
+  
+  <!-- Layers Panel -->
+  <div class="panel layers-panel" id="layersPanel">
+    <div class="panel-header">
+      <div class="panel-title">ชั้นข้อมูล</div>
+      <div class="panel-toggle" id="layersPanelToggle">
+        <i class="fas fa-chevron-up"></i>
+      </div>
+    </div>
+    <div class="panel-content">
+      <div class="form-group">
+        <label for="layerTypeSelect">ประเภทชั้นข้อมูล:</label>
+        <select id="layerTypeSelect">
+          <option value="mapService">ArcGIS Map Service</option>
+          <option value="featureService">ArcGIS Feature Service</option>
+          <option value="imageService">ArcGIS Image Service</option>
+          <option value="wms">WMS</option>
+          <option value="tileLayer">Tile Layer</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="layerURL">URL ชั้นข้อมูล:</label>
+        <input type="text" id="layerURL" placeholder="URL">
+      </div>
+      
+      <div class="form-group" id="wmsLayerOptions" style="display: none;">
+        <label for="wmsLayers">ชื่อชั้นข้อมูล WMS (คั่นด้วยเครื่องหมาย ,):</label>
+        <input type="text" id="wmsLayers" placeholder="layer1,layer2">
+      </div>
+      
+      <button id="addLayerBtn">เพิ่มชั้นข้อมูล</button>
+      
+      <div id="layersList" style="margin-top: 10px;">
+        <h4>ชั้นข้อมูลที่เพิ่ม:</h4>
+        <div id="loadedLayers">
+          <!-- Layers will be listed here -->
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Images Panel -->
+  <div class="panel" id="imagesPanel" style="top: 250px; right: 10px;">
+    <div class="panel-header">
+      <div class="panel-title">รายการภาพ</div>
+      <div class="panel-toggle" id="imagesPanelToggle">
+        <i class="fas fa-chevron-up"></i>
+      </div>
+    </div>
+    <div class="panel-content">
+      <div id="noImagesMessage">ยังไม่มีภาพ</div>
+      <div class="image-list" id="imagesList" style="display: none;">
+        <!-- Images will be listed here -->
+      </div>
+      <div class="select-all" id="selectAllContainer" style="display: none;">
+        <label>
+          <input type="checkbox" id="selectAllCheckbox"> เลือกทั้งหมด
+        </label>
+        <button id="downloadAllBtn">ดาวน์โหลดที่เลือก</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Grid Processing Status -->
+  <div class="grid-status" id="gridStatus">
+    <div id="statusText">กำลังประมวลผลกริด...</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <!-- Load scripts at the end -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://js.arcgis.com/4.25/"></script>
+  
+  <script>
+    // Global variables
+    let view, esriMap, graphicsLayer, sketchViewModel, gridLayer;
+    let generatedImages = [];
+    let selectedGraphic = null;
+    let processedCount = 0;
+    let totalGrids = 0;
+    let layerCounter = 0;
+    let addedLayers = [];
+    let allPanels = [];
+    
+    // Panel toggle functionality
+    function togglePanel(panelId) {
+      const panel = document.getElementById(panelId);
+      panel.classList.toggle("collapsed");
+      
+      const icon = panel.querySelector(".panel-toggle i");
+      if (panel.classList.contains("collapsed")) {
+        icon.className = "fas fa-chevron-down";
+      } else {
+        icon.className = "fas fa-chevron-up";
+      }
+    }
+    
+    // Function to hide all panels
+    function hideAllPanels() {
+      allPanels.forEach(panel => {
+        panel.style.opacity = "0";
+        panel.style.pointerEvents = "none";
+      });
+    }
+    
+    // Function to show all panels
+    function showAllPanels() {
+      allPanels.forEach(panel => {
+        panel.style.opacity = "1";
+        panel.style.pointerEvents = "auto";
+      });
+    }
+    
+    // Show processing overlay
+    function showProcessingOverlay(message) {
+      const overlay = document.getElementById("processingOverlay");
+      const messageElement = document.getElementById("processingMessage");
+      messageElement.textContent = message || "กำลังประมวลผล...";
+      overlay.style.display = "flex";
+    }
+    
+    // Hide processing overlay
+    function hideProcessingOverlay() {
+      const overlay = document.getElementById("processingOverlay");
+      overlay.style.display = "none";
+    }
+    
+    // Initialize ArcGIS JavaScript API
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/GraphicsLayer",
+      "esri/widgets/Sketch",
+      "esri/geometry/Polygon",
+      "esri/geometry/Extent",
+      "esri/geometry/geometryEngine",
+      "esri/Graphic",
+      "esri/layers/MapImageLayer",
+      "esri/layers/FeatureLayer",
+      "esri/layers/ImageryLayer",
+      "esri/layers/WMSLayer",
+      "esri/layers/TileLayer",
+      "esri/geometry/support/webMercatorUtils"
+    ], function(
+      Map, MapView, GraphicsLayer, Sketch, Polygon, Extent, geometryEngine, 
+      Graphic, MapImageLayer, FeatureLayer, ImageryLayer, 
+      WMSLayer, TileLayer, webMercatorUtils
+    ) {
+      // Store all panels for later use
+      allPanels = [
+        document.getElementById("toolsPanel"),
+        document.getElementById("layersPanel"),
+        document.getElementById("imagesPanel")
+      ];
+      
+      // Set up panel toggle event listeners
+      document.getElementById("toolsPanelToggle").addEventListener("click", function() {
+        togglePanel("toolsPanel");
+      });
+      
+      document.getElementById("layersPanelToggle").addEventListener("click", function() {
+        togglePanel("layersPanel");
+      });
+      
+      document.getElementById("imagesPanelToggle").addEventListener("click", function() {
+        togglePanel("imagesPanel");
+      });
+      
+      // Show/hide WMS options based on layer type selection
+      document.getElementById("layerTypeSelect").addEventListener("change", function() {
+        const wmsOptions = document.getElementById("wmsLayerOptions");
+        if (this.value === "wms") {
+          wmsOptions.style.display = "block";
+        } else {
+          wmsOptions.style.display = "none";
+        }
+      });
+      
+      // Toggle select all images
+      document.getElementById("selectAllCheckbox").addEventListener("click", function() {
+        const selectAll = this.checked;
+        const checkboxes = document.querySelectorAll(".image-checkbox");
+        
+        checkboxes.forEach(checkbox => {
+          checkbox.checked = selectAll;
+        });
+      });
+      
+      // Initialize the map and view
+      graphicsLayer = new GraphicsLayer();
+      gridLayer = new GraphicsLayer();
+      
+      esriMap = new Map({
+        basemap: "streets-vector",
+        layers: [gridLayer, graphicsLayer]
+      });
+      
+      view = new MapView({
+        container: "viewDiv",
+        map: esriMap,
+        center: [100.523186, 13.736717], // Bangkok, Thailand
+        zoom: 10,
+        popup: {
+          dockEnabled: true,
+          dockOptions: {
+            buttonEnabled: false,
+            breakpoint: false
+          }
+        }
+      });
+      
+      // Create sketch widget for drawing
+      const sketch = new Sketch({
+        view: view,
+        layer: graphicsLayer,
+        creationMode: "single"
+      });
+      
+      sketchViewModel = sketch.viewModel;
+      
+      // Event listeners for sketch
+      sketchViewModel.on("create", function(event) {
+        if (event.state === "complete") {
+          selectedGraphic = event.graphic;
+          document.getElementById("processBtn").disabled = false;
+        }
+      });
+      
+      // Function to change basemap
+      function changeBasemap() {
+        const basemapValue = document.getElementById("basemapSelect").value;
+        esriMap.basemap = basemapValue;
+      }
+      
+      // Function to activate polygon draw tool
+      function activatePolygonDrawTool() {
+        clearGraphics();
+        sketchViewModel.create("polygon");
+      }
+      
+      // Function to activate rectangle draw tool
+      function activateRectangleDrawTool() {
+        clearGraphics();
+        sketchViewModel.create("rectangle");
+      }
+      
+      // Function to clear graphics
+      function clearGraphics() {
+        graphicsLayer.removeAll();
+        gridLayer.removeAll();
+        selectedGraphic = null;
+        document.getElementById("processBtn").disabled = true;
+      }
+      
+      // Set up button event listeners
+      document.getElementById("basemapSelect").addEventListener("change", changeBasemap);
+      document.getElementById("drawPolygonBtn").addEventListener("click", activatePolygonDrawTool);
+      document.getElementById("drawRectangleBtn").addEventListener("click", activateRectangleDrawTool);
+      document.getElementById("clearBtn").addEventListener("click", clearGraphics);
+      document.getElementById("processBtn").addEventListener("click", processSelectedArea);
+      document.getElementById("addLayerBtn").addEventListener("click", addLayer);
+      document.getElementById("downloadAllBtn").addEventListener("click", downloadSelectedImages);
+      
+      // Function to add layer
+      function addLayer() {
+        const layerType = document.getElementById("layerTypeSelect").value;
+        const url = document.getElementById("layerURL").value.trim();
+        
+        if (!url) {
+          alert("กรุณาใส่ URL ของชั้นข้อมูล");
+          return;
+        }
+        
+        let newLayer;
+        const layerId = "layer_" + layerCounter++;
+        
+        try {
+          switch (layerType) {
+            case "mapService":
+              newLayer = new MapImageLayer({
+                url: url,
+                id: layerId
+              });
+              break;
+            case "featureService":
+              newLayer = new FeatureLayer({
+                url: url,
+                id: layerId
+              });
+              break;
+            case "imageService":
+              newLayer = new ImageryLayer({
+                url: url,
+                id: layerId
+              });
+              break;
+            case "wms":
+              const wmsLayers = document.getElementById("wmsLayers").value.split(",").map(item => item.trim());
+              newLayer = new WMSLayer({
+                url: url,
+                sublayers: wmsLayers.map(function(layerName) {
+                  return { name: layerName };
+                }),
+                id: layerId
+              });
+              break;
+            case "tileLayer":
+              newLayer = new TileLayer({
+                url: url,
+                id: layerId
+              });
+              break;
+          }
+          
+          esriMap.add(newLayer);
+          
+          // Add to layer management list
+          const layersDiv = document.getElementById("loadedLayers");
+          const layerItem = document.createElement("div");
+          layerItem.style.display = "flex";
+          layerItem.style.justifyContent = "space-between";
+          layerItem.style.alignItems = "center";
+          layerItem.style.padding = "5px 0";
+          layerItem.style.borderBottom = "1px solid #eee";
+          
+          // Get layer type and URL for display
+          const layerTypeText = document.getElementById("layerTypeSelect").options[
+            document.getElementById("layerTypeSelect").selectedIndex
+          ].text;
+          
+          layerItem.innerHTML = `
+            <div>
+              <div><strong>${layerTypeText}</strong></div>
+              <div style="font-size: 12px; word-break: break-all;">${url.substring(0, 30)}...</div>
+            </div>
+            <button class="remove-layer-btn" data-id="${layerId}" style="background-color: #f44336; padding: 4px 8px; font-size: 12px;">ลบ</button>
+          `;
+          
+          layersDiv.appendChild(layerItem);
+          
+          // Add event listener to remove button
+          layerItem.querySelector(".remove-layer-btn").addEventListener("click", function() {
+            const layerId = this.getAttribute("data-id");
+            const layerToRemove = esriMap.findLayerById(layerId);
+            if (layerToRemove) {
+              esriMap.remove(layerToRemove);
+              this.parentElement.remove();
+            }
+          });
+          
+          addedLayers.push({
+            id: layerId,
+            layer: newLayer
+          });
+          
+          // Clear input fields
+          document.getElementById("layerURL").value = "";
+          document.getElementById("wmsLayers").value = "";
+          
+        } catch (error) {
+          console.error("Error adding layer:", error);
+          alert("เกิดข้อผิดพลาดในการเพิ่มชั้นข้อมูล: " + error.message);
+        }
+      }
+      
+      // Function to capture viewport as image - ปรับปรุงใหม่ใช้ ArcGIS API โดยตรง
+      async function captureViewportAsImage(polygon) {
+        try {
+          showProcessingOverlay("กำลังบันทึกภาพพื้นที่ที่เลือก...");
+          
+          // ซ่อนเส้นกริดก่อนจับภาพ
+          gridLayer.visible = false;
+          graphicsLayer.visible = false; // ซ่อนกราฟิกที่วาดด้วย
+          
+          // Zoom to polygon with padding for better context
+          await view.goTo({
+            target: polygon,
+            padding: {
+              top: 50,
+              bottom: 50,
+              left: 50,
+              right: 50
+            }
+          }, {
+            duration: 1000,
+            easing: "ease-in-out"
+          });
+          
+          // รอให้แผนที่โหลดเสร็จและเสถียร
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // ใช้ API ของ ArcGIS โดยตรงในการจับภาพ
+          const screenshot = await view.takeScreenshot({
+            format: "png",
+            quality: 100,
+            width: view.width,
+            height: view.height
+          });
+          
+          // แสดงเส้นกริดอีกครั้ง
+          gridLayer.visible = true;
+          graphicsLayer.visible = true;
+          
+          // สำคัญ: แปลงขอบเขตจาก Web Mercator เป็น WGS84 (EPSG:4326)
+          const viewExtent = view.extent;
+          const wgs84Extent = webMercatorUtils.webMercatorToGeographic(viewExtent);
+          
+          console.log("Captured image with EPSG:4326 extent:", wgs84Extent);
+          
+          // แปลงข้อมูลรูปภาพเป็น ArrayBuffer
+          const response = await fetch(screenshot.dataUrl);
+          const blob = await response.blob();
+          const arrayBuffer = await blob.arrayBuffer();
+          
+          hideProcessingOverlay();
+          
+          // สร้างข้อความแสดงขอบเขตพื้นที่
+          const extentText = `MinX: ${wgs84Extent.xmin.toFixed(6)}, MinY: ${wgs84Extent.ymin.toFixed(6)}, MaxX: ${wgs84Extent.xmax.toFixed(6)}, MaxY: ${wgs84Extent.ymax.toFixed(6)}`;
+          
+          return {
+            data: arrayBuffer,
+            dataUrl: screenshot.dataUrl,
+            extent: wgs84Extent,         // ใช้ค่าพิกัด WGS84 (EPSG:4326)
+            width: screenshot.data.width,
+            height: screenshot.data.height,
+            extentText: extentText
+          };
+        } catch (error) {
+          hideProcessingOverlay();
+          console.error("Error in captureViewportAsImage:", error);
+          throw error;
+        }
+      }
+      
+      // Create a georeferenced PNG with improved world file calculations
+      function createGeoreferencedPNG(imageDataUrl, extent, width, height) {
+        try {
+          // Ensure we have valid extent and dimensions
+          if (!extent || !width || !height || width <= 0 || height <= 0) {
+            throw new Error("Invalid extent or dimensions for georeferencing");
+          }
+          
+          // Create world file content (for georeferencing)
+          // World file format for PNG (.pgw):
+          // Line 1: pixel size in the x-direction in map units/pixel
+          // Line 2: rotation about y-axis (typically 0)
+          // Line 3: rotation about x-axis (typically 0)
+          // Line 4: pixel size in the y-direction in map units/pixel (negative value)
+          // Line 5: x-coordinate of the center of the upper left pixel
+          // Line 6: y-coordinate of the center of the upper left pixel
+          
+          const xPixelSize = (extent.xmax - extent.xmin) / width;
+          const yPixelSize = (extent.ymax - extent.ymin) / height;
+          const xCenter = extent.xmin + (xPixelSize / 2);
+          const yCenter = extent.ymax - (yPixelSize / 2);
+          
+          // Format with high precision to ensure accuracy
+          const worldFileContent = 
+            `${xPixelSize.toFixed(15)}\n` +
+            `0.0000000000\n` +
+            `0.0000000000\n` +
+            `${(-yPixelSize).toFixed(15)}\n` +
+            `${xCenter.toFixed(15)}\n` +
+            `${yCenter.toFixed(15)}`;
+          
+          // XML metadata content for coordinate system (EPSG:4326)
+          const metadataContent = 
+            `<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <DatasetDescription>
+    <GeographicExtent>
+      <WestBoundingCoordinate>${extent.xmin.toFixed(15)}</WestBoundingCoordinate>
+      <EastBoundingCoordinate>${extent.xmax.toFixed(15)}</EastBoundingCoordinate>
+      <NorthBoundingCoordinate>${extent.ymax.toFixed(15)}</NorthBoundingCoordinate>
+      <SouthBoundingCoordinate>${extent.ymin.toFixed(15)}</SouthBoundingCoordinate>
+    </GeographicExtent>
+    <SpatialReference>EPSG:4326</SpatialReference>
+    <ImageWidth>${width}</ImageWidth>
+    <ImageHeight>${height}</ImageHeight>
+    <PixelSizeX>${xPixelSize.toFixed(15)}</PixelSizeX>
+    <PixelSizeY>${yPixelSize.toFixed(15)}</PixelSizeY>
+  </DatasetDescription>
+</metadata>`;
+          
+          // Also create a prj file (another common georeferencing format)
+          const prjFileContent = 
+            `GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0,
+        AUTHORITY["EPSG","8901"]],
+    UNIT["degree",0.0174532925199433,
+        AUTHORITY["EPSG","9122"]],
+    AUTHORITY["EPSG","4326"]]`;
+          
+          // สร้างไฟล์ข้อมูลขอบเขตพื้นที่เพิ่มเติม
+          const extentInfoContent = 
+            `Coordinate System: WGS84 (EPSG:4326)
+Extent Information:
+  Min X (Longitude): ${extent.xmin.toFixed(15)}
+  Min Y (Latitude): ${extent.ymin.toFixed(15)}
+  Max X (Longitude): ${extent.xmax.toFixed(15)}
+  Max Y (Latitude): ${extent.ymax.toFixed(15)}
+  Width (degrees): ${(extent.xmax - extent.xmin).toFixed(15)}
+  Height (degrees): ${(extent.ymax - extent.ymin).toFixed(15)}
+  Pixel Size X (degrees/pixel): ${xPixelSize.toFixed(15)}
+  Pixel Size Y (degrees/pixel): ${yPixelSize.toFixed(15)}
+Image Dimensions:
+  Width: ${width} pixels
+  Height: ${height} pixels`;
+          
+          return {
+            imageDataUrl: imageDataUrl,
+            worldFile: worldFileContent,
+            metadata: metadataContent,
+            prjFile: prjFileContent,
+            extentInfo: extentInfoContent
+          };
+        } catch (error) {
+          console.error("Error in createGeoreferencedPNG:", error);
+          throw error;
+        }
+      }
+      
+      // Process the selected area
+      function processSelectedArea() {
+        if (!selectedGraphic) {
+          alert("กรุณาเลือกพื้นที่ก่อน");
+          return;
+        }
+        
+        // Show processing status and hide all panels before processing
+        document.getElementById("gridStatus").style.display = "block";
+        hideAllPanels();
+        
+        const selectedPolygon = selectedGraphic.geometry;
+        
+        // First, capture the entire selected area
+        captureViewportAsImage(selectedPolygon).then((imageInfo) => {
+          // Add to generated images list
+          const timestamp = new Date().getTime();
+          const imageName = "full_area_" + timestamp + ".png";
+          
+          // Convert image data URL to PNG with world file
+          const blobUrl = URL.createObjectURL(new Blob([imageInfo.data], { type: "image/png" }));
+          const geoInfo = createGeoreferencedPNG(blobUrl, imageInfo.extent, imageInfo.width, imageInfo.height);
+          
+          generatedImages.push({
+            name: imageName,
+            type: "full",
+            data: imageInfo.data,
+            thumbnail: imageInfo.dataUrl,
+            extent: imageInfo.extent,
+            width: imageInfo.width,
+            height: imageInfo.height,
+            worldFile: geoInfo.worldFile,
+            metadata: geoInfo.metadata,
+            prjFile: geoInfo.prjFile,
+            extentInfo: geoInfo.extentInfo,
+            extentText: imageInfo.extentText
+          });
+          
+          // Update UI
+          updateImagesList();
+          
+          // Then create grid and process each cell
+          createAndProcessGrid(selectedPolygon);
+        }).catch(error => {
+          console.error("Error capturing full area:", error);
+          alert("เกิดข้อผิดพลาดในการบันทึกภาพพื้นที่เต็ม: " + (error.message || error));
+          // Show panels again on error
+          showAllPanels();
+          document.getElementById("gridStatus").style.display = "none";
+        });
+      }
+      
+      // Create a grid and process each cell
+      function createAndProcessGrid(polygon) {
+        // Create a grid with 500x500 meter cells
+        const gridSize = 500; // in meters
+        const geodesicBuffer = geometryEngine.geodesicBuffer(polygon, 0, "meters");
+        const extent = geodesicBuffer.extent;
+        
+        // Calculate grid dimensions
+        const width = extent.width;
+        const height = extent.height;
+        
+        const cols = Math.ceil(width / gridSize);
+        const rows = Math.ceil(height / gridSize);
+        
+        // Create grid cells
+        const gridCells = [];
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const xmin = extent.xmin + col * gridSize;
+            const ymin = extent.ymin + row * gridSize;
+            const xmax = Math.min(extent.xmin + (col + 1) * gridSize, extent.xmax);
+            const ymax = Math.min(extent.ymin + (row + 1) * gridSize, extent.ymax);
+            
+            const cellExtent = new Extent({
+              xmin: xmin,
+              ymin: ymin,
+              xmax: xmax,
+              ymax: ymax,
+              spatialReference: extent.spatialReference
+            });
+            
+            const cellPolygon = Polygon.fromExtent(cellExtent);
+            
+            // Only include cells that intersect with the selected polygon
+            if (geometryEngine.intersects(cellPolygon, polygon)) {
+              gridCells.push(cellPolygon);
+              
+              // Add grid cell graphic
+              const gridGraphic = new Graphic({
+                geometry: cellPolygon,
+                symbol: {
+                  type: "simple-fill",
+                  color: [0, 0, 255, 0.1],
+                  outline: {
+                    color: [0, 0, 255, 0.5],
+                    width: 1
+                  }
+                }
+              });
+              
+              gridLayer.add(gridGraphic);
+            }
+          }
+        }
+        
+        // Update UI for grid processing
+        totalGrids = gridCells.length;
+        processedCount = 0;
+        updateProgressUI();
+        
+        // Process grid cells one by one
+        processNextGridCell(gridCells, 0);
+      }
+      
+      // Process grid cells sequentially with improved error handling
+      async function processNextGridCell(gridCells, index) {
+        if (index >= gridCells.length) {
+          // All cells processed
+          document.getElementById("gridStatus").style.display = "none";
+          hideProcessingOverlay();
+          // Show panels again when complete
+          showAllPanels();
+          return;
+        }
+        
+        const cellPolygon = gridCells[index];
+        
+        try {
+          // Update processing message
+          showProcessingOverlay(`กำลังประมวลผลกริด ${index + 1} จาก ${gridCells.length}...`);
+          
+          // Hide grid layer and graphics layer before capture
+          gridLayer.visible = false;
+          graphicsLayer.visible = false;
+          
+          // Zoom to the grid cell with padding
+          await view.goTo({
+            target: cellPolygon,
+            padding: {
+              top: 20,
+              bottom: 20,
+              left: 20,
+              right: 20
+            }
+          }, {
+            duration: 500,
+            easing: "ease-in-out"
+          });
+          
+          // รอให้แผนที่โหลดเสร็จและเสถียร
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // ใช้ API ของ ArcGIS โดยตรงในการจับภาพ
+          const screenshot = await view.takeScreenshot({
+            format: "png",
+            quality: 100
+          });
+          
+          // แสดงเส้นกริดอีกครั้ง
+          gridLayer.visible = true;
+          graphicsLayer.visible = true;
+          
+          // Convert to WGS84 for georeferencing
+          const viewExtent = view.extent;
+          const wgs84Extent = webMercatorUtils.webMercatorToGeographic(viewExtent);
+          
+          // แปลงข้อมูลรูปภาพเป็น ArrayBuffer สำหรับเก็บบันทึก
+          const response = await fetch(screenshot.dataUrl);
+          const blob = await response.blob();
+          const arrayBuffer = await blob.arrayBuffer();
+          
+          // Create georeferenced PNG
+          const blobUrl = URL.createObjectURL(blob);
+          const geoInfo = createGeoreferencedPNG(blobUrl, wgs84Extent, screenshot.data.width, screenshot.data.height);
+          
+          // สร้างข้อความแสดงขอบเขตพื้นที่
+          const extentText = `MinX: ${wgs84Extent.xmin.toFixed(6)}, MinY: ${wgs84Extent.ymin.toFixed(6)}, MaxX: ${wgs84Extent.xmax.toFixed(6)}, MaxY: ${wgs84Extent.ymax.toFixed(6)}`;
+                    
+          // Create a timestamp for unique naming
+          const timestamp = new Date().getTime();
+          
+          // Add to generated images list
+          const imageName = `grid_${index}_${timestamp}.png`;
+          generatedImages.push({
+            name: imageName,
+            type: "grid",
+            data: arrayBuffer,
+            thumbnail: screenshot.dataUrl,
+            extent: wgs84Extent,
+            width: screenshot.data.width,
+            height: screenshot.data.height,
+            worldFile: geoInfo.worldFile,
+            metadata: geoInfo.metadata,
+            prjFile: geoInfo.prjFile,
+            extentInfo: geoInfo.extentInfo,
+            extentText: extentText
+          });
+          
+          // Update UI
+          processedCount++;
+          updateProgressUI();
+          updateImagesList();
+          
+          // Process next cell with a delay to give browser breathing room
+          setTimeout(() => {
+            processNextGridCell(gridCells, index + 1);
+          }, 500);
+        } catch (error) {
+          console.error(`Error processing grid cell ${index}:`, error);
+          
+          // Continue with next cell despite error
+          processedCount++;
+          updateProgressUI();
+          
+          setTimeout(() => {
+            processNextGridCell(gridCells, index + 1);
+          }, 500);
+        }
+      }
+      
+      // Update progress UI
+      function updateProgressUI() {
+        const statusElement = document.getElementById("gridStatus");
+        statusElement.style.display = "block";
+        
+        const statusText = document.getElementById("statusText");
+        statusText.textContent = `กำลังประมวลผลกริด... ${processedCount}/${totalGrids}`;
+        
+        const progressFill = document.getElementById("progressFill");
+        const percentage = totalGrids > 0 ? (processedCount / totalGrids) * 100 : 0;
+        progressFill.style.width = percentage + "%";
+      }
+      
+      // Download a single image - global function - improved version
+      function downloadSingleImage(index) {
+        const image = generatedImages[index];
+        if (image) {
+          try {
+            // Show processing
+            showProcessingOverlay("กำลังสร้างไฟล์สำหรับดาวน์โหลด...");
+            
+            // Create a zip file with PNG and world file
+            const zip = new JSZip();
+            
+            // Add PNG file
+            zip.file(image.name, new Blob([image.data], { type: "image/png" }));
+            
+            // Add world file (.pgw for PNG)
+            const worldFileName = image.name.replace('.png', '.pgw');
+            zip.file(worldFileName, image.worldFile);
+            
+            // Add metadata xml file
+            const metadataFileName = image.name.replace('.png', '.xml');
+            zip.file(metadataFileName, image.metadata);
+            
+            // Add .prj file for better compatibility with GIS software
+            const prjFileName = image.name.replace('.png', '.prj');
+            zip.file(prjFileName, image.prjFile);
+            
+            // Add extent info file
+            const extentInfoFileName = image.name.replace('.png', '_extent_info.txt');
+            zip.file(extentInfoFileName, image.extentInfo || "");
+            
+            // Add text file with EPSG information for clarity
+            const epsgInfoFileName = image.name.replace('.png', '_epsg_info.txt');
+            zip.file(epsgInfoFileName, `Coordinate System: WGS84 (EPSG:4326)
+Geographic Coordinate System (Longitude/Latitude)
+Extent: ${image.extentText || ""}`);
+            
+            // Generate and download the zip
+            zip.generateAsync({ type: "blob" }).then(function(content) {
+              hideProcessingOverlay();
+              saveAs(content, image.name.replace('.png', '') + "_EPSG4326.zip");
+            }).catch(function(error) {
+              hideProcessingOverlay();
+              console.error("Error generating zip file:", error);
+              alert("เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: " + error.message);
+            });
+          } catch (error) {
+            hideProcessingOverlay();
+            console.error("Error in downloadSingleImage:", error);
+            alert("เกิดข้อผิดพลาดในการดาวน์โหลดภาพ: " + error.message);
+          }
+        }
+      }
+      
+      // Global function to download selected images - improved version
+      function downloadSelectedImages() {
+        const checkboxes = document.querySelectorAll(".image-checkbox:checked");
+        
+        if (checkboxes.length === 0) {
+          alert("กรุณาเลือกภาพที่ต้องการดาวน์โหลด");
+          return;
+        }
+        
+        try {
+          if (checkboxes.length === 1) {
+            // Download single file
+            const index = parseInt(checkboxes[0].getAttribute("data-index"));
+            downloadSingleImage(index);
+          } else {
+            // Show processing
+            showProcessingOverlay("กำลังเตรียมไฟล์สำหรับดาวน์โหลด...");
+            
+            // Create zip file with multiple images
+            const zip = new JSZip();
+            const mainFolder = zip.folder("georeferenced_images_EPSG4326");
+            
+            const selectedIndices = Array.from(checkboxes).map(checkbox => 
+              parseInt(checkbox.getAttribute("data-index"))
+            );
+            
+            // Process each image
+            let processed = 0;
+            
+            // Create a promise for each image
+            const promises = selectedIndices.map((index, i) => {
+              return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                  try {
+                    const image = generatedImages[index];
+                    if (image) {
+                      const imageFolder = mainFolder.folder(image.name.replace('.png', ''));
+                      
+                      // Add PNG file
+                      imageFolder.file(image.name, new Blob([image.data], { type: "image/png" }));
+                      
+                      // Add world file (.pgw for PNG)
+                      const worldFileName = image.name.replace('.png', '.pgw');
+                      imageFolder.file(worldFileName, image.worldFile);
+                      
+                      // Add metadata xml file
+                      const metadataFileName = image.name.replace('.png', '.xml');
+                      imageFolder.file(metadataFileName, image.metadata);
+                      
+                      // Add .prj file
+                      const prjFileName = image.name.replace('.png', '.prj');
+                      imageFolder.file(prjFileName, image.prjFile);
+                      
+                      // Add extent info file
+                      const extentInfoFileName = image.name.replace('.png', '_extent_info.txt');
+                      imageFolder.file(extentInfoFileName, image.extentInfo || "");
+                      
+                      // Add EPSG info file
+                      const epsgInfoFileName = image.name.replace('.png', '_epsg_info.txt');
+                      imageFolder.file(epsgInfoFileName, `Coordinate System: WGS84 (EPSG:4326)
+Geographic Coordinate System (Longitude/Latitude)
+Extent: ${image.extentText || ""}`);
+                      
+                      // Update progress
+                      processed++;
+                      document.getElementById("processingMessage").textContent = 
+                        `กำลังเตรียมไฟล์... ${processed}/${selectedIndices.length}`;
+                      
+                      resolve();
+                    } else {
+                      reject(new Error(`ไม่พบภาพที่ index ${index}`));
+                    }
+                  } catch (error) {
+                    reject(error);
+                  }
+                }, 0);
+              });
+            });
+            
+            // When all images are processed, generate and download the zip
+            Promise.all(promises)
+              .then(() => {
+                document.getElementById("processingMessage").textContent = "กำลังสร้างไฟล์ ZIP...";
+                return zip.generateAsync({ type: "blob" });
+              })
+              .then(content => {
+                hideProcessingOverlay();
+                saveAs(content, "map_images_EPSG4326_" + new Date().getTime() + ".zip");
+              })
+              .catch(error => {
+                hideProcessingOverlay();
+                console.error("Error preparing files for download:", error);
+                alert("เกิดข้อผิดพลาดในการดาวน์โหลดภาพ: " + error.message);
+              });
+          }
+        } catch (error) {
+          hideProcessingOverlay();
+          console.error("Error in downloadSelectedImages:", error);
+          alert("เกิดข้อผิดพลาดในการดาวน์โหลดภาพ: " + error.message);
+        }
+      }
+      
+      // Update images list in UI with improved display
+      function updateImagesList() {
+        const imagesList = document.getElementById("imagesList");
+        const noImagesMessage = document.getElementById("noImagesMessage");
+        const selectAllContainer = document.getElementById("selectAllContainer");
+        
+        if (generatedImages.length > 0) {
+          imagesList.style.display = "block";
+          noImagesMessage.style.display = "none";
+          selectAllContainer.style.display = "flex";
+          
+          // Clear list
+          imagesList.innerHTML = "";
+          
+          // Add each image
+          generatedImages.forEach((image, index) => {
+            const imageItem = document.createElement("div");
+            imageItem.className = "image-item";
+            
+            imageItem.innerHTML = `
+              <div class="image-info">
+                <div class="mini-preview" style="background-image: url('${image.thumbnail}')"></div>
+                <div>
+                  <div>${image.name}</div>
+                  <div style="font-size: 11px;">Type: ${image.type}</div>
+                  <div style="font-size: 10px;">Res: ${image.width}x${image.height}</div>
+                  <div style="font-size: 10px; color: #3A8C3F; font-weight: bold;">EPSG:4326 (WGS84)</div>
+                  <div style="font-size: 9px; color: #666; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${image.extentText || ""}">${image.extentText || ""}</div>
+                </div>
+              </div>
+              <div>
+                <input type="checkbox" class="image-checkbox" data-index="${index}">
+                <button class="download-btn" onclick="downloadSingleImage(${index})">
+                  <i class="fas fa-download"></i>
+                </button>
+              </div>
+            `;
+            
+            imagesList.appendChild(imageItem);
+          });
+        } else {
+          imagesList.style.display = "none";
+          noImagesMessage.style.display = "block";
+          selectAllContainer.style.display = "none";
+        }
+      }
+      
+      // Make downloadSingleImage available globally
+      window.downloadSingleImage = downloadSingleImage;
+      
+      // Wait for view to be ready
+      view.when(function() {
+        console.log("Map view is ready to use");
+        hideProcessingOverlay();
+      });
+    });
+  </script>
+</body>
+</html>
