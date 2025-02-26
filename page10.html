@@ -255,6 +255,31 @@
       color: #0078ca;
       font-weight: bold;
     }
+    
+    /* สไตล์เพิ่มเติมสำหรับปุ่มค้นหา */
+    #getCapabilitiesBtn {
+      background-color: #2196F3;
+    }
+    #getCapabilitiesBtn:hover {
+      background-color: #0b7dda;
+    }
+    .layer-visibility-btn:hover {
+      opacity: 0.9;
+    }
+    #loadedLayers {
+      border: 1px solid #eee;
+      border-radius: 4px;
+      padding: 5px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #loadedLayers:empty::after {
+      content: "ยังไม่มีชั้นข้อมูล";
+      color: #999;
+      font-style: italic;
+      display: block;
+      padding: 5px;
+    }
   </style>
 </head>
 
@@ -333,12 +358,22 @@
       
       <div class="form-group">
         <label for="layerURL">URL ชั้นข้อมูล:</label>
-        <input type="text" id="layerURL" placeholder="URL">
+        <div style="display: flex; margin-bottom: 5px;">
+          <input type="text" id="layerURL" placeholder="URL" style="flex: 1; margin-right: 5px;">
+          <button id="getCapabilitiesBtn" style="flex-shrink: 0; white-space: nowrap; font-size: 12px; padding: 5px;">
+            <i class="fas fa-search"></i> ค้นหาชั้นข้อมูล
+          </button>
+        </div>
+        <div style="font-size: 11px; color: #666; margin-top: 2px;">
+        </div>
       </div>
       
-      <div class="form-group" id="wmsLayerOptions" style="display: none;">
+      <div class="form-group" id="wmsLayerOptions">
         <label for="wmsLayers">ชื่อชั้นข้อมูล WMS (คั่นด้วยเครื่องหมาย ,):</label>
         <input type="text" id="wmsLayers" placeholder="layer1,layer2">
+        <div style="font-size: 11px; color: #666; margin-top: 2px;">
+          หากไม่ระบุ ระบบจะพยายามใช้ชั้นข้อมูลทั้งหมดที่มีใน URL
+        </div>
       </div>
       
       <button id="addLayerBtn">เพิ่มชั้นข้อมูล</button>
@@ -485,10 +520,14 @@
       // Show/hide WMS options based on layer type selection
       document.getElementById("layerTypeSelect").addEventListener("change", function() {
         const wmsOptions = document.getElementById("wmsLayerOptions");
+        const getCapabilitiesBtn = document.getElementById("getCapabilitiesBtn");
+        
         if (this.value === "wms") {
           wmsOptions.style.display = "block";
+          getCapabilitiesBtn.style.display = "block";
         } else {
           wmsOptions.style.display = "none";
+          getCapabilitiesBtn.style.display = "none";
         }
       });
       
@@ -576,6 +615,26 @@
       document.getElementById("processBtn").addEventListener("click", processSelectedArea);
       document.getElementById("addLayerBtn").addEventListener("click", addLayer);
       document.getElementById("downloadAllBtn").addEventListener("click", downloadSelectedImages);
+      document.getElementById("getCapabilitiesBtn").addEventListener("click", function() {
+        // ตรวจสอบว่าเลือกประเภทเป็น WMS หรือไม่
+        const layerType = document.getElementById("layerTypeSelect").value;
+        if (layerType !== "wms") {
+          // หากไม่ใช่ WMS ให้เปลี่ยนเป็น WMS ก่อน
+          document.getElementById("layerTypeSelect").value = "wms";
+          document.getElementById("wmsLayerOptions").style.display = "block";
+        }
+        
+        // เรียกฟังก์ชันค้นหาชั้นข้อมูล WMS
+        getWMSCapabilities();
+      });
+      
+      // ปรับปรุงการแสดง WMS Layer Options
+      document.getElementById("wmsLayerOptions").style.display = 
+        document.getElementById("layerTypeSelect").value === "wms" ? "block" : "none";
+      
+      // ซ่อนปุ่มค้นหาชั้นข้อมูลเมื่อไม่ได้เลือก WMS (ใช้เฉพาะตอนเริ่มต้น)
+      document.getElementById("getCapabilitiesBtn").style.display = 
+        document.getElementById("layerTypeSelect").value === "wms" ? "block" : "none";
       
       // Function to add layer
       function addLayer() {
@@ -611,14 +670,65 @@
               });
               break;
             case "wms":
-              const wmsLayers = document.getElementById("wmsLayers").value.split(",").map(item => item.trim());
-              newLayer = new WMSLayer({
-                url: url,
-                sublayers: wmsLayers.map(function(layerName) {
-                  return { name: layerName };
-                }),
-                id: layerId
-              });
+              // ดึงค่าชั้นข้อมูลจาก input field
+              let wmsLayers = document.getElementById("wmsLayers").value;
+              
+              // ถ้าไม่ได้ระบุชั้นข้อมูล ให้ตรวจสอบจาก URL แทน
+              if (!wmsLayers || wmsLayers.trim() === "") {
+                // พยายามดึงค่า LAYERS parameter จาก URL โดยตรง
+                const urlObj = new URL(url);
+                const params = new URLSearchParams(urlObj.search);
+                
+                // ตรวจสอบพารามิเตอร์ LAYERS (ใช้ทั้งตัวใหญ่และตัวเล็ก)
+                wmsLayers = params.get("LAYERS") || params.get("layers") || "";
+                
+                if (wmsLayers) {
+                  console.log("Found LAYERS in URL:", wmsLayers);
+                  // อัพเดตค่าใน input field
+                  document.getElementById("wmsLayers").value = wmsLayers;
+                }
+              }
+              
+              // แยกชื่อชั้นข้อมูลที่คั่นด้วยเครื่องหมาย ,
+              const layerNames = wmsLayers.split(",").map(item => item.trim()).filter(item => item !== "");
+              
+              // ตรวจสอบว่าเป็น URL ที่มี API key หรือไม่
+              let wmsUrl = url;
+              // ถ้าไม่พบพารามิเตอร์ GetMap หรือ REQUEST ใน URL
+              if (!url.includes("GetMap") && !url.includes("REQUEST=GetMap") && !url.includes("request=GetMap")) {
+                // ตรวจสอบว่ามีเครื่องหมาย ? อยู่แล้วหรือไม่
+                if (url.includes("?")) {
+                  // มีพารามิเตอร์อื่นๆ อยู่แล้ว (เช่น API key)
+                  wmsUrl = `${url}&SERVICE=WMS&REQUEST=GetMap`;
+                } else {
+                  // ยังไม่มีพารามิเตอร์
+                  wmsUrl = `${url}?SERVICE=WMS&REQUEST=GetMap`;
+                }
+              }
+              
+              // สร้าง WMS layer
+              if (layerNames.length > 0) {
+                newLayer = new WMSLayer({
+                  url: wmsUrl,
+                  sublayers: layerNames.map(function(layerName) {
+                    return { name: layerName };
+                  }),
+                  id: layerId,
+                  customParameters: {
+                    transparent: true
+                  }
+                });
+              } else {
+                // ถ้าไม่ได้ระบุชั้นข้อมูล ให้ลองสร้างโดยไม่ระบุ sublayers
+                console.log("Creating WMS layer without specified sublayers. Will try to load all available layers.");
+                newLayer = new WMSLayer({
+                  url: wmsUrl,
+                  id: layerId,
+                  customParameters: {
+                    transparent: true
+                  }
+                });
+              }
               break;
             case "tileLayer":
               newLayer = new TileLayer({
@@ -627,6 +737,31 @@
               });
               break;
           }
+          
+          // แสดงข้อความกำลังโหลด
+          showProcessingOverlay("กำลังโหลดชั้นข้อมูล...");
+          
+          // ให้โหลดหลังจากเพิ่มชั้นข้อมูลแล้ว
+          newLayer.when(function() {
+            hideProcessingOverlay();
+            console.log("Layer loaded successfully:", newLayer);
+            
+            // ถ้าเป็น WMS และไม่ได้ระบุชั้นข้อมูล ให้แสดงรายการชั้นข้อมูลที่มี
+            if (layerType === "wms" && newLayer.sublayers && newLayer.sublayers.length > 0) {
+              const availableLayers = newLayer.sublayers.map(sublayer => sublayer.name).join(", ");
+              if (document.getElementById("wmsLayers").value.trim() === "") {
+                document.getElementById("wmsLayers").value = availableLayers;
+              }
+            }
+            
+          }, function(error) {
+            hideProcessingOverlay();
+            console.error("Error loading layer:", error);
+            alert("ไม่สามารถโหลดชั้นข้อมูลได้: " + error.message);
+            
+            // ลบชั้นข้อมูลที่เพิ่มไปแล้ว
+            esriMap.remove(newLayer);
+          });
           
           esriMap.add(newLayer);
           
@@ -644,12 +779,22 @@
             document.getElementById("layerTypeSelect").selectedIndex
           ].text;
           
+          // แสดง URL แบบย่อ
+          const shortUrl = url.length > 50 ? url.substring(0, 47) + "..." : url;
+          
           layerItem.innerHTML = `
             <div>
               <div><strong>${layerTypeText}</strong></div>
-              <div style="font-size: 12px; word-break: break-all;">${url.substring(0, 30)}...</div>
+              <div style="font-size: 12px; word-break: break-all;" title="${url}">${shortUrl}</div>
             </div>
-            <button class="remove-layer-btn" data-id="${layerId}" style="background-color: #f44336; padding: 4px 8px; font-size: 12px;">ลบ</button>
+            <div>
+              <button class="layer-visibility-btn" data-id="${layerId}" data-visible="true" style="background-color: #4CAF50; padding: 4px 8px; font-size: 12px; margin-right: 5px;">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="remove-layer-btn" data-id="${layerId}" style="background-color: #f44336; padding: 4px 8px; font-size: 12px;">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
           `;
           
           layersDiv.appendChild(layerItem);
@@ -660,7 +805,30 @@
             const layerToRemove = esriMap.findLayerById(layerId);
             if (layerToRemove) {
               esriMap.remove(layerToRemove);
-              this.parentElement.remove();
+              this.parentElement.parentElement.remove();
+            }
+          });
+          
+          // Add event listener to visibility toggle button
+          layerItem.querySelector(".layer-visibility-btn").addEventListener("click", function() {
+            const layerId = this.getAttribute("data-id");
+            const isVisible = this.getAttribute("data-visible") === "true";
+            const layerToToggle = esriMap.findLayerById(layerId);
+            
+            if (layerToToggle) {
+              // Toggle visibility
+              layerToToggle.visible = !isVisible;
+              
+              // Update button state
+              if (!isVisible) {
+                this.style.backgroundColor = "#4CAF50";
+                this.innerHTML = '<i class="fas fa-eye"></i>';
+                this.setAttribute("data-visible", "true");
+              } else {
+                this.style.backgroundColor = "#ff9800";
+                this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                this.setAttribute("data-visible", "false");
+              }
             }
           });
           
@@ -669,13 +837,103 @@
             layer: newLayer
           });
           
-          // Clear input fields
+          // Clear input fields (ไม่ต้องล้างค่าของ wmsLayers เพื่อความสะดวกในการใช้งาน)
           document.getElementById("layerURL").value = "";
-          document.getElementById("wmsLayers").value = "";
           
         } catch (error) {
+          hideProcessingOverlay();
           console.error("Error adding layer:", error);
           alert("เกิดข้อผิดพลาดในการเพิ่มชั้นข้อมูล: " + error.message);
+        }
+      }
+      
+      // Function to get WMS capabilities
+      function getWMSCapabilities() {
+        const wmsUrl = document.getElementById("layerURL").value.trim();
+        
+        if (!wmsUrl) {
+          alert("กรุณาใส่ URL ของ WMS Service");
+          return;
+        }
+        
+        // แสดงข้อความกำลังโหลด
+        showProcessingOverlay("กำลังดึงข้อมูลชั้นข้อมูล WMS...");
+        
+        try {
+          // สร้าง URL สำหรับดึงข้อมูล Capabilities
+          let getCapabilitiesUrl = wmsUrl;
+          
+          // ตรวจสอบว่ามีเครื่องหมาย ? อยู่แล้วหรือไม่
+          if (getCapabilitiesUrl.includes("?")) {
+            // มีพารามิเตอร์อื่นๆ อยู่แล้ว (เช่น API key)
+            if (!getCapabilitiesUrl.includes("SERVICE=") && !getCapabilitiesUrl.includes("service=")) {
+              getCapabilitiesUrl += "&SERVICE=WMS";
+            }
+            if (!getCapabilitiesUrl.includes("REQUEST=") && !getCapabilitiesUrl.includes("request=")) {
+              getCapabilitiesUrl += "&REQUEST=GetCapabilities";
+            }
+          } else {
+            // ยังไม่มีพารามิเตอร์
+            getCapabilitiesUrl += "?SERVICE=WMS&REQUEST=GetCapabilities";
+          }
+          
+          // ใช้ CORS Proxy ถ้าจำเป็น (ไม่ได้ใส่ code จริงเพราะต้องมี server รองรับ)
+          // getCapabilitiesUrl = "https://your-cors-proxy/" + encodeURIComponent(getCapabilitiesUrl);
+          
+          // เรียก API เพื่อดึงข้อมูล Capabilities
+          fetch(getCapabilitiesUrl)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.text();
+            })
+            .then(data => {
+              // แปลง XML เป็น Document object
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(data, "application/xml");
+              
+              // ดึงรายการชั้นข้อมูล
+              const layers = [];
+              const layerElements = xmlDoc.getElementsByTagName("Layer");
+              
+              for (let i = 0; i < layerElements.length; i++) {
+                const nameElement = layerElements[i].getElementsByTagName("Name")[0];
+                const titleElement = layerElements[i].getElementsByTagName("Title")[0];
+                
+                if (nameElement && nameElement.textContent) {
+                  layers.push({
+                    name: nameElement.textContent,
+                    title: titleElement ? titleElement.textContent : nameElement.textContent
+                  });
+                }
+              }
+              
+              // กรองเฉพาะชั้นข้อมูลที่มีชื่อ
+              const availableLayers = layers.filter(layer => layer.name.trim() !== "");
+              
+              if (availableLayers.length > 0) {
+                // นำชื่อชั้นข้อมูลมาใส่ในกล่องข้อความ
+                const layerNames = availableLayers.map(layer => layer.name).join(", ");
+                document.getElementById("wmsLayers").value = layerNames;
+                
+                // แสดงข้อความว่าพบชั้นข้อมูลกี่ชั้น
+                alert(`พบชั้นข้อมูลทั้งหมด ${availableLayers.length} ชั้น`);
+              } else {
+                alert("ไม่พบชั้นข้อมูลใน WMS Service นี้");
+              }
+              
+              hideProcessingOverlay();
+            })
+            .catch(error => {
+              hideProcessingOverlay();
+              console.error("Error fetching WMS capabilities:", error);
+              alert("ไม่สามารถดึงข้อมูลชั้นข้อมูล WMS ได้: " + error.message);
+            });
+        } catch (error) {
+          hideProcessingOverlay();
+          console.error("Error in getWMSCapabilities:", error);
+          alert("เกิดข้อผิดพลาด: " + error.message);
         }
       }
       
@@ -1188,8 +1446,8 @@ Extent: ${image.extentText || ""}`);
                       // Add EPSG info file
                       const epsgInfoFileName = image.name.replace('.png', '_epsg_info.txt');
                       imageFolder.file(epsgInfoFileName, `Coordinate System: WGS84 (EPSG:4326)
-Geographic Coordinate System (Longitude/Latitude)
-Extent: ${image.extentText || ""}`);
+                      Geographic Coordinate System (Longitude/Latitude)
+                      Extent: ${image.extentText || ""}`);
                       
                       // Update progress
                       processed++;
