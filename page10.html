@@ -280,6 +280,11 @@
       display: block;
       padding: 5px;
     }
+    
+    /* สไตล์เพิ่มเติมสำหรับตัวเลือก WMS */
+    .wms-option {
+      margin-top: 5px;
+    }
   </style>
 </head>
 
@@ -353,6 +358,7 @@
           <option value="imageService">ArcGIS Image Service</option>
           <option value="wms">WMS</option>
           <option value="tileLayer">Tile Layer</option>
+          <option value="xyzTiles">XYZ Tiles</option>
         </select>
       </div>
       
@@ -364,15 +370,42 @@
             <i class="fas fa-search"></i> ค้นหาชั้นข้อมูล
           </button>
         </div>
-        <div style="font-size: 11px; color: #666; margin-top: 2px;">
+        <div style="font-size: 11px; color: #666; margin-top: 2px;" id="urlHelpText">
+          
         </div>
       </div>
       
+      <!-- ส่วนของตัวเลือก WMS ที่ปรับปรุงแล้ว -->
       <div class="form-group" id="wmsLayerOptions">
         <label for="wmsLayers">ชื่อชั้นข้อมูล WMS (คั่นด้วยเครื่องหมาย ,):</label>
         <input type="text" id="wmsLayers" placeholder="layer1,layer2">
-        <div style="font-size: 11px; color: #666; margin-top: 2px;">
-          หากไม่ระบุ ระบบจะพยายามใช้ชั้นข้อมูลทั้งหมดที่มีใน URL
+        
+        <div style="margin-top: 10px;">
+          <label for="wmsVersion">เวอร์ชัน WMS:</label>
+          <select id="wmsVersion" class="wms-option">
+            <option value="1.3.0" selected>1.3.0 (แนะนำ)</option>
+            <option value="1.1.1">1.1.1</option>
+            <option value="1.1.0">1.1.0</option>
+          </select>
+        </div>
+        
+        <div style="margin-top: 10px;">
+          <label for="wmsFormat">รูปแบบภาพ:</label>
+          <select id="wmsFormat" class="wms-option">
+            <option value="png32" selected>PNG32 (รองรับความโปร่งใส)</option>
+            <option value="png">PNG</option>
+            <option value="jpg">JPEG (ไม่โปร่งใส)</option>
+            <option value="gif">GIF</option>
+          </select>
+        </div>
+        
+        <div style="margin-top: 10px; display: flex; align-items: center;">
+          <input type="checkbox" id="wmsTransparent" checked style="width: auto; margin-right: 8px;">
+          <label for="wmsTransparent">เปิดใช้งานความโปร่งใส (transparent)</label>
+        </div>
+        
+        <div style="font-size: 11px; color: #666; margin-top: 10px;">
+          หากไม่ระบุชื่อชั้นข้อมูล ระบบจะพยายามใช้ชั้นข้อมูลทั้งหมดที่มีใน URL
         </div>
       </div>
       
@@ -491,11 +524,12 @@
       "esri/layers/ImageryLayer",
       "esri/layers/WMSLayer",
       "esri/layers/TileLayer",
+      "esri/layers/WebTileLayer",
       "esri/geometry/support/webMercatorUtils"
     ], function(
       Map, MapView, GraphicsLayer, Sketch, Polygon, Extent, geometryEngine, 
       Graphic, MapImageLayer, FeatureLayer, ImageryLayer, 
-      WMSLayer, TileLayer, webMercatorUtils
+      WMSLayer, TileLayer, WebTileLayer, webMercatorUtils
     ) {
       // Store all panels for later use
       allPanels = [
@@ -517,19 +551,34 @@
         togglePanel("imagesPanel");
       });
       
-      // Show/hide WMS options based on layer type selection
+      // Show/hide layer options based on layer type selection
       document.getElementById("layerTypeSelect").addEventListener("change", function() {
         const wmsOptions = document.getElementById("wmsLayerOptions");
         const getCapabilitiesBtn = document.getElementById("getCapabilitiesBtn");
+        const helpText = document.getElementById("urlHelpText");
         
-        if (this.value === "wms") {
-          wmsOptions.style.display = "block";
-          getCapabilitiesBtn.style.display = "block";
-        } else {
-          wmsOptions.style.display = "none";
-          getCapabilitiesBtn.style.display = "none";
+        // Reset help text
+        helpText.innerHTML = "";
+        
+        // Handle different layer types
+        switch(this.value) {
+          case "wms":
+            wmsOptions.style.display = "block";
+            getCapabilitiesBtn.style.display = "block";
+            break;
+          case "xyzTiles":
+            wmsOptions.style.display = "none";
+            getCapabilitiesBtn.style.display = "none";
+            helpText.innerHTML = "";
+            break;
+          default:
+            wmsOptions.style.display = "none";
+            getCapabilitiesBtn.style.display = "none";
         }
       });
+      
+      // Trigger the change event initially to set correct state
+      document.getElementById("layerTypeSelect").dispatchEvent(new Event('change'));
       
       // Toggle select all images
       document.getElementById("selectAllCheckbox").addEventListener("click", function() {
@@ -546,8 +595,8 @@
       gridLayer = new GraphicsLayer();
       
       esriMap = new Map({
-        basemap: "streets-vector",
-        layers: [gridLayer, graphicsLayer]
+        basemap: "streets-vector"
+        // Don't add layers here, we'll add them explicitly later with proper ordering
       });
       
       view = new MapView({
@@ -564,6 +613,18 @@
         }
       });
       
+      // Wait for the view to be ready then add the graphics layers in proper order
+      view.when(function() {
+        // Add the grid layer first (lower z-index)
+        esriMap.add(gridLayer);
+        
+        // Add the graphics layer for user drawings last (highest z-index)
+        esriMap.add(graphicsLayer);
+        
+        console.log("Map view is ready to use");
+        hideProcessingOverlay();
+      });
+      
       // Create sketch widget for drawing
       const sketch = new Sketch({
         view: view,
@@ -578,8 +639,27 @@
         if (event.state === "complete") {
           selectedGraphic = event.graphic;
           document.getElementById("processBtn").disabled = false;
+          
+          // Make sure the graphics layer is on top
+          ensureGraphicsLayerOnTop();
         }
       });
+      
+      // Function to ensure graphics layer is on top
+      function ensureGraphicsLayerOnTop() {
+        // Ensure proper layer ordering by removing and re-adding graphic layers
+        if (esriMap.layers.includes(graphicsLayer)) {
+          esriMap.layers.remove(graphicsLayer);
+        }
+        
+        if (esriMap.layers.includes(gridLayer)) {
+          esriMap.layers.remove(gridLayer);
+        }
+        
+        // Add back in correct order (grid first, then graphics on top)
+        esriMap.add(gridLayer);
+        esriMap.add(graphicsLayer);
+      }
       
       // Function to change basemap
       function changeBasemap() {
@@ -622,19 +702,23 @@
           // หากไม่ใช่ WMS ให้เปลี่ยนเป็น WMS ก่อน
           document.getElementById("layerTypeSelect").value = "wms";
           document.getElementById("wmsLayerOptions").style.display = "block";
+          document.getElementById("layerTypeSelect").dispatchEvent(new Event('change'));
         }
         
         // เรียกฟังก์ชันค้นหาชั้นข้อมูล WMS
         getWMSCapabilities();
       });
       
-      // ปรับปรุงการแสดง WMS Layer Options
-      document.getElementById("wmsLayerOptions").style.display = 
-        document.getElementById("layerTypeSelect").value === "wms" ? "block" : "none";
-      
-      // ซ่อนปุ่มค้นหาชั้นข้อมูลเมื่อไม่ได้เลือก WMS (ใช้เฉพาะตอนเริ่มต้น)
-      document.getElementById("getCapabilitiesBtn").style.display = 
-        document.getElementById("layerTypeSelect").value === "wms" ? "block" : "none";
+      // Function to test XYZ Tiles URL format and provide feedback
+      function isValidXYZTilesURL(url) {
+        // ตรวจสอบว่า URL มีรูปแบบที่ถูกต้องสำหรับ XYZ Tiles
+        // ต้องมี {x}, {y}, และ {z} ในรูปแบบที่ถูกต้อง
+        const hasXParam = url.includes("{x}");
+        const hasYParam = url.includes("{y}");
+        const hasZParam = url.includes("{z}");
+        
+        return hasXParam && hasYParam && hasZParam;
+      }
       
       // Function to add layer
       function addLayer() {
@@ -706,7 +790,12 @@
                 }
               }
               
-              // สร้าง WMS layer
+              // ดึงค่าการตั้งค่า WMS จากฟอร์ม
+              const wmsVersion = document.getElementById("wmsVersion").value;
+              const wmsFormat = document.getElementById("wmsFormat").value;
+              const wmsTransparent = document.getElementById("wmsTransparent").checked;
+              
+              // สร้าง WMS layer ด้วยการตั้งค่าที่ปรับปรุงแล้ว
               if (layerNames.length > 0) {
                 newLayer = new WMSLayer({
                   url: wmsUrl,
@@ -714,8 +803,14 @@
                     return { name: layerName };
                   }),
                   id: layerId,
-                  customParameters: {
-                    transparent: true
+                  format: wmsFormat,
+                  transparent: wmsTransparent,
+                  imageTransparency: false, // ปิดการโปร่งแสงของรูปภาพ
+                  imageFormat: wmsFormat,   // ใช้รูปแบบที่รองรับความโปร่งใส
+                  version: wmsVersion,      // ใช้เวอร์ชั่น WMS ที่ผู้ใช้เลือก
+                  customParameters: {      
+                    transparent: wmsTransparent ? "true" : "false",  // เปิดใช้งาน transparent ใน WMS request
+                    format: "image/" + wmsFormat                     // กำหนดรูปแบบภาพที่ร้องขอ
                   }
                 });
               } else {
@@ -724,8 +819,14 @@
                 newLayer = new WMSLayer({
                   url: wmsUrl,
                   id: layerId,
+                  format: wmsFormat,
+                  transparent: wmsTransparent,
+                  imageTransparency: false,
+                  imageFormat: wmsFormat,
+                  version: wmsVersion,
                   customParameters: {
-                    transparent: true
+                    transparent: wmsTransparent ? "true" : "false",
+                    format: "image/" + wmsFormat
                   }
                 });
               }
@@ -736,10 +837,36 @@
                 id: layerId
               });
               break;
+            case "xyzTiles":
+              // ตรวจสอบรูปแบบ URL ก่อนสร้าง WebTileLayer
+              if (!isValidXYZTilesURL(url)) {
+                throw new Error("URL ไม่ถูกต้องสำหรับ XYZ Tiles ต้องมี {x}, {y}, และ {z} ในรูปแบบที่ถูกต้อง เช่น https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}");
+              }
+              
+              // สร้าง WebTileLayer สำหรับชั้นข้อมูล XYZ Tiles
+              newLayer = new WebTileLayer({
+                urlTemplate: url,
+                id: layerId,
+                // กำหนดคุณสมบัติเพิ่มเติมให้เหมาะสมกับการใช้งาน
+                subDomains: ["a", "b", "c"], // ในกรณีที่ URL มีการระบุ subdomain เช่น {subDomain}
+                copyright: "XYZ Tiles Layer"
+              });
+              break;
           }
           
           // แสดงข้อความกำลังโหลด
           showProcessingOverlay("กำลังโหลดชั้นข้อมูล...");
+          
+          // สำคัญ: แทนที่จะเพิ่มเลยให้ใช้ insertBefore เพื่อให้อยู่ใต้ graphic layers
+          esriMap.layers.remove(gridLayer);    // ลบชั่วคราวเพื่อให้สามารถเรียงลำดับได้
+          esriMap.layers.remove(graphicsLayer);
+          
+          // เพิ่มเลเยอร์ใหม่ก่อน
+          esriMap.add(newLayer);
+          
+          // แล้วเพิ่ม grid layer และ graphics layer กลับเข้าไปอีกครั้ง (จะได้อยู่บนสุด)
+          esriMap.add(gridLayer);
+          esriMap.add(graphicsLayer);
           
           // ให้โหลดหลังจากเพิ่มชั้นข้อมูลแล้ว
           newLayer.when(function() {
@@ -762,8 +889,6 @@
             // ลบชั้นข้อมูลที่เพิ่มไปแล้ว
             esriMap.remove(newLayer);
           });
-          
-          esriMap.add(newLayer);
           
           // Add to layer management list
           const layersDiv = document.getElementById("loadedLayers");
@@ -937,14 +1062,16 @@
         }
       }
       
-      // Function to capture viewport as image - ปรับปรุงใหม่ใช้ ArcGIS API โดยตรง
+      // Function to capture viewport as image - ปรับปรุงใหม่ให้ซ่อนกริดในระหว่างการบันทึกภาพ
       async function captureViewportAsImage(polygon) {
         try {
           showProcessingOverlay("กำลังบันทึกภาพพื้นที่ที่เลือก...");
           
           // ซ่อนเส้นกริดก่อนจับภาพ
           gridLayer.visible = false;
-          graphicsLayer.visible = false; // ซ่อนกราฟิกที่วาดด้วย
+          
+          // ซ่อนกราฟิกที่วาดเพื่อไม่ให้ปรากฏในภาพที่บันทึก
+          graphicsLayer.visible = false;
           
           // Zoom to polygon with padding for better context
           await view.goTo({
@@ -960,8 +1087,8 @@
             easing: "ease-in-out"
           });
           
-          // รอให้แผนที่โหลดเสร็จและเสถียร
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // รอให้แผนที่โหลดเสร็จและเสถียร (ปรับเวลาให้นานขึ้นเพื่อรองรับ XYZ Tiles)
+          await new Promise(resolve => setTimeout(resolve, 3000));
           
           // ใช้ API ของ ArcGIS โดยตรงในการจับภาพ
           const screenshot = await view.takeScreenshot({
@@ -971,7 +1098,7 @@
             height: view.height
           });
           
-          // แสดงเส้นกริดอีกครั้ง
+          // แสดงเส้นกริดและกราฟิกอีกครั้งหลังจากการบันทึกภาพ
           gridLayer.visible = true;
           graphicsLayer.visible = true;
           
@@ -1111,6 +1238,9 @@ Image Dimensions:
         
         const selectedPolygon = selectedGraphic.geometry;
         
+        // ให้ graphics และ grid layers อยู่บนสุดตลอดเวลา
+        ensureGraphicsLayerOnTop();
+        
         // First, capture the entire selected area
         captureViewportAsImage(selectedPolygon).then((imageInfo) => {
           // Add to generated images list
@@ -1214,7 +1344,7 @@ Image Dimensions:
         processNextGridCell(gridCells, 0);
       }
       
-      // Process grid cells sequentially with improved error handling
+      // Process grid cells sequentially with improved error handling and layer visibility
       async function processNextGridCell(gridCells, index) {
         if (index >= gridCells.length) {
           // All cells processed
@@ -1222,6 +1352,12 @@ Image Dimensions:
           hideProcessingOverlay();
           // Show panels again when complete
           showAllPanels();
+          
+          // Make sure graphics and grid are visible and on top after processing
+          gridLayer.visible = true;
+          graphicsLayer.visible = true;
+          ensureGraphicsLayerOnTop();
+          
           return;
         }
         
@@ -1231,8 +1367,10 @@ Image Dimensions:
           // Update processing message
           showProcessingOverlay(`กำลังประมวลผลกริด ${index + 1} จาก ${gridCells.length}...`);
           
-          // Hide grid layer and graphics layer before capture
+          // ซ่อนกริดทั้งหมดในระหว่างการบันทึกภาพ
           gridLayer.visible = false;
+          
+          // ซ่อน graphicsLayer ที่มีพื้นที่เลือกหลัก
           graphicsLayer.visible = false;
           
           // Zoom to the grid cell with padding
@@ -1249,8 +1387,8 @@ Image Dimensions:
             easing: "ease-in-out"
           });
           
-          // รอให้แผนที่โหลดเสร็จและเสถียร
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // รอให้แผนที่โหลดเสร็จและเสถียร (ปรับเวลาให้นานขึ้นเพื่อรองรับ XYZ Tiles)
+          await new Promise(resolve => setTimeout(resolve, 2500));
           
           // ใช้ API ของ ArcGIS โดยตรงในการจับภาพ
           const screenshot = await view.takeScreenshot({
@@ -1258,7 +1396,7 @@ Image Dimensions:
             quality: 100
           });
           
-          // แสดงเส้นกริดอีกครั้ง
+          // แสดงเส้นกริดและกราฟิกอีกครั้งหลังจากบันทึกภาพเสร็จแล้ว
           gridLayer.visible = true;
           graphicsLayer.visible = true;
           
@@ -1277,7 +1415,7 @@ Image Dimensions:
           
           // สร้างข้อความแสดงขอบเขตพื้นที่
           const extentText = `MinX: ${wgs84Extent.xmin.toFixed(6)}, MinY: ${wgs84Extent.ymin.toFixed(6)}, MaxX: ${wgs84Extent.xmax.toFixed(6)}, MaxY: ${wgs84Extent.ymax.toFixed(6)}`;
-                    
+          
           // Create a timestamp for unique naming
           const timestamp = new Date().getTime();
           
@@ -1446,8 +1584,8 @@ Extent: ${image.extentText || ""}`);
                       // Add EPSG info file
                       const epsgInfoFileName = image.name.replace('.png', '_epsg_info.txt');
                       imageFolder.file(epsgInfoFileName, `Coordinate System: WGS84 (EPSG:4326)
-                      Geographic Coordinate System (Longitude/Latitude)
-                      Extent: ${image.extentText || ""}`);
+Geographic Coordinate System (Longitude/Latitude)
+Extent: ${image.extentText || ""}`);
                       
                       // Update progress
                       processed++;
