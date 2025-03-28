@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="th">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Calculate Population</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+    
+            body {
+                font-family: 'Sarabun', sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: #f5f5f5;
+                min-height: 100vh;
+            }
+    
+            .header {
+                background-color: white;
+                padding: 1rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+    
+            .title-section {
+                display: flex;
+                flex-direction: column;
+            }
+    
+            .title-section h1 {
+                margin: 0;
+                color: #FF4B55;
+                font-size: 24px;
+                font-weight: bold;
+            }
+    
+            .title-section h2 {
+                margin: 0;
+                font-size: 18px;
+                color: #FF4B55;
+            }
+    
+            .nav-buttons {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+            }
+    
+            .nav-button {
+                padding: 0.5rem 1.5rem;
+                border-radius: 25px;
+                border: none;
+                color: white;
+                cursor: pointer;
+                font-family: 'Sarabun', sans-serif;
+                font-size: 16px;
+                text-decoration: none;
+                text-align: center;
+                font-weight: 500;
+            }
+    
+            .reclass-button, .prepare-button {
+                background-color: #FF4B55;
+                min-width: 120px;
+                transition: background-color 0.3s ease;
+            }
+    
+            .reclass-button:hover, .prepare-button:hover {
+                background-color: #ff3340;
+            }
+    
+            .home-button {
+                background-color: #FF4B55;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                transition: background-color 0.3s ease;
+            }
+    
+            .home-button:hover {
+                background-color: #ff303a;
+            }
+    
+            .home-icon {
+                color: white;
+                font-size: 24px;
+                line-height: 1;
+            }
+    
+            .manual-section {
+                margin: 2rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                color: #FF4B55;
+                text-decoration: none;
+                font-size: 16px;
+            }
+    
+            .manual-section:hover {
+                text-decoration: underline;
+            }
+    
+            .book-icon {
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+    
+            .content {
+                margin: 0 2rem 2rem 2rem;
+                background-color: white;
+                padding: 2rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+    
+            .input-group {
+                margin-bottom: 1.5rem;
+            }
+    
+            .input-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+                color: #333;
+            }
+    
+            input[type="file"], 
+            input[type="number"],
+            select {
+                width: 100%;
+                padding: 0.5rem;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-family: 'Sarabun', sans-serif;
+            }
+    
+            input[type="number"] {
+                width: 200px;
+            }
+    
+            .filter-section {
+                margin-top: 1.5rem;
+                padding: 1rem;
+                background-color: #f8f9fa;
+                border-radius: 4px;
+                border: 1px solid #ddd;
+            }
+    
+            .filter-section label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+                color: #333;
+            }
+    
+            .button-container {
+                display: flex;
+                gap: 1rem;
+                justify-content: center;
+                margin-top: 2rem;
+            }
+    
+            .action-button {
+                padding: 0.75rem 2rem;
+                border-radius: 4px;
+                border: none;
+                color: white;
+                cursor: pointer;
+                font-family: 'Sarabun', sans-serif;
+                font-size: 16px;
+                font-weight: 500;
+                transition: background-color 0.3s ease;
+            }
+    
+            .process-button {
+                background-color: #007bff;
+            }
+    
+            .process-button:hover {
+                background-color: #0056b3;
+            }
+    
+            .export-button {
+                background-color: #28a745;
+            }
+    
+            .export-button:hover {
+                background-color: #218838;
+            }
+    
+            .table-container {
+                position: relative;
+                overflow-x: auto;
+                margin-top: 2rem;
+                display: none;
+                min-width: 100%;
+                max-width: 100%;
+            }
+
+            .fixed-column {
+                position: sticky;
+                left: 0;
+                background-color: white;
+                border-right: 2px solid #ddd;
+                z-index: 2;
+            }
+
+            .fixed-column th {
+                position: sticky;
+                left: 0;
+                background-color: #f8f9fa;
+                z-index: 3;
+            }
+
+            .fixed-column td {
+                position: sticky;
+                left: 0;
+                background-color: white;
+                z-index: 1;
+            }
+
+            tr:nth-child(even) .fixed-column td {
+                background-color: #f8f9fa;
+            }
+
+            .fixed-column::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 4px;
+                background: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0));
+                pointer-events: none;
+            }
+    
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 1rem;
+            }
+    
+            th, td {
+                border: 1px solid #ddd;
+                padding: 12px 8px;
+                text-align: center;
+            }
+
+            table th:first-child,
+            table td:first-child {
+                padding-right: 16px;
+            }
+    
+            th {
+                background-color: #f8f9fa;
+                color: #333;
+                font-weight: bold;
+                white-space: nowrap;
+            }
+    
+            tr:nth-child(even) {
+                background-color: #f8f9fa;
+            }
+    
+            tr:hover {
+                background-color: #f5f5f5;
+            }
+    
+            .status-message {
+                margin: 1rem 0;
+                padding: 1rem;
+                border-radius: 4px;
+                text-align: center;
+                display: none;
+            }
+    
+            .error {
+                background-color: #fff3f3;
+                color: #dc3545;
+                border: 1px solid #f5c6cb;
+            }
+    
+            .success {
+                background-color: #f0fff0;
+                color: #28a745;
+                border: 1px solid #c3e6cb;
+            }
+    
+            @media (max-width: 768px) {
+                .header {
+                    padding: 1rem;
+                    flex-direction: column;
+                    gap: 1rem;
+                    text-align: center;
+                }
+    
+                .nav-buttons {
+                    flex-wrap: wrap;
+                    justify-content: center;
+                }
+    
+                .content {
+                    margin: 1rem;
+                    padding: 1rem;
+                }
+    
+                .button-container {
+                    flex-direction: column;
+                }
+    
+                .action-button {
+                    width: 100%;
+                }
+    
+                input[type="number"] {
+                    width: 100%;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <header class="header">
+            <div class="title-section">
+                <h1>Calculate Population</h1>
+                <h2>คำนวณประชากร</h2>
+            </div>
+            <div class="nav-buttons">
+                <a href="page2.html" class="nav-button reclass-button">Reclass BLDG</a>
+                <a href="page5.html" class="nav-button prepare-button">Prepare PLLU</a>
+                <a href="index.html" class="nav-button home-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </a>
+            </div>
+        </header>
+    
+        <a href="Calculate Population.pdf" class="manual-section">
+            <div class="book-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+            </div>
+            <span>คู่มือการใช้งาน</span>
+        </a>
+    
+        <div class="content">
+            <div class="input-group">
+                <label>ไฟล์อาคาร (Excel):</label>
+                <input type="file" id="buildingFile" accept=".xlsx,.xls">
+            </div>
+    
+            <div class="input-group">
+                <label>ไฟล์ PLLU (Excel):</label>
+                <input type="file" id="plluFile" accept=".xlsx,.xls">
+            </div>
+    
+            <div class="input-group">
+                <label>ขนาดครัวเรือนเฉลี่ย:</label>
+                <input type="number" id="householdSize" value="3.0" step="0.01">
+            </div>
+    
+            <div class="filter-section">
+                <label>กรองตาม PL_USE:</label>
+                <select id="plluFilter">
+                    <option value="all">ทั้งหมด</option>
+                </select>
+            </div>
+    
+            <div class="button-container">
+                <button onclick="processData()" class="action-button process-button">Calculate</button>
+                <button onclick="exportToExcel()" class="action-button export-button">นำออกผลการคำนวณประชากร (Excel)</button>
+            </div>
+    
+            <div id="statusMessage" class="status-message"></div>
+    
+            <div class="table-container" id="tableContainer">
+                <table id="resultTable">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" class="fixed-column">การใช้ประโยชน์ที่ดินบริเวณหมายเลข</th>
+                            <th colspan="2">บ้านเดี่ยว/อาคารเดี่ยว</th>
+                            <th colspan="2">บ้านแฝด</th>
+                            <th colspan="2">ทาวน์เฮาส์</th>
+                            <th colspan="2">ห้องแถว</th>
+                            <th colspan="2">ตึกแถว</th>
+                            <th colspan="2">เรือนแพ</th>
+                            <th colspan="3">อาคารพักอาศัย</th>
+                            <th colspan="2">อื่นๆ</th>
+                            <th rowspan="2">จำนวนอาคารรวม</th>
+                            <th rowspan="2">ประชากรรวม</th>
+                            <th rowspan="2">พื้นที่ทั้งหมด(ไร่)</th>
+                            <th rowspan="2">ความหนาแน่นประชากร(คน/ไร่)</th>
+                        </tr>
+                        <tr>
+                            <th>จำนวนอาคาร</th>
+                            <th>ประชากร</th>
+                            <th>จำนวนอาคาร</th>
+                            <th>ประชากร</th>
+                            <th>จำนวนอาคาร</th>
+                            <th>ประชากร</th>
+                            <th>จำนวนอาคาร</th>
+                            <th>ประชากร</th>
+                            <th>จำนวนอาคาร</th>
+                            <th>ประชากร</th>
+                            <th>จำนวนอาคาร</th>
+                            <th>ประชากร</th>
+                            <th>จำนวนอาคาร</th>
+                            <th>จำนวนห้อง</th>
+                            <th>ประชากร</th>
+                            <th>จำนวนอาคาร</th>
+                            <th>ประชากร</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+    <script>
+const _0x541e59=_0x21cd;(function(_0x87e056,_0x421431){const _0x16fa5b=_0x21cd,_0x20b953=_0x87e056();while(!![]){try{const _0x32f765=-parseInt(_0x16fa5b(0x8c))/0x1*(parseInt(_0x16fa5b(0x103))/0x2)+-parseInt(_0x16fa5b(0xb3))/0x3*(parseInt(_0x16fa5b(0xc7))/0x4)+-parseInt(_0x16fa5b(0x98))/0x5+parseInt(_0x16fa5b(0xc5))/0x6*(parseInt(_0x16fa5b(0x83))/0x7)+-parseInt(_0x16fa5b(0xe1))/0x8*(-parseInt(_0x16fa5b(0xae))/0x9)+-parseInt(_0x16fa5b(0x90))/0xa*(parseInt(_0x16fa5b(0xb1))/0xb)+parseInt(_0x16fa5b(0x8e))/0xc;if(_0x32f765===_0x421431)break;else _0x20b953['push'](_0x20b953['shift']());}catch(_0x41f6ab){_0x20b953['push'](_0x20b953['shift']());}}}(_0x43c3,0x565e0));let buildingData=[],plluData=[],filteredData=[];document[_0x541e59(0x88)](_0x541e59(0xc3))['addEventListener'](_0x541e59(0xff),handleBuildingFile),document[_0x541e59(0x88)](_0x541e59(0xd3))['addEventListener'](_0x541e59(0xff),handlePlluFile),document[_0x541e59(0x88)](_0x541e59(0xa1))[_0x541e59(0xbb)](_0x541e59(0xff),filterData),document[_0x541e59(0x88)](_0x541e59(0x80))[_0x541e59(0xbb)](_0x541e59(0xb9),function(_0x536c62){_0x536c62['key']==='Enter'&&processData();});function normalizeBuildingType(_0x1f2c3a){const _0x3a5dfe=String(_0x1f2c3a)['trim'](),_0x57b17a={'1':0x1,'บ้านเดี่ยว':0x1,'2':0x2,'บ้านแฝด':0x2,'3':0x3,'ทาวน์เฮาส์':0x3,'4':0x4,'ห้องแถว':0x4,'5':0x5,'ตึกแถว':0x5,'6':0x6,'อาคารพักอาศัย':0x6,'7':0x7,'เรือนแพ':0x7,'8':0x8,'อื่นๆ':0x8,'98':0x62};return _0x57b17a[_0x3a5dfe]||null;}function formatNumber(_0x35ddbc,_0x161d45=0x0){const _0x111595=_0x541e59;return _0x35ddbc[_0x111595(0xe6)]('th-TH',{'minimumFractionDigits':_0x161d45,'maximumFractionDigits':_0x161d45});}async function handleBuildingFile(_0x43109b){const _0xbf5ff9=_0x541e59;try{const _0xfb2dec=_0x43109b['target']['files'][0x0];buildingData=await readExcelFile(_0xfb2dec),showStatus('อัพโหลดไฟล์อาคารสำเร็จ',_0xbf5ff9(0x9c));}catch(_0x4c2e34){handleError(_0x4c2e34,_0xbf5ff9(0x104));}}async function handlePlluFile(_0x3b521d){const _0x531f64=_0x541e59;try{const _0x5c0666=_0x3b521d[_0x531f64(0xe3)][_0x531f64(0xda)][0x0];plluData=await readExcelFile(_0x5c0666),updatePlluFilter(),showStatus('อัพโหลดไฟล์\x20PLLU\x20สำเร็จ',_0x531f64(0x9c));}catch(_0xe4f6a1){handleError(_0xe4f6a1,'เกิดข้อผิดพลาดในการอ่านไฟล์\x20PLLU');}}async function readExcelFile(_0x29c637){return new Promise((_0x2eebc0,_0x26d495)=>{const _0x563062=_0x21cd,_0x39e5f5=new FileReader();_0x39e5f5[_0x563062(0xd1)]=_0x22f2ab=>{const _0x214f4d=_0x563062;try{const _0xbe1504=_0x22f2ab[_0x214f4d(0xe3)][_0x214f4d(0xe4)],_0x229407=XLSX[_0x214f4d(0xf8)](_0xbe1504,{'type':_0x214f4d(0xef)}),_0x49fcd0=_0x229407[_0x214f4d(0xf9)][0x0],_0x5271eb=_0x229407['Sheets'][_0x49fcd0],_0x545bf7=XLSX[_0x214f4d(0x94)][_0x214f4d(0x96)](_0x5271eb);_0x2eebc0(_0x545bf7);}catch(_0x139f4b){_0x26d495(_0x139f4b);}},_0x39e5f5[_0x563062(0xdd)]=_0x26d495,_0x39e5f5[_0x563062(0xa4)](_0x29c637);});}function updatePlluFilter(){const _0x261242=_0x541e59,_0x225b46=document['getElementById'](_0x261242(0xa1)),_0x1261fd=new Set(plluData[_0x261242(0x9e)](_0x8a4030=>String(_0x8a4030[_0x261242(0xf3)])[_0x261242(0xf2)]()));_0x225b46[_0x261242(0xdc)]=_0x261242(0xb7),[..._0x1261fd][_0x261242(0xb0)]()['forEach'](_0x24fe6d=>{const _0x1d54be=_0x261242;_0x225b46['innerHTML']+=_0x1d54be(0x97)+_0x24fe6d+'\x22>'+_0x24fe6d+'</option>';});}function _0x43c3(){const _0x8715e0=['inline-block','รวม','plluFilter','1200','apartment','readAsBinaryString','จำนวนอาคาร\x20(อื่นๆ)','4180','เกิดข้อผิดพลาดในการคำนวณข้อมูล','stats','ประชากร\x20(ห้องแถว)','จำนวนอาคาร\x20(เรือนแพ)','BL_USE','!cols','1122','10566mWXoQe','style','sort','1473791aFRlvx','filter','3TzIeGa','จำนวนอาคาร\x20(บ้านแฝด)','ประชากร\x20(อื่นๆ)','จำนวนอาคาร\x20(ห้องแถว)','<option\x20value=\x22all\x22>ทั้งหมด</option>','totalArea','keypress','area','addEventListener','block','ประชากรรวม','cells','1100','ประชากร\x20(ทาวน์เฮาส์)','values','error','buildingFile','1350','5610ZOeSCZ','ประชากร\x20(เรือนแพ)','1029144tYvJEk','ประมวลผลข้อมูลสำเร็จ','ประชากร\x20(อาคารพักอาศัย)','4123','1132','aoa_to_sheet','จำนวนอาคาร\x20(ทาวน์เฮาส์)','value','1121','reduce','onload','4100','plluFile','toISOString','ประชากร\x20(บ้านแฝด)','tbody','includes','ข้อมูลประชากร','commercial','files','totalPopulation','innerHTML','onerror','ส่งออกข้อมูลสำเร็จ','1300','ประชากร\x20(ตึกแถว)','2432HZnAJq','4110','target','result','1320','toLocaleString','1340','houseboat','getElementsByTagName','fixed-column','PL_BLOCK','shophouse','display','tableContainer','binary','rooms','none','trim','PL_USE','status-message\x20','townhouse','AREA(rai)','จำนวนอาคาร\x20(ตึกแถว)','read','SheetNames','กรุณากรอกขนาดครัวเรือนเฉลี่ยให้ถูกต้อง','1131','className','forEach','insertCell','change','1102','1101','population_calculation_','98114KLkeqY','เกิดข้อผิดพลาดในการอ่านไฟล์อาคาร','book_append_sheet','duplexHouse','replace','book_new','totalBuildings','push','BL_TYPE','BL_NUNIT','จำนวนอาคารรวม','Error\x20in\x20calculatePopulation:','householdSize','เกิดข้อผิดพลาดในการประมวลผลข้อมูล','singleHouse','385oPVVZv','population','others','writeFile','count','getElementById','1000','resultTable','insertRow','9jmrLJh','4121','13275072Bxioxf','4122','10byhVxF','rows','length','การใช้ประโยชน์ที่ดินบริเวณหมายเลข','utils','1330','sheet_to_json','<option\x20value=\x22','1640185dDovOi','split','เกิดข้อผิดพลาดในการส่งออกข้อมูล','querySelector','success','textContent','map'];_0x43c3=function(){return _0x8715e0;};return _0x43c3();}function filterData(){const _0x1c78c9=_0x541e59,_0x983421=document[_0x1c78c9(0x88)](_0x1c78c9(0xa1))['value'];filteredData=_0x983421==='all'?[...plluData]:plluData['filter'](_0xccd83d=>String(_0xccd83d[_0x1c78c9(0xf3)])[_0x1c78c9(0xf2)]()===_0x983421),buildingData[_0x1c78c9(0x92)]>0x0&&plluData['length']>0x0&&processData();}function showStatus(_0xdfe1a1,_0x2515b1){const _0x1a6282=_0x541e59,_0x420fb4=document[_0x1a6282(0x88)]('statusMessage');_0x420fb4[_0x1a6282(0x9d)]=_0xdfe1a1,_0x420fb4[_0x1a6282(0xfc)]=_0x1a6282(0xf4)+_0x2515b1,_0x420fb4['style'][_0x1a6282(0xed)]=_0x1a6282(0xbc),setTimeout(()=>{const _0x8c3610=_0x1a6282;_0x420fb4[_0x8c3610(0xaf)][_0x8c3610(0xed)]=_0x8c3610(0xf1);},0xbb8);}function handleError(_0x466cee,_0x1ba2fa){const _0xbcda24=_0x541e59;console[_0xbcda24(0xc2)](_0x466cee),showStatus(_0x1ba2fa,_0xbcda24(0xc2));}function processData(){const _0x36626e=_0x541e59;try{if(!buildingData['length']||!plluData['length']){showStatus('กรุณาอัพโหลดไฟล์ให้ครบถ้วน','error');return;}const _0x16800f=parseFloat(document[_0x36626e(0x88)]('householdSize')[_0x36626e(0xce)]);if(!_0x16800f||_0x16800f<=0x0){showStatus(_0x36626e(0xfa),'error');return;}!filteredData[_0x36626e(0x92)]&&(filteredData=[...plluData]),calculatePopulation(),document[_0x36626e(0x88)](_0x36626e(0xee))['style'][_0x36626e(0xed)]=_0x36626e(0xbc),document[_0x36626e(0x9b)]('.export-button')['style']['display']=_0x36626e(0x9f),showStatus(_0x36626e(0xc8),_0x36626e(0x9c));}catch(_0x273a99){handleError(_0x273a99,_0x36626e(0x81));}}function _0x21cd(_0x1610e3,_0x5a01d6){const _0x43c375=_0x43c3();return _0x21cd=function(_0x21cda9,_0x27386b){_0x21cda9=_0x21cda9-0x7c;let _0x3e2aa1=_0x43c375[_0x21cda9];return _0x3e2aa1;},_0x21cd(_0x1610e3,_0x5a01d6);}function calculatePopulation(){const _0x448d9a=_0x541e59;try{const _0x2883d3=parseFloat(document[_0x448d9a(0x88)](_0x448d9a(0x80))[_0x448d9a(0xce)]),_0x10232b=document[_0x448d9a(0x88)](_0x448d9a(0x8a))[_0x448d9a(0xe9)](_0x448d9a(0xd6))[0x0];_0x10232b['innerHTML']='';const _0x1e046f=[_0x448d9a(0x89),_0x448d9a(0xbf),_0x448d9a(0x101),_0x448d9a(0x100),'1103',_0x448d9a(0xcf),_0x448d9a(0xad),'1123',_0x448d9a(0xfb),_0x448d9a(0xcb),_0x448d9a(0xa2),_0x448d9a(0xdf),'1310',_0x448d9a(0xe5),_0x448d9a(0x95),_0x448d9a(0xe7),_0x448d9a(0xc4),_0x448d9a(0xd2),_0x448d9a(0xe2),'4120',_0x448d9a(0x8d),_0x448d9a(0x8f),_0x448d9a(0xca),_0x448d9a(0xa6),'4300'],_0x350438=filteredData['map'](_0x43a246=>{const _0x2adb34=_0x448d9a,_0x21f829=buildingData[_0x2adb34(0xb2)](_0x3801ea=>String(_0x3801ea[_0x2adb34(0xeb)])[_0x2adb34(0xf2)]()===String(_0x43a246[_0x2adb34(0xeb)])[_0x2adb34(0xf2)]()&&_0x1e046f[_0x2adb34(0xd7)](String(_0x3801ea[_0x2adb34(0xab)])[_0x2adb34(0xf2)]())),_0x3e794e=_0x567da2=>{const _0x2a45c7=_0x2adb34,_0x374cde=_0x21f829[_0x2a45c7(0xb2)](_0x1d7fce=>normalizeBuildingType(_0x1d7fce[_0x2a45c7(0x7c)])===_0x567da2),_0x4d41fe=_0x374cde[_0x2a45c7(0x92)];let _0x32aad0=0x0;switch(_0x567da2){case 0x1:_0x32aad0=_0x4d41fe*(_0x2883d3+0.15);break;case 0x2:_0x32aad0=_0x4d41fe*_0x2883d3;break;case 0x3:case 0x4:case 0x5:_0x32aad0=_0x4d41fe*(_0x2883d3-0.1);break;case 0x6:const _0x2f47e9=_0x374cde[_0x2a45c7(0xd0)]((_0x5033cb,_0x1485f1)=>_0x5033cb+(parseFloat(_0x1485f1[_0x2a45c7(0x7d)])||0x0),0x0);_0x32aad0=_0x2f47e9*0x2;return{'count':_0x4d41fe,'rooms':_0x2f47e9,'population':_0x32aad0};case 0x7:_0x32aad0=_0x4d41fe*(_0x2883d3+0.15);break;case 0x8:case 0x62:_0x32aad0=_0x4d41fe*_0x2883d3*0x2;break;}return{'count':_0x4d41fe,'population':_0x32aad0};},_0x46b3c9={'singleHouse':_0x3e794e(0x1),'duplexHouse':_0x3e794e(0x2),'townhouse':_0x3e794e(0x3),'shophouse':_0x3e794e(0x4),'commercial':_0x3e794e(0x5),'houseboat':_0x3e794e(0x7),'apartment':_0x3e794e(0x6),'others':{'count':_0x21f829['filter'](_0x565eab=>[0x8,0x62][_0x2adb34(0xd7)](normalizeBuildingType(_0x565eab[_0x2adb34(0x7c)])))[_0x2adb34(0x92)],'population':_0x21f829[_0x2adb34(0xb2)](_0x20760b=>[0x8,0x62][_0x2adb34(0xd7)](normalizeBuildingType(_0x20760b[_0x2adb34(0x7c)])))[_0x2adb34(0x92)]*_0x2883d3*0x2}},_0x33ece0=Object[_0x2adb34(0xc1)](_0x46b3c9)[_0x2adb34(0xd0)]((_0xe3fa93,_0x4fef6f)=>_0xe3fa93+_0x4fef6f['count'],0x0),_0x11e258=Object['values'](_0x46b3c9)[_0x2adb34(0xd0)]((_0x333654,_0x42b9d4)=>_0x333654+_0x42b9d4['population'],0x0),_0x5fd858=parseFloat(_0x43a246[_0x2adb34(0xf6)])||0x0,_0x38f0d5=_0x5fd858>0x0?_0x11e258/_0x5fd858:0x0;return{'plBlock':_0x43a246[_0x2adb34(0xeb)],'stats':_0x46b3c9,'totalBuildings':_0x33ece0,'totalPopulation':_0x11e258,'area':_0x5fd858,'density':_0x38f0d5};});_0x350438[_0x448d9a(0xfd)](_0x308169=>{const _0x5bb409=_0x448d9a,_0x3d1bdd=_0x10232b[_0x5bb409(0x8b)](),_0x50121d=[_0x308169['plBlock'],formatNumber(_0x308169['stats'][_0x5bb409(0x82)][_0x5bb409(0x87)]),formatNumber(_0x308169[_0x5bb409(0xa8)]['singleHouse']['population'],0x2),formatNumber(_0x308169[_0x5bb409(0xa8)][_0x5bb409(0x106)][_0x5bb409(0x87)]),formatNumber(_0x308169['stats'][_0x5bb409(0x106)][_0x5bb409(0x84)],0x2),formatNumber(_0x308169[_0x5bb409(0xa8)][_0x5bb409(0xf5)][_0x5bb409(0x87)]),formatNumber(_0x308169[_0x5bb409(0xa8)][_0x5bb409(0xf5)][_0x5bb409(0x84)],0x2),formatNumber(_0x308169[_0x5bb409(0xa8)]['shophouse'][_0x5bb409(0x87)]),formatNumber(_0x308169[_0x5bb409(0xa8)][_0x5bb409(0xec)][_0x5bb409(0x84)],0x2),formatNumber(_0x308169[_0x5bb409(0xa8)]['commercial'][_0x5bb409(0x87)]),formatNumber(_0x308169[_0x5bb409(0xa8)][_0x5bb409(0xd9)][_0x5bb409(0x84)],0x2),formatNumber(_0x308169[_0x5bb409(0xa8)][_0x5bb409(0xe8)][_0x5bb409(0x87)]),formatNumber(_0x308169['stats'][_0x5bb409(0xe8)][_0x5bb409(0x84)],0x2),formatNumber(_0x308169[_0x5bb409(0xa8)][_0x5bb409(0xa3)][_0x5bb409(0x87)]),formatNumber(_0x308169[_0x5bb409(0xa8)][_0x5bb409(0xa3)][_0x5bb409(0xf0)]||0x0),formatNumber(_0x308169[_0x5bb409(0xa8)]['apartment'][_0x5bb409(0x84)],0x2),formatNumber(_0x308169[_0x5bb409(0xa8)]['others'][_0x5bb409(0x87)]),formatNumber(_0x308169['stats'][_0x5bb409(0x85)][_0x5bb409(0x84)],0x2),formatNumber(_0x308169[_0x5bb409(0x109)]),formatNumber(_0x308169[_0x5bb409(0xdb)],0x2),formatNumber(_0x308169['area'],0x2),formatNumber(_0x308169['density'],0x2)];_0x50121d[_0x5bb409(0xfd)]((_0x5c99a1,_0x5dfa5a)=>{const _0x56a9a7=_0x5bb409,_0x489ceb=_0x3d1bdd[_0x56a9a7(0xfe)]();_0x489ceb['textContent']=_0x5c99a1,_0x5dfa5a===0x0&&(_0x489ceb[_0x56a9a7(0xfc)]=_0x56a9a7(0xea));});}),addTotalRow(_0x350438);}catch(_0x45f16d){console[_0x448d9a(0xc2)](_0x448d9a(0x7f),_0x45f16d),showStatus(_0x448d9a(0xa7),_0x448d9a(0xc2));}}function addTotalRow(_0x20b159){const _0x18a8a9=_0x541e59,_0x5c7da6=document[_0x18a8a9(0x88)]('resultTable')[_0x18a8a9(0xe9)](_0x18a8a9(0xd6))[0x0],_0x16c4a8=_0x5c7da6[_0x18a8a9(0x8b)](),_0x15c498=_0x20b159['reduce']((_0x125657,_0x543402)=>({'singleHouse':{'count':_0x125657[_0x18a8a9(0x82)][_0x18a8a9(0x87)]+_0x543402[_0x18a8a9(0xa8)][_0x18a8a9(0x82)][_0x18a8a9(0x87)],'population':_0x125657['singleHouse']['population']+_0x543402[_0x18a8a9(0xa8)][_0x18a8a9(0x82)]['population']},'duplexHouse':{'count':_0x125657[_0x18a8a9(0x106)][_0x18a8a9(0x87)]+_0x543402['stats'][_0x18a8a9(0x106)][_0x18a8a9(0x87)],'population':_0x125657[_0x18a8a9(0x106)][_0x18a8a9(0x84)]+_0x543402[_0x18a8a9(0xa8)][_0x18a8a9(0x106)]['population']},'townhouse':{'count':_0x125657[_0x18a8a9(0xf5)][_0x18a8a9(0x87)]+_0x543402[_0x18a8a9(0xa8)][_0x18a8a9(0xf5)][_0x18a8a9(0x87)],'population':_0x125657[_0x18a8a9(0xf5)]['population']+_0x543402['stats'][_0x18a8a9(0xf5)][_0x18a8a9(0x84)]},'shophouse':{'count':_0x125657['shophouse'][_0x18a8a9(0x87)]+_0x543402[_0x18a8a9(0xa8)]['shophouse'][_0x18a8a9(0x87)],'population':_0x125657[_0x18a8a9(0xec)][_0x18a8a9(0x84)]+_0x543402[_0x18a8a9(0xa8)]['shophouse']['population']},'commercial':{'count':_0x125657['commercial'][_0x18a8a9(0x87)]+_0x543402[_0x18a8a9(0xa8)]['commercial'][_0x18a8a9(0x87)],'population':_0x125657[_0x18a8a9(0xd9)][_0x18a8a9(0x84)]+_0x543402['stats']['commercial'][_0x18a8a9(0x84)]},'houseboat':{'count':_0x125657[_0x18a8a9(0xe8)][_0x18a8a9(0x87)]+_0x543402[_0x18a8a9(0xa8)][_0x18a8a9(0xe8)][_0x18a8a9(0x87)],'population':_0x125657[_0x18a8a9(0xe8)]['population']+_0x543402[_0x18a8a9(0xa8)][_0x18a8a9(0xe8)][_0x18a8a9(0x84)]},'apartment':{'count':_0x125657[_0x18a8a9(0xa3)][_0x18a8a9(0x87)]+_0x543402[_0x18a8a9(0xa8)][_0x18a8a9(0xa3)][_0x18a8a9(0x87)],'rooms':_0x125657[_0x18a8a9(0xa3)][_0x18a8a9(0xf0)]+(_0x543402[_0x18a8a9(0xa8)][_0x18a8a9(0xa3)][_0x18a8a9(0xf0)]||0x0),'population':_0x125657[_0x18a8a9(0xa3)]['population']+_0x543402[_0x18a8a9(0xa8)][_0x18a8a9(0xa3)]['population']},'others':{'count':_0x125657[_0x18a8a9(0x85)][_0x18a8a9(0x87)]+_0x543402[_0x18a8a9(0xa8)]['others'][_0x18a8a9(0x87)],'population':_0x125657[_0x18a8a9(0x85)][_0x18a8a9(0x84)]+_0x543402[_0x18a8a9(0xa8)]['others'][_0x18a8a9(0x84)]},'totalBuildings':_0x125657[_0x18a8a9(0x109)]+_0x543402['totalBuildings'],'totalPopulation':_0x125657[_0x18a8a9(0xdb)]+_0x543402[_0x18a8a9(0xdb)],'totalArea':_0x125657['totalArea']+_0x543402[_0x18a8a9(0xba)]}),{'singleHouse':{'count':0x0,'population':0x0},'duplexHouse':{'count':0x0,'population':0x0},'townhouse':{'count':0x0,'population':0x0},'shophouse':{'count':0x0,'population':0x0},'commercial':{'count':0x0,'population':0x0},'houseboat':{'count':0x0,'population':0x0},'apartment':{'count':0x0,'rooms':0x0,'population':0x0},'others':{'count':0x0,'population':0x0},'totalBuildings':0x0,'totalPopulation':0x0,'totalArea':0x0}),_0x10b3e3=[_0x18a8a9(0xa0),formatNumber(_0x15c498['singleHouse'][_0x18a8a9(0x87)]),formatNumber(_0x15c498[_0x18a8a9(0x82)][_0x18a8a9(0x84)],0x2),formatNumber(_0x15c498[_0x18a8a9(0x106)][_0x18a8a9(0x87)]),formatNumber(_0x15c498[_0x18a8a9(0x106)][_0x18a8a9(0x84)],0x2),formatNumber(_0x15c498['townhouse'][_0x18a8a9(0x87)]),formatNumber(_0x15c498['townhouse']['population'],0x2),formatNumber(_0x15c498[_0x18a8a9(0xec)][_0x18a8a9(0x87)]),formatNumber(_0x15c498['shophouse']['population'],0x2),formatNumber(_0x15c498[_0x18a8a9(0xd9)][_0x18a8a9(0x87)]),formatNumber(_0x15c498[_0x18a8a9(0xd9)][_0x18a8a9(0x84)],0x2),formatNumber(_0x15c498[_0x18a8a9(0xe8)]['count']),formatNumber(_0x15c498[_0x18a8a9(0xe8)][_0x18a8a9(0x84)],0x2),formatNumber(_0x15c498[_0x18a8a9(0xa3)][_0x18a8a9(0x87)]),formatNumber(_0x15c498[_0x18a8a9(0xa3)]['rooms']),formatNumber(_0x15c498['apartment']['population'],0x2),formatNumber(_0x15c498['others'][_0x18a8a9(0x87)]),formatNumber(_0x15c498[_0x18a8a9(0x85)][_0x18a8a9(0x84)],0x2),formatNumber(_0x15c498[_0x18a8a9(0x109)]),formatNumber(_0x15c498[_0x18a8a9(0xdb)],0x2),formatNumber(_0x15c498['totalArea'],0x2),formatNumber(_0x15c498[_0x18a8a9(0xdb)]/_0x15c498[_0x18a8a9(0xb8)],0x2)];_0x10b3e3[_0x18a8a9(0xfd)]((_0xe5841b,_0x269053)=>{const _0x4ee59d=_0x18a8a9,_0x58364a=_0x16c4a8[_0x4ee59d(0xfe)]();_0x58364a[_0x4ee59d(0x9d)]=_0xe5841b,_0x269053===0x0&&(_0x58364a[_0x4ee59d(0xfc)]=_0x4ee59d(0xea));});}function exportToExcel(){const _0x595209=_0x541e59;try{const _0x1fb90c=document[_0x595209(0x88)]('resultTable'),_0x300ec6=XLSX[_0x595209(0x94)][_0x595209(0x108)](),_0xec3bbd=[],_0x163455=[_0x595209(0x93),'จำนวนอาคาร\x20(บ้านเดี่ยว)','ประชากร\x20(บ้านเดี่ยว)',_0x595209(0xb4),_0x595209(0xd5),_0x595209(0xcd),_0x595209(0xc0),_0x595209(0xb6),_0x595209(0xa9),_0x595209(0xf7),_0x595209(0xe0),_0x595209(0xaa),_0x595209(0xc6),'จำนวนอาคาร\x20(อาคารพักอาศัย)','จำนวนห้อง\x20(อาคารพักอาศัย)',_0x595209(0xc9),_0x595209(0xa5),_0x595209(0xb5),_0x595209(0x7e),_0x595209(0xbd),'พื้นที่ทั้งหมด(ไร่)','ความหนาแน่นประชากร(คน/ไร่)'];_0xec3bbd[_0x595209(0x10a)](_0x163455);for(let _0x1f352d=0x2;_0x1f352d<_0x1fb90c[_0x595209(0x91)][_0x595209(0x92)];_0x1f352d++){const _0xb09033=_0x1fb90c[_0x595209(0x91)][_0x1f352d],_0x493ae7=[];for(let _0x688831=0x0;_0x688831<_0xb09033[_0x595209(0xbe)][_0x595209(0x92)];_0x688831++){const _0x2ef32b=_0xb09033[_0x595209(0xbe)][_0x688831]['textContent'];if(_0x688831===0x0)_0x493ae7[_0x595209(0x10a)](_0x2ef32b);else{const _0x34d2eb=_0x2ef32b[_0x595209(0x107)](/,/g,'');_0x493ae7[_0x595209(0x10a)](isNaN(_0x34d2eb)?_0x2ef32b:Number(_0x34d2eb));}}_0xec3bbd[_0x595209(0x10a)](_0x493ae7);}const _0x5b0635=XLSX[_0x595209(0x94)][_0x595209(0xcc)](_0xec3bbd),_0x52e2a4=_0x163455['map'](()=>({'wch':0xf}));_0x52e2a4[0x0]['wch']=0x19,_0x5b0635[_0x595209(0xac)]=_0x52e2a4,XLSX[_0x595209(0x94)][_0x595209(0x105)](_0x300ec6,_0x5b0635,_0x595209(0xd8));const _0x3cbe4b=_0x595209(0x102)+new Date()[_0x595209(0xd4)]()[_0x595209(0x99)]('T')[0x0]+'.xlsx';XLSX[_0x595209(0x86)](_0x300ec6,_0x3cbe4b),showStatus(_0x595209(0xde),'success');}catch(_0xf3518a){console[_0x595209(0xc2)]('Error\x20exporting\x20to\x20Excel:',_0xf3518a),handleError(_0xf3518a,_0x595209(0x9a));}}
+    </script>
+</body>
+</html>                          
