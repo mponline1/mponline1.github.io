@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RECLASS BLDG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #134e4a;
+            --secondary-color: #0d9488;
+            --light-color: #f0fdfa;
+            --accent-color: #2dd4bf;
+            --text-color: #1f2937;
+            --gray-light: #e2e8f0;
+            --gray-medium: #94a3b8;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f0fdfa, #ccfbf1);
+            font-family: 'Sarabun', system-ui, -apple-system, sans-serif;
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .app-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding: 1.5rem;
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: var(--card-shadow);
+        }
+
+        .app-title {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .app-subtitle {
+            color: var(--secondary-color);
+            font-size: 1.25rem;
+            font-weight: 400;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: var(--card-shadow);
+            border: none;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-bottom: none;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.25rem rgba(13, 148, 136, 0.25);
+        }
+
+        .progress {
+            height: 1.5rem;
+            border-radius: 0.5rem;
+            background-color: var(--gray-light);
+        }
+
+        .progress-bar {
+            background-color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background-color: var(--light-color);
+            color: var(--primary-color);
+            font-weight: 600;
+            border-top: none;
+            white-space: nowrap;
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(240, 253, 250, 0.5);
+        }
+
+        .filter-section {
+            background-color: rgba(240, 253, 250, 0.5);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .filter-scrollable {
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-light);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+
+        .checkbox-label:last-child {
+            margin-bottom: 0;
+        }
+
+        .checkbox-label input {
+            margin-right: 0.5rem;
+        }
+
+        .form-file {
+            position: relative;
+        }
+
+        .form-file-label {
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 1;
+            height: calc(1.5em + .75rem + 2px);
+            padding: .375rem .75rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--gray-medium);
+            background-color: #fff;
+            border: 1px solid var(--gray-light);
+            border-radius: .25rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .custom-file-input {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: calc(1.5em + .75rem + 2px);
+            margin: 0;
+            opacity: 0;
+        }
+
+        .badge-class {
+            font-size: 0.85rem;
+            font-weight: 500;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            margin-left: 0.25rem;
+        }
+
+        .badge-total {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .filters-label {
+            font-size: 0.85rem;
+            color: var(--gray-medium);
+            margin-top: 0.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            margin-top: 1.5rem;
+            height: 300px;
+        }
+
+        .export-button {
+            margin-right: 0.5rem;
+        }
+
+        .datatable-container {
+            overflow-x: auto;
+        }
+
+        .file-name {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+            
+            .app-title {
+                font-size: 2rem;
+            }
+            
+            .filter-section {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- App Header -->
+        <div class="app-header">
+            <h1 class="app-title">RECLASS BLDG</h1>
+            <p class="app-subtitle">จัดประเภทข้อมูลอาคาร</p>
+        </div>
+
+        <div class="row">
+            <!-- Control Panel -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-gear-fill me-2"></i>การดำเนินการ
+                    </div>
+                    <div class="card-body">
+                        <!-- File Input -->
+                        <div class="mb-4">
+                            <label for="excelFile" class="form-label fw-bold">นำเข้าไฟล์</label>
+                            <div class="input-group mb-3">
+                                <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" onchange="updateFileName()">
+                            </div>
+                            <div id="fileName" class="file-name"></div>
+                        </div>
+
+                        <!-- Process Button -->
+                        <div class="mb-4">
+                            <button id="processButton" class="btn btn-primary w-100 py-2" onclick="processExcel()">
+                                <i class="bi bi-play-fill me-2"></i>RECLASS
+                            </button>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div id="progressContainer" class="mb-4 d-none">
+                            <label class="form-label fw-bold">ความคืบหน้า</label>
+                            <div class="progress">
+                                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                            </div>
+                        </div>
+
+                        <!-- Export Buttons -->
+                        <div>
+                            <label class="form-label fw-bold">นำออกข้อมูล</label>
+                            <div class="d-flex flex-wrap">
+                                <button id="exportFullButton" class="btn btn-outline-primary export-button mb-2" disabled onclick="exportFullData()">
+                                    <i class="bi bi-file-excel me-2"></i>ข้อมูลทั้งหมด
+                                </button>
+                                <button id="exportSummaryButton" class="btn btn-outline-primary export-button mb-2" disabled onclick="exportSummary()">
+                                    <i class="bi bi-table me-2"></i>ตารางสรุป
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Panel -->
+                <div id="filterCard" class="card d-none">
+                    <div class="card-header">
+                        <i class="bi bi-funnel-fill me-2"></i>ตัวกรอง
+                    </div>
+                    <div class="card-body">
+                        <!-- Class Filter -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">ประเภทอาคาร (Class)</label>
+                            <div id="classFilters" class="filter-scrollable"></div>
+                        </div>
+
+                        <!-- Year Filter -->
+                        <div>
+                            <label class="form-label fw-bold">ปีที่ได้มา (ACQYEAR)</label>
+                            <div id="yearFilters" class="filter-scrollable"></div>
+                        </div>
+
+                        <div class="filters-label mt-3">
+                            <small>* เลือกได้มากกว่า 1 รายการ</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="col-md-8">
+                <div id="resultsCard" class="card d-none">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-table me-2"></i>ตารางการใช้ประโยชน์อาคาร</span>
+                        <span id="totalBadge" class="badge badge-total">รวม: 0 รายการ</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="datatable-container">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ประเภทอาคาร (Class)</th>
+                                        <th>คำอธิบาย</th>
+                                        <th class="text-end">จำนวน (หลัง)</th>
+                                        <th class="text-end">ร้อยละ</th>
+                                        <th class="text-end">พื้นที่รวม (ตร.ม.)</th>
+                                        <th class="text-end">ร้อยละ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryTableBody"></tbody>
+                                <tfoot id="summaryTableFoot"></tfoot>
+                            </table>
+                        </div>
+
+                        <!-- Charts -->
+                        <div class="row mt-4">
+                            <div class="col-md-6 mb-3">
+                                <div class="chart-container">
+                                    <canvas id="buildingCountChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="chart-container">
+                                    <canvas id="buildingAreaChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ข้อมูลการจัดประเภทอาคาร
+        const buildingClassMapping = {
+            "1000": "10", "1100": "10", "1101": "10", "1102": "10", "1103": "10",
+            "1121": "10", "1122": "10", "1123": "10", "1131": "10", "1132": "10",
+            "1200": "10", "1300": "10", "1310": "10", "1320": "10", "1330": "10",
+            "1340": "10", "1350": "10", "1800": "10", "2000": "20", "2100": "20",
+            "2200": "20", "2210": "20", "2220": "20", "2230": "20", "2231": "20",
+            "2232": "20", "2233": "20", "2234": "20", "2240": "20", "2241": "20",
+            "2250": "20", "2251": "20", "2260": "20", "2270": "20", "2280": "20",
+            "2300": "20", "2301": "20", "2302": "20", "2400": "20", "2410": "20",
+            "2420": "20", "2480": "20", "2500": "20", "2800": "20", "3000": "30",
+            "3100": "30", "3110": "30", "3120": "30", "3300": "30", "3310": "30",
+            "3311": "30", "3321": "30", "3322": "30", "3800": "30", "4100": "41",
+            "4110": "41", "4120": "41", "4121": "41", "4122": "41", "4123": "41",
+            "4180": "41", "4200": "42", "4300": "43", "5000": "50", "5130": "50",
+            "5140": "50", "5150": "50", "5160": "50", "5180": "50", "5200": "50",
+            "5210": "50", "5220": "50", "5230": "50", "5300": "50", "5310": "50",
+            "5320": "50", "5330": "50", "5400": "50", "5410": "50", "5420": "50",
+            "5430": "50", "5440": "50", "5500": "50", "5510": "50", "5520": "50",
+            "5800": "50", "6000": "50", "6100": "61", "6105": "61", "6110": "61",
+            "6120": "61", "6130": "61", "6140": "61", "6141": "61", "6142": "61",
+            "6143": "61", "6150": "61", "6160": "61", "6180": "61", "6200": "62",
+            "6210": "62", "6220": "62", "6230": "62", "6240": "62", "6250": "62",
+            "6260": "62", "6270": "62", "6280": "62", "6300": "50", "6310": "50",
+            "6320": "50", "6330": "50", "6340": "50", "6350": "50", "6360": "50",
+            "6370": "50", "6380": "50", "6381": "50", "6382": "50", "6383": "50",
+            "6400": "50", "6500": "50", "6510": "50", "6530": "50", "6580": "50",
+            "6600": "50", "6610": "50", "6620": "50", "6630": "50", "6640": "50",
+            "6650": "50", "6660": "50", "6800": "50", "6830": "50", "6831": "50",
+            "7000": "50", "7200": "72", "7210": "72", "7220": "72", "7300": "73",
+            "7310": "73", "7320": "73", "7321": "73", "7322": "73", "7323": "73",
+            "7324": "73", "7330": "73", "7380": "73", "8000": "80", "8170": "80",
+            "8180": "80", "8190": "80", "8310": "80", "8500": "80", "9991": "90",
+            "9993": "90", "9998": "90", "9999": "90"
+        };
+
+        // คำอธิบายประเภทอาคาร
+        const classDescriptions = {
+            "10": "ที่อยู่อาศัย",
+            "20": "พาณิชยกรรม",
+            "30": "อุตสาหกรรม",
+            "41": "ที่พักอาศัยกึ่งพาณิชยกรรม",
+            "42": "พาณิชยกรรมและอุตสาหกรรม",
+            "43": "ที่พักอาศัยกึ่งอุตสาหกรรม",
+            "50": "สาธารณูปโภค สาธารณูปการ สถาบันราชการ",
+            "61": "สถาบันการศึกษา",
+            "62": "สถาบันศาสนา",
+            "72": "พื้นที่อนุรักษ์ศิลปะและวัฒนธรรมไทย",
+            "73": "นันทนาการ",
+            "80": "เกษตรกรรม",
+            "90": "อื่นๆ"
+        };
+
+        // สีประเภทอาคารสำหรับกราฟ
+        const classColors = {
+            "10": "#1e40af",
+            "20": "#047857",
+            "30": "#b45309",
+            "41": "#7e22ce",
+            "42": "#0e7490",
+            "43": "#be185d",
+            "50": "#0369a1",
+            "61": "#4338ca",
+            "62": "#4d7c0f",
+            "72": "#9d174d",
+            "73": "#0f766e",
+            "80": "#65a30d",
+            "90": "#7c2d12"
+        };
+
+        // ตัวแปรเก็บข้อมูล
+        let originalData = [];
+        let processedData = [];
+        let selectedClassFilters = [];
+        let selectedYearFilters = [];
+        let countChart = null;
+        let areaChart = null;
+
+        // อัพเดทชื่อไฟล์ที่เลือก
+        function updateFileName() {
+            const fileInput = document.getElementById('excelFile');
+            const fileNameElement = document.getElementById('fileName');
+            if (fileInput.files && fileInput.files[0]) {
+                fileNameElement.textContent = fileInput.files[0].name;
+            } else {
+                fileNameElement.textContent = '';
+            }
+        }
+
+        // ประมวลผลไฟล์ Excel
+        function processExcel() {
+            const fileInput = document.getElementById('excelFile');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('กรุณาเลือกไฟล์ Excel');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            
+            // แสดง Progress Bar
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            progressContainer.classList.remove('d-none');
+            
+            // อ่านไฟล์ Excel
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    originalData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // ประมวลผลข้อมูล
+                    processData(originalData, progressBar);
+                    
+                    // เปิดให้ใช้ปุ่มนำออกข้อมูล
+                    document.getElementById('exportFullButton').disabled = false;
+                    document.getElementById('exportSummaryButton').disabled = false;
+                    
+                    // แสดงตัวกรองและผลลัพธ์
+                    document.getElementById('filterCard').classList.remove('d-none');
+                    document.getElementById('resultsCard').classList.remove('d-none');
+                    
+                    // สร้างตัวกรอง
+                    createFilters();
+                    
+                    // แสดงผลลัพธ์
+                    updateResultsTable();
+                } catch (error) {
+                    console.error('Error processing Excel file:', error);
+                    alert('เกิดข้อผิดพลาดในการประมวลผลไฟล์: ' + error.message);
+                    progressContainer.classList.add('d-none');
+                }
+            };
+            
+            reader.onerror = function() {
+                alert('เกิดข้อผิดพลาดในการอ่านไฟล์');
+                progressContainer.classList.add('d-none');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ประมวลผลข้อมูลและเพิ่มฟิลด์ class
+        function processData(data, progressBar) {
+            processedData = data.map((row, index) => {
+                // อัพเดทความคืบหน้า
+                const progress = Math.round((index + 1) / data.length * 100);
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
+                progressBar.textContent = progress + '%';
+                
+                // สร้างข้อมูลใหม่
+                const newRow = {...row};
+                
+                // แปลงข้อมูลเป็น string ถ้าจำเป็น
+                const blUse = row.BL_USE ? row.BL_USE.toString() : '';
+                
+                // กำหนดค่า class
+                newRow.class = buildingClassMapping[blUse] || '99';
+                
+                return newRow;
+            });
+        }
+
+        // สร้างตัวกรอง
+        function createFilters() {
+            const classFilterContainer = document.getElementById('classFilters');
+            const yearFilterContainer = document.getElementById('yearFilters');
+            
+            // ล้างข้อมูลตัวกรองเดิม
+            classFilterContainer.innerHTML = '';
+            yearFilterContainer.innerHTML = '';
+            selectedClassFilters = [];
+            selectedYearFilters = [];
+            
+            // สร้างตัวกรอง class
+            const uniqueClasses = [...new Set(processedData.map(item => item.class).filter(Boolean))].sort();
+            
+            uniqueClasses.forEach(classCode => {
+                const label = document.createElement('label');
+                label.className = 'checkbox-label';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = classCode;
+                checkbox.checked = true;
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedClassFilters.push(this.value);
+                    } else {
+                        selectedClassFilters = selectedClassFilters.filter(c => c !== this.value);
+                    }
+                    updateResultsTable();
+                });
+                
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(`${classCode} - ${classDescriptions[classCode] || 'ไม่ระบุ'}`));
+                
+                classFilterContainer.appendChild(label);
+                selectedClassFilters.push(classCode);
+            });
+            
+            // สร้างตัวกรอง ACQYEAR
+            const uniqueYears = [...new Set(processedData.map(item => item.ACQYEAR).filter(Boolean))].sort();
+            
+            uniqueYears.forEach(year => {
+                const label = document.createElement('label');
+                label.className = 'checkbox-label';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = year;
+                checkbox.checked = true;
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedYearFilters.push(this.value);
+                    } else {
+                        selectedYearFilters = selectedYearFilters.filter(y => y !== this.value);
+                    }
+                    updateResultsTable();
+                });
+                
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(year));
+                
+                yearFilterContainer.appendChild(label);
+                selectedYearFilters.push(year);
+            });
+        }
+
+        // อัพเดทตารางผลลัพธ์
+        function updateResultsTable() {
+            // กรองข้อมูลตามตัวกรองที่เลือก
+            const filteredData = processedData.filter(item => {
+                const classMatch = selectedClassFilters.includes(item.class);
+                const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR);
+                return classMatch && yearMatch;
+            });
+            
+            // จัดกลุ่มข้อมูลตาม class
+            const groupedData = {};
+            filteredData.forEach(item => {
+                if (!groupedData[item.class]) {
+                    groupedData[item.class] = {
+                        count: 0,
+                        area: 0
+                    };
+                }
+                
+                groupedData[item.class].count += 1;
+                groupedData[item.class].area += parseFloat(item.BL_AREA) || 0;
+            });
+            
+            // คำนวณผลรวม
+            const totalCount = Object.values(groupedData).reduce((sum, group) => sum + group.count, 0);
+            const totalArea = Object.values(groupedData).reduce((sum, group) => sum + group.area, 0);
+            
+            // อัพเดท badge จำนวนรวม
+            document.getElementById('totalBadge').textContent = `รวม: ${totalCount.toLocaleString()} รายการ`;
+            
+            // อัพเดทตาราง
+            const tableBody = document.getElementById('summaryTableBody');
+            const tableFoot = document.getElementById('summaryTableFoot');
+            
+            tableBody.innerHTML = '';
+            
+            // เรียงลำดับตาม class
+            const sortedClasses = Object.keys(groupedData).sort();
+            
+            // สร้างข้อมูลสำหรับกราฟ
+            const chartLabels = [];
+            const chartDataCount = [];
+            const chartDataArea = [];
+            const chartColors = [];
+            
+            // เพิ่มข้อมูลในตาราง
+            sortedClasses.forEach(classCode => {
+                const group = groupedData[classCode];
+                const row = document.createElement('tr');
+                
+                // เพิ่มข้อมูลสำหรับกราฟ
+                chartLabels.push(classCode + ' - ' + (classDescriptions[classCode] || 'ไม่ระบุ'));
+                chartDataCount.push(group.count);
+                chartDataArea.push(group.area);
+                chartColors.push(classColors[classCode] || '#6B7280');
+                
+                // Column 1: Class Code
+                const classCell = document.createElement('td');
+                classCell.textContent = classCode;
+                row.appendChild(classCell);
+                
+                // Column 2: Class Description
+                const descCell = document.createElement('td');
+                descCell.textContent = classDescriptions[classCode] || 'ไม่ระบุ';
+                row.appendChild(descCell);
+                
+                // Column 3: Count
+                const countCell = document.createElement('td');
+                countCell.className = 'text-end';
+                countCell.textContent = group.count.toLocaleString();
+                row.appendChild(countCell);
+                
+                // Column 4: Count Percentage
+                const countPctCell = document.createElement('td');
+                countPctCell.className = 'text-end';
+                const countPct = (group.count / totalCount) * 100;
+                countPctCell.textContent = countPct.toFixed(2) + '%';
+                row.appendChild(countPctCell);
+                
+                // Column 5: Area
+                const areaCell = document.createElement('td');
+                areaCell.className = 'text-end';
+                areaCell.textContent = group.area.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                row.appendChild(areaCell);
+                
+                // Column 6: Area Percentage
+                const areaPctCell = document.createElement('td');
+                areaPctCell.className = 'text-end';
+                const areaPct = (group.area / totalArea) * 100;
+                areaPctCell.textContent = areaPct.toFixed(2) + '%';
+                row.appendChild(areaPctCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // เพิ่มแถวรวม
+            tableFoot.innerHTML = '';
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'fw-bold';
+            
+            const labelCell = document.createElement('td');
+            labelCell.colSpan = 2;
+            labelCell.textContent = 'รวมทั้งหมด';
+            totalRow.appendChild(labelCell);
+            
+            const totalCountCell = document.createElement('td');
+            totalCountCell.className = 'text-end';
+            totalCountCell.textContent = totalCount.toLocaleString();
+            totalRow.appendChild(totalCountCell);
+            
+            const totalCountPctCell = document.createElement('td');
+            totalCountPctCell.className = 'text-end';
+            totalCountPctCell.textContent = '100.00%';
+            totalRow.appendChild(totalCountPctCell);
+            
+            const totalAreaCell = document.createElement('td');
+            totalAreaCell.className = 'text-end';
+            totalAreaCell.textContent = totalArea.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            totalRow.appendChild(totalAreaCell);
+            
+            const totalAreaPctCell = document.createElement('td');
+            totalAreaPctCell.className = 'text-end';
+            totalAreaPctCell.textContent = '100.00%';
+            totalRow.appendChild(totalAreaPctCell);
+            
+            tableFoot.appendChild(totalRow);
+            
+            // อัพเดทกราฟ
+            updateCharts(chartLabels, chartDataCount, chartDataArea, chartColors);
+        }
+
+        // อัพเดทกราฟ
+        function updateCharts(labels, countData, areaData, colors) {
+            // กราฟจำนวนอาคาร
+            const countChartCtx = document.getElementById('buildingCountChart').getContext('2d');
+            
+            if (countChart) {
+                countChart.destroy();
+            }
+            
+            countChart = new Chart(countChartCtx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: countData,
+                        backgroundColor: colors,
+                        borderWidth: 1,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 15,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'สัดส่วนจำนวนอาคาร',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.formattedValue;
+                                    const percentage = (context.raw / context.dataset.data.reduce((a, b) => a + b, 0) * 100).toFixed(2);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // กราฟพื้นที่อาคาร
+            const areaChartCtx = document.getElementById('buildingAreaChart').getContext('2d');
+            
+            if (areaChart) {
+                areaChart.destroy();
+            }
+            
+            areaChart = new Chart(areaChartCtx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: areaData,
+                        backgroundColor: colors,
+                        borderWidth: 1,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 15,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'สัดส่วนพื้นที่อาคาร',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = parseFloat(context.raw).toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                                    const percentage = (context.raw / context.dataset.data.reduce((a, b) => a + b, 0) * 100).toFixed(2);
+                                    return `${label}: ${value} ตร.ม. (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // นำออกข้อมูลทั้งหมด
+        function exportFullData() {
+            if (processedData.length === 0) {
+                alert('ไม่มีข้อมูลที่จะนำออก');
+                return;
+            }
+            
+            // เพิ่มฟิลด์คำอธิบาย class ก่อนส่งออก
+            const dataWithDescription = processedData.map(item => {
+                const newItem = {...item};
+                // เพิ่มฟิลด์ class_desc เพื่ออธิบายประเภทอาคาร
+                newItem.class_desc = classDescriptions[item.class] || 'ไม่ระบุ';
+                return newItem;
+            });
+            
+            const ws = XLSX.utils.json_to_sheet(dataWithDescription);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ข้อมูลอาคาร");
+            XLSX.writeFile(wb, "building_reclass_data.xlsx");
+        }
+
+        // นำออกข้อมูลสรุป
+        function exportSummary() {
+            if (processedData.length === 0) {
+                alert('ไม่มีข้อมูลที่จะนำออก');
+                return;
+            }
+            
+            // กรองข้อมูลตามตัวกรองที่เลือก
+            const filteredData = processedData.filter(item => {
+                const classMatch = selectedClassFilters.includes(item.class);
+                const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR);
+                return classMatch && yearMatch;
+            });
+            
+            // จัดกลุ่มข้อมูลตาม class
+            const groupedData = {};
+            filteredData.forEach(item => {
+                if (!groupedData[item.class]) {
+                    groupedData[item.class] = {
+                        count: 0,
+                        area: 0
+                    };
+                }
+                
+                groupedData[item.class].count += 1;
+                groupedData[item.class].area += parseFloat(item.BL_AREA) || 0;
+            });
+            
+            // คำนวณผลรวม
+            const totalCount = Object.values(groupedData).reduce((sum, group) => sum + group.count, 0);
+            const totalArea = Object.values(groupedData).reduce((sum, group) => sum + group.area, 0);
+            
+            // สร้างข้อมูลสำหรับนำออก
+            const exportData = [];
+            
+            // เรียงลำดับตาม class
+            const sortedClasses = Object.keys(groupedData).sort();
+            
+            sortedClasses.forEach(classCode => {
+                const group = groupedData[classCode];
+                const countPct = (group.count / totalCount) * 100;
+                const areaPct = (group.area / totalArea) * 100;
+                
+                exportData.push({
+                    'ประเภทอาคาร (Class)': classCode,
+                    'คำอธิบาย': classDescriptions[classCode] || 'ไม่ระบุ',
+                    'จำนวน (หลัง)': group.count,
+                    'ร้อยละจำนวน': countPct.toFixed(2) + '%',
+                    'พื้นที่รวม (ตร.ม.)': group.area.toFixed(2),
+                    'ร้อยละพื้นที่': areaPct.toFixed(2) + '%'
+                });
+            });
+            
+            // เพิ่มแถวรวม
+            exportData.push({
+                'ประเภทอาคาร (Class)': 'รวมทั้งหมด',
+                'คำอธิบาย': '',
+                'จำนวน (หลัง)': totalCount,
+                'ร้อยละจำนวน': '100.00%',
+                'พื้นที่รวม (ตร.ม.)': totalArea.toFixed(2),
+                'ร้อยละพื้นที่': '100.00%'
+            });
+            
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ตารางการใช้ประโยชน์อาคาร");
+            XLSX.writeFile(wb, "building_usage_summary.xlsx");
+        }
+    </script>
+</body>
+</html>
