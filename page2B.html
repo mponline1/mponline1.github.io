@@ -524,8 +524,19 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ประมวลผลข้อมูลและเพิ่มฟิลด์ class
+        // ประมวลผลข้อมูลและเพิ่มฟิลด์ class และ size
         function processData(data, progressBar) {
+            // คำอธิบายรหัส size
+            const sizeDescriptions = {
+                "1": "0 - 300 ตร.ม.",
+                "2": "300.01 - 500 ตร.ม.",
+                "3": "500.01 - 1,000 ตร.ม.",
+                "4": "1,000.01 - 2,000 ตร.ม.",
+                "5": "2,000.01 - 4,000 ตร.ม.",
+                "6": "4,000.01 - 9,999 ตร.ม.",
+                "7": "มากกว่า 9,999 ตร.ม."
+            };
+            
             processedData = data.map((row, index) => {
                 // อัพเดทความคืบหน้า
                 const progress = Math.round((index + 1) / data.length * 100);
@@ -541,6 +552,28 @@
                 
                 // กำหนดค่า class
                 newRow.class = buildingClassMapping[blUse] || '99';
+                
+                // กำหนดค่า size ตามขนาดพื้นที่ (BL_AREA)
+                const area = parseFloat(row.BL_AREA) || 0;
+                
+                if (area <= 300) {
+                    newRow.size = "1";
+                } else if (area <= 500) {
+                    newRow.size = "2";
+                } else if (area <= 1000) {
+                    newRow.size = "3";
+                } else if (area <= 2000) {
+                    newRow.size = "4";
+                } else if (area <= 4000) {
+                    newRow.size = "5";
+                } else if (area <= 9999) {
+                    newRow.size = "6";
+                } else {
+                    newRow.size = "7";
+                }
+                
+                // เพิ่มคำอธิบาย size
+                newRow.size_desc = sizeDescriptions[newRow.size];
                 
                 return newRow;
             });
