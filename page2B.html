@@ -272,7 +272,7 @@
                     <div class="card-body">
                         <!-- File Input -->
                         <div class="mb-4">
-                            <label for="excelFile" class="form-label fw-bold">นำเข้าไฟล์</label>
+                            <label for="excelFile" class="form-label fw-bold">ไฟล์อาคาร (Excel)</label>
                             <div class="input-group mb-3">
                                 <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" onchange="updateFileName()">
                             </div>
@@ -296,7 +296,7 @@
 
                         <!-- Export Buttons -->
                         <div>
-                            <label class="form-label fw-bold">นำออกข้อมูล</label>
+                            <label class="form-label fw-bold">นำออกข้อมูล (Excel)</label>
                             <div class="d-flex flex-wrap">
                                 <button id="exportFullButton" class="btn btn-outline-primary export-button mb-2" disabled onclick="exportFullData()">
                                     <i class="bi bi-file-excel me-2"></i>ข้อมูลทั้งหมด
@@ -317,13 +317,13 @@
                     <div class="card-body">
                         <!-- Class Filter -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold">ประเภทอาคาร (Class)</label>
+                            <label class="form-label fw-bold">ประเภทอาคาร</label>
                             <div id="classFilters" class="filter-scrollable"></div>
                         </div>
 
                         <!-- Year Filter -->
                         <div>
-                            <label class="form-label fw-bold">ปีที่ได้มา (ACQYEAR)</label>
+                            <label class="form-label fw-bold">ปีสำรวจ (ACQYEAR)</label>
                             <div id="yearFilters" class="filter-scrollable"></div>
                         </div>
 
@@ -346,8 +346,8 @@
                             <table class="table table-striped table-hover">
                                 <thead>
                                     <tr>
-                                        <th>ประเภทอาคาร (Class)</th>
-                                        <th>คำอธิบาย</th>
+                                        <th>code</th>
+                                        <th>ประเภทอาคาร</th>
                                         <th class="text-end">จำนวน (หลัง)</th>
                                         <th class="text-end">ร้อยละ</th>
                                         <th class="text-end">พื้นที่รวม (ตร.ม.)</th>
@@ -915,72 +915,77 @@
 
         // นำออกข้อมูลสรุป
         function exportSummary() {
-            if (processedData.length === 0) {
-                alert('ไม่มีข้อมูลที่จะนำออก');
-                return;
-            }
-            
-            // กรองข้อมูลตามตัวกรองที่เลือก
-            const filteredData = processedData.filter(item => {
-                const classMatch = selectedClassFilters.includes(item.class);
-                const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR);
-                return classMatch && yearMatch;
-            });
-            
-            // จัดกลุ่มข้อมูลตาม class
-            const groupedData = {};
-            filteredData.forEach(item => {
-                if (!groupedData[item.class]) {
-                    groupedData[item.class] = {
-                        count: 0,
-                        area: 0
-                    };
-                }
-                
-                groupedData[item.class].count += 1;
-                groupedData[item.class].area += parseFloat(item.BL_AREA) || 0;
-            });
-            
-            // คำนวณผลรวม
-            const totalCount = Object.values(groupedData).reduce((sum, group) => sum + group.count, 0);
-            const totalArea = Object.values(groupedData).reduce((sum, group) => sum + group.area, 0);
-            
-            // สร้างข้อมูลสำหรับนำออก
-            const exportData = [];
-            
-            // เรียงลำดับตาม class
-            const sortedClasses = Object.keys(groupedData).sort();
-            
-            sortedClasses.forEach(classCode => {
-                const group = groupedData[classCode];
-                const countPct = (group.count / totalCount) * 100;
-                const areaPct = (group.area / totalArea) * 100;
-                
-                exportData.push({
-                    'ประเภทอาคาร (Class)': classCode,
-                    'คำอธิบาย': classDescriptions[classCode] || 'ไม่ระบุ',
-                    'จำนวน (หลัง)': group.count,
-                    'ร้อยละจำนวน': countPct.toFixed(2) + '%',
-                    'พื้นที่รวม (ตร.ม.)': group.area.toFixed(2),
-                    'ร้อยละพื้นที่': areaPct.toFixed(2) + '%'
-                });
-            });
-            
-            // เพิ่มแถวรวม
-            exportData.push({
-                'ประเภทอาคาร (Class)': 'รวมทั้งหมด',
-                'คำอธิบาย': '',
-                'จำนวน (หลัง)': totalCount,
-                'ร้อยละจำนวน': '100.00%',
-                'พื้นที่รวม (ตร.ม.)': totalArea.toFixed(2),
-                'ร้อยละพื้นที่': '100.00%'
-            });
-            
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "ตารางการใช้ประโยชน์อาคาร");
-            XLSX.writeFile(wb, "building_usage_summary.xlsx");
+    if (processedData.length === 0) {
+        alert('ไม่มีข้อมูลที่จะนำออก');
+        return;
+    }
+    
+    // กรองข้อมูลตามตัวกรองที่เลือก
+    const filteredData = processedData.filter(item => {
+        const classMatch = selectedClassFilters.includes(item.class);
+        const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR);
+        return classMatch && yearMatch;
+    });
+    
+    // จัดกลุ่มข้อมูลตาม class
+    const groupedData = {};
+    filteredData.forEach(item => {
+        if (!groupedData[item.class]) {
+            groupedData[item.class] = {
+                count: 0,
+                area: 0
+            };
         }
+        
+        groupedData[item.class].count += 1;
+        groupedData[item.class].area += parseFloat(item.BL_AREA) || 0;
+    });
+    
+    // คำนวณผลรวม
+    const totalCount = Object.values(groupedData).reduce((sum, group) => sum + group.count, 0);
+    const totalArea = Object.values(groupedData).reduce((sum, group) => sum + group.area, 0);
+    
+    // สร้างข้อมูลสำหรับนำออก
+    const exportData = [];
+    
+    // เรียงลำดับตาม class
+    const sortedClasses = Object.keys(groupedData).sort();
+    
+    sortedClasses.forEach(classCode => {
+        const group = groupedData[classCode];
+        const countPct = (group.count / totalCount) * 100;
+        const areaPct = (group.area / totalArea) * 100;
+        
+        exportData.push({
+            'code': classCode,
+            'ประเภทอาคาร': classDescriptions[classCode] || 'ไม่ระบุ',
+            'จำนวน (หลัง)': group.count,
+            'ร้อยละจำนวน': countPct.toFixed(2) + '%',
+            'พื้นที่รวม (ตร.ม.)': Number(group.area.toFixed(2)),  // เปลี่ยนเป็น Number เพื่อให้ Excel แสดงเป็นตัวเลข
+            'ร้อยละพื้นที่': areaPct.toFixed(2) + '%'
+        });
+    });
+    
+    // เพิ่มแถวรวม
+    exportData.push({
+        'code': 'รวมทั้งหมด',
+        'ประเภทอาคาร': '',
+        'จำนวน (หลัง)': totalCount,
+        'ร้อยละจำนวน': '100.00%',
+        'พื้นที่รวม (ตร.ม.)': Number(totalArea.toFixed(2)),  // เปลี่ยนเป็น Number เพื่อให้ Excel แสดงเป็นตัวเลข
+        'ร้อยละพื้นที่': '100.00%'
+    });
+    
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // กำหนดรูปแบบคอลัมน์ "พื้นที่รวม (ตร.ม.)" ให้เป็นตัวเลขทศนิยม 2 ตำแหน่ง
+    if(!ws['!cols']) ws['!cols'] = [];
+    ws['!cols'][4] = { wch: 15, numFmt: '0.00' };  // คอลัมน์ E (index 4) คือ "พื้นที่รวม (ตร.ม.)"
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ตารางการใช้ประโยชน์อาคาร");
+    XLSX.writeFile(wb, "building_usage_summary.xlsx");
+}
     </script>
 </body>
 </html>
