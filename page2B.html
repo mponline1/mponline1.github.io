@@ -317,7 +317,7 @@
                     <div class="card-body">
                         <!-- Class Filter -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold">ประเภทอาคาร</label>
+                            <label class="form-label fw-bold">การใช้ประโยชน์อาคาร</label>
                             <div id="classFilters" class="filter-scrollable"></div>
                         </div>
 
@@ -347,7 +347,7 @@
                                 <thead>
                                     <tr>
                                         <th>code</th>
-                                        <th>ประเภทอาคาร</th>
+                                        <th>การใช้ประโยชน์อาคาร</th>
                                         <th class="text-end">จำนวน (หลัง)</th>
                                         <th class="text-end">ร้อยละ</th>
                                         <th class="text-end">พื้นที่รวม (ตร.ม.)</th>
@@ -958,7 +958,7 @@
         
         exportData.push({
             'code': classCode,
-            'ประเภทอาคาร': classDescriptions[classCode] || 'ไม่ระบุ',
+            'การใช้ประโยชน์อาคาร': classDescriptions[classCode] || 'ไม่ระบุ',
             'จำนวน (หลัง)': group.count,
             'ร้อยละจำนวน': countPct.toFixed(2) + '%',
             'พื้นที่รวม (ตร.ม.)': Number(group.area.toFixed(2)),  // เปลี่ยนเป็น Number เพื่อให้ Excel แสดงเป็นตัวเลข
@@ -969,7 +969,7 @@
     // เพิ่มแถวรวม
     exportData.push({
         'code': 'รวมทั้งหมด',
-        'ประเภทอาคาร': '',
+        'การใช้ประโยชน์อาคาร': '',
         'จำนวน (หลัง)': totalCount,
         'ร้อยละจำนวน': '100.00%',
         'พื้นที่รวม (ตร.ม.)': Number(totalArea.toFixed(2)),  // เปลี่ยนเป็น Number เพื่อให้ Excel แสดงเป็นตัวเลข
