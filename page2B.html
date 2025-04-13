@@ -245,8 +245,8 @@
 
         .datatable-container {
             overflow-x: auto;
-            max-height: 500px;
-            overflow-y: auto;
+            max-height: none; /* ลบการจำกัดความสูง */
+            overflow-y: visible; /* เปลี่ยนเป็น visible เพื่อให้เห็นเนื้อหาทั้งหมด */
         }
 
         .file-name {
@@ -344,13 +344,13 @@
                             <label class="form-label fw-bold">นำออกข้อมูล (Excel)</label>
                             <div class="d-flex flex-wrap">
                                 <button id="exportFullButton" class="btn btn-outline-primary export-button mb-2" disabled onclick="exportFullData()">
-                                    <i class="bi bi-file-excel me-2"></i>ข้อมูลทั้งหมด
+                                    <i class="bi bi-table me-2"></i>ข้อมูลทั้งหมด
                                 </button>
                                 <button id="exportSummaryButton" class="btn btn-outline-primary export-button mb-2" disabled onclick="exportSummary()">
-                                    <i class="bi bi-table me-2"></i>ตารางสรุป
+                                    <i class="bi bi-table me-2"></i>ตารางการใช้ประโยชน์อาคาร
                                 </button>
                                 <button id="exportDetailedButton" class="btn btn-outline-primary export-button mb-2" disabled onclick="exportDetailedSummary()">
-                                    <i class="bi bi-table me-2"></i>ตารางจำแนก
+                                    <i class="bi bi-table me-2"></i>ตารางจำแนกตามการใช้ประโยชน์และขนาดอาคาร
                                 </button>
                             </div>
                         </div>
