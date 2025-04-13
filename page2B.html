@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RECLASS BLDG</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -97,6 +98,17 @@
             background-color: var(--primary-color);
             border-color: var(--primary-color);
         }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            font-weight: 500;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
 
         .form-control:focus, .form-select:focus {
             border-color: var(--accent-color);
@@ -124,6 +136,9 @@
             font-weight: 600;
             border-top: none;
             white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .table tbody tr:hover {
@@ -230,6 +245,8 @@
 
         .datatable-container {
             overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
         }
 
         .file-name {
@@ -237,6 +254,25 @@
             margin-top: 0.5rem;
             color: var(--secondary-color);
             font-weight: 500;
+        }
+        
+        .tab-content {
+            padding-top: 1.5rem;
+        }
+        
+        .nav-tabs .nav-link {
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            font-weight: 600;
+            border-color: var(--primary-color) var(--gray-light) #fff;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            border-color: var(--gray-light) var(--gray-light) var(--gray-light);
         }
 
         @media (max-width: 768px) {
@@ -278,6 +314,15 @@
                             </div>
                             <div id="fileName" class="file-name"></div>
                         </div>
+                        
+                        <!-- Local Organization Field Selection -->
+                        <div class="mb-4">
+                            <label for="localOrgField" class="form-label fw-bold">ฟิลด์ชื่อองค์กรปกครองส่วนท้องถิ่น</label>
+                            <select class="form-select" id="localOrgField">
+                                <option value="">-- ไม่เลือก --</option>
+                            </select>
+                            <div class="form-text">เลือกฟิลด์ที่จะใช้แสดงชื่อองค์กรปกครองส่วนท้องถิ่น</div>
+                        </div>
 
                         <!-- Process Button -->
                         <div class="mb-4">
@@ -295,7 +340,7 @@
                         </div>
 
                         <!-- Export Buttons -->
-                        <div>
+                        <div class="mb-4">
                             <label class="form-label fw-bold">นำออกข้อมูล (Excel)</label>
                             <div class="d-flex flex-wrap">
                                 <button id="exportFullButton" class="btn btn-outline-primary export-button mb-2" disabled onclick="exportFullData()">
@@ -304,7 +349,17 @@
                                 <button id="exportSummaryButton" class="btn btn-outline-primary export-button mb-2" disabled onclick="exportSummary()">
                                     <i class="bi bi-table me-2"></i>ตารางสรุป
                                 </button>
+                                <button id="exportDetailedButton" class="btn btn-outline-primary export-button mb-2" disabled onclick="exportDetailedSummary()">
+                                    <i class="bi bi-table me-2"></i>ตารางจำแนก
+                                </button>
                             </div>
+                        </div>
+                        
+                        <!-- Home Button -->
+                        <div>
+                            <a href="index.html" class="btn btn-secondary w-100">
+                                <i class="bi bi-house-fill me-2"></i>กลับหน้าหลัก
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -338,37 +393,75 @@
             <div class="col-md-8">
                 <div id="resultsCard" class="card d-none">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-table me-2"></i>ตารางการใช้ประโยชน์อาคาร</span>
+                        <span><i class="bi bi-table me-2"></i>ผลการจัดประเภทข้อมูลอาคาร</span>
                         <span id="totalBadge" class="badge badge-total">รวม: 0 รายการ</span>
                     </div>
                     <div class="card-body">
-                        <div class="datatable-container">
-                            <table class="table table-striped table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>code</th>
-                                        <th>การใช้ประโยชน์อาคาร</th>
-                                        <th class="text-end">จำนวน (หลัง)</th>
-                                        <th class="text-end">ร้อยละ</th>
-                                        <th class="text-end">พื้นที่รวม (ตร.ม.)</th>
-                                        <th class="text-end">ร้อยละ</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="summaryTableBody"></tbody>
-                                <tfoot id="summaryTableFoot"></tfoot>
-                            </table>
-                        </div>
+                        <!-- Tabs -->
+                        <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
+                                    <i class="bi bi-pie-chart me-1"></i>ตารางการใช้ประโยชน์อาคาร
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="detailed-tab" data-bs-toggle="tab" data-bs-target="#detailed" type="button" role="tab" aria-controls="detailed" aria-selected="false">
+                                    <i class="bi bi-grid-3x3 me-1"></i>ตารางจำแนกตามการใช้ประโยชน์และขนาดอาคาร
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="resultTabsContent">
+                            <!-- Summary Tab -->
+                            <div class="tab-pane fade show active" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+                                <div class="datatable-container">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>code</th>
+                                                <th>การใช้ประโยชน์อาคาร</th>
+                                                <th class="text-end">จำนวน (หลัง)</th>
+                                                <th class="text-end">ร้อยละ</th>
+                                                <th class="text-end">พื้นที่รวม (ตร.ม.)</th>
+                                                <th class="text-end">ร้อยละ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="summaryTableBody"></tbody>
+                                        <tfoot id="summaryTableFoot"></tfoot>
+                                    </table>
+                                </div>
 
-                        <!-- Charts -->
-                        <div class="row mt-4">
-                            <div class="col-md-6 mb-3">
-                                <div class="chart-container">
-                                    <canvas id="buildingCountChart"></canvas>
+                                <!-- Charts -->
+                                <div class="row mt-4">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="chart-container">
+                                            <canvas id="buildingCountChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="chart-container">
+                                            <canvas id="buildingAreaChart"></canvas>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="chart-container">
-                                    <canvas id="buildingAreaChart"></canvas>
+                            
+                            <!-- Detailed Tab -->
+                            <div class="tab-pane fade" id="detailed" role="tabpanel" aria-labelledby="detailed-tab">
+                                <div id="detailedTableContainer" class="datatable-container">
+                                    <div class="text-center py-4 text-secondary" id="noOrgFieldSelected">
+                                        <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                                        กรุณาเลือกฟิลด์ชื่อองค์กรปกครองส่วนท้องถิ่น เพื่อแสดงตารางจำแนก
+                                    </div>
+                                    <table class="table table-striped table-hover d-none" id="detailedTable">
+                                        <thead id="detailedTableHead">
+                                            <!-- จะถูกสร้างโดย JavaScript -->
+                                        </thead>
+                                        <tbody id="detailedTableBody">
+                                            <!-- จะถูกสร้างโดย JavaScript -->
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -429,7 +522,41 @@
             "72": "พื้นที่อนุรักษ์ศิลปะและวัฒนธรรมไทย",
             "73": "นันทนาการ",
             "80": "เกษตรกรรม",
-            "90": "อื่นๆ"
+            "90": "อื่นๆ",
+            "99": "ไม่ระบุข้อมูล"
+        };
+        
+        // คำอธิบายประเภทอาคารสำหรับตารางจำแนก
+        const detailedClassDescriptions = {
+            "10": "ที่อยู่อาศัย",
+            "20": "พาณิชยกรรม",
+            "30": "อุตสาหกรรม",
+            "41": "ที่พักอาศัยกึ่งพาณิชยกรรม",
+            "42": "พาณิชยกรรมและอุตสาหกรรม",
+            "43": "ที่พักอาศัยกึ่งอุตสาหกรรม",
+        };
+        
+        // คำอธิบายประเภทอาคาร (BL_TYPE)
+        const buildingTypeDescriptions = {
+            "1": "บ้านเดี่ยว/อาคารเดี่ยว",
+            "2": "บ้านแฝด",
+            "3": "ทาวน์เฮาส์",
+            "4": "ห้องแถว",
+            "5": "ตึกแถว",
+            "6": "อาคารอยู่อาศัยรวม",
+            "7": "เรือนแพ",
+            "8": "เพิงถาวร"
+        };
+        
+        // ขนาดพื้นที่อาคาร
+        const sizeDescriptions = {
+            "1": "0 - 300 ตร.ม.",
+            "2": "300.01 - 500 ตร.ม.",
+            "3": "500.01 - 1,000 ตร.ม.",
+            "4": "1,000.01 - 2,000 ตร.ม.",
+            "5": "2,000.01 - 4,000 ตร.ม.",
+            "6": "4,000.01 - 9,999 ตร.ม.",
+            "7": "มากกว่า 9,999 ตร.ม."
         };
 
         // สีประเภทอาคารสำหรับกราฟ
@@ -446,7 +573,8 @@
             "72": "#9d174d",
             "73": "#0f766e",
             "80": "#65a30d",
-            "90": "#7c2d12"
+            "90": "#7c2d12",
+            "99": "#6B7280"
         };
 
         // ตัวแปรเก็บข้อมูล
@@ -454,6 +582,7 @@
         let processedData = [];
         let selectedClassFilters = [];
         let selectedYearFilters = [];
+        let selectedLocalOrgField = "";
         let countChart = null;
         let areaChart = null;
 
@@ -463,6 +592,43 @@
             const fileNameElement = document.getElementById('fileName');
             if (fileInput.files && fileInput.files[0]) {
                 fileNameElement.textContent = fileInput.files[0].name;
+                
+                // ล้าง select สำหรับฟิลด์องค์กรปกครองส่วนท้องถิ่น
+                const localOrgFieldSelect = document.getElementById('localOrgField');
+                localOrgFieldSelect.innerHTML = '<option value="">-- ไม่เลือก --</option>';
+                
+                // อ่านไฟล์เพื่อค้นหาฟิลด์ที่มีอยู่
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // แปลงข้อมูลเป็น JSON เพื่อดึงชื่อคอลัมน์
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length > 0) {
+                            const headers = jsonData[0];
+                            
+                        // เพิ่มตัวเลือกสำหรับฟิลด์องค์กรปกครองส่วนท้องถิ่น
+                        headers.forEach(header => {
+                                if (header) {
+                                    const option = document.createElement('option');
+                                    option.value = header;
+                                    option.textContent = header;
+                                    localOrgFieldSelect.appendChild(option);
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error reading Excel file headers:', error);
+                    }
+                };
+                
+                reader.readAsArrayBuffer(fileInput.files[0]);
             } else {
                 fileNameElement.textContent = '';
             }
@@ -477,6 +643,7 @@
             }
 
             const file = fileInput.files[0];
+            selectedLocalOrgField = document.getElementById('localOrgField').value;
             
             // แสดง Progress Bar
             const progressContainer = document.getElementById('progressContainer');
@@ -499,6 +666,7 @@
                     // เปิดให้ใช้ปุ่มนำออกข้อมูล
                     document.getElementById('exportFullButton').disabled = false;
                     document.getElementById('exportSummaryButton').disabled = false;
+                    document.getElementById('exportDetailedButton').disabled = !selectedLocalOrgField;
                     
                     // แสดงตัวกรองและผลลัพธ์
                     document.getElementById('filterCard').classList.remove('d-none');
@@ -509,6 +677,16 @@
                     
                     // แสดงผลลัพธ์
                     updateResultsTable();
+                    
+                    // แสดงตารางจำแนก (ถ้ามีการเลือกฟิลด์องค์กรปกครองส่วนท้องถิ่น)
+                    if (selectedLocalOrgField) {
+                        document.getElementById('noOrgFieldSelected').classList.add('d-none');
+                        document.getElementById('detailedTable').classList.remove('d-none');
+                        createDetailedTable();
+                    } else {
+                        document.getElementById('noOrgFieldSelected').classList.remove('d-none');
+                        document.getElementById('detailedTable').classList.add('d-none');
+                    }
                 } catch (error) {
                     console.error('Error processing Excel file:', error);
                     alert('เกิดข้อผิดพลาดในการประมวลผลไฟล์: ' + error.message);
@@ -526,17 +704,6 @@
 
         // ประมวลผลข้อมูลและเพิ่มฟิลด์ class และ size
         function processData(data, progressBar) {
-            // คำอธิบายรหัส size
-            const sizeDescriptions = {
-                "1": "0 - 300 ตร.ม.",
-                "2": "300.01 - 500 ตร.ม.",
-                "3": "500.01 - 1,000 ตร.ม.",
-                "4": "1,000.01 - 2,000 ตร.ม.",
-                "5": "2,000.01 - 4,000 ตร.ม.",
-                "6": "4,000.01 - 9,999 ตร.ม.",
-                "7": "มากกว่า 9,999 ตร.ม."
-            };
-            
             processedData = data.map((row, index) => {
                 // อัพเดทความคืบหน้า
                 const progress = Math.round((index + 1) / data.length * 100);
@@ -608,6 +775,10 @@
                         selectedClassFilters = selectedClassFilters.filter(c => c !== this.value);
                     }
                     updateResultsTable();
+                    
+                    if (selectedLocalOrgField) {
+                        createDetailedTable();
+                    }
                 });
                 
                 label.appendChild(checkbox);
@@ -618,7 +789,10 @@
             });
             
             // สร้างตัวกรอง ACQYEAR
-            const uniqueYears = [...new Set(processedData.map(item => item.ACQYEAR).filter(Boolean))].sort();
+            const uniqueYears = [...new Set(processedData.map(item => {
+                // แปลงเป็น string ถ้าเป็นข้อมูลเชิงปริมาณ
+                return item.ACQYEAR ? item.ACQYEAR.toString() : '';
+            }).filter(Boolean))].sort();
             
             uniqueYears.forEach(year => {
                 const label = document.createElement('label');
@@ -635,6 +809,10 @@
                         selectedYearFilters = selectedYearFilters.filter(y => y !== this.value);
                     }
                     updateResultsTable();
+                    
+                    if (selectedLocalOrgField) {
+                        createDetailedTable();
+                    }
                 });
                 
                 label.appendChild(checkbox);
@@ -650,7 +828,7 @@
             // กรองข้อมูลตามตัวกรองที่เลือก
             const filteredData = processedData.filter(item => {
                 const classMatch = selectedClassFilters.includes(item.class);
-                const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR);
+                const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR ? item.ACQYEAR.toString() : '');
                 return classMatch && yearMatch;
             });
             
@@ -720,7 +898,7 @@
                 // Column 4: Count Percentage
                 const countPctCell = document.createElement('td');
                 countPctCell.className = 'text-end';
-                const countPct = (group.count / totalCount) * 100;
+                const countPct = totalCount > 0 ? (group.count / totalCount) * 100 : 0;
                 countPctCell.textContent = countPct.toFixed(2) + '%';
                 row.appendChild(countPctCell);
                 
@@ -736,7 +914,7 @@
                 // Column 6: Area Percentage
                 const areaPctCell = document.createElement('td');
                 areaPctCell.className = 'text-end';
-                const areaPct = (group.area / totalArea) * 100;
+                const areaPct = totalArea > 0 ? (group.area / totalArea) * 100 : 0;
                 areaPctCell.textContent = areaPct.toFixed(2) + '%';
                 row.appendChild(areaPctCell);
                 
@@ -760,7 +938,7 @@
             
             const totalCountPctCell = document.createElement('td');
             totalCountPctCell.className = 'text-end';
-            totalCountPctCell.textContent = '100.00%';
+            totalCountPctCell.textContent = totalCount > 0 ? '100.00%' : '0.00%';
             totalRow.appendChild(totalCountPctCell);
             
             const totalAreaCell = document.createElement('td');
@@ -773,7 +951,7 @@
             
             const totalAreaPctCell = document.createElement('td');
             totalAreaPctCell.className = 'text-end';
-            totalAreaPctCell.textContent = '100.00%';
+            totalAreaPctCell.textContent = totalArea > 0 ? '100.00%' : '0.00%';
             totalRow.appendChild(totalAreaPctCell);
             
             tableFoot.appendChild(totalRow);
@@ -820,6 +998,10 @@
                             text: 'สัดส่วนจำนวนอาคาร',
                             font: {
                                 size: 16
+                            },
+                            padding: {
+                                top: 10,
+                                bottom: 30
                             }
                         },
                         tooltip: {
@@ -827,7 +1009,8 @@
                                 label: function(context) {
                                     const label = context.label || '';
                                     const value = context.formattedValue;
-                                    const percentage = (context.raw / context.dataset.data.reduce((a, b) => a + b, 0) * 100).toFixed(2);
+                                    const totalValue = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = totalValue > 0 ? (context.raw / totalValue * 100).toFixed(2) : '0.00';
                                     return `${label}: ${value} (${percentage}%)`;
                                 }
                             }
@@ -872,6 +1055,10 @@
                             text: 'สัดส่วนพื้นที่อาคาร',
                             font: {
                                 size: 16
+                            },
+                            padding: {
+                                top: 10,
+                                bottom: 30
                             }
                         },
                         tooltip: {
@@ -882,13 +1069,193 @@
                                         minimumFractionDigits: 2,
                                         maximumFractionDigits: 2
                                     });
-                                    const percentage = (context.raw / context.dataset.data.reduce((a, b) => a + b, 0) * 100).toFixed(2);
+                                    const totalValue = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = totalValue > 0 ? (context.raw / totalValue * 100).toFixed(2) : '0.00';
                                     return `${label}: ${value} ตร.ม. (${percentage}%)`;
                                 }
                             }
                         }
                     }
                 }
+            });
+        }
+        
+        // สร้างตารางจำแนกตามการใช้ประโยชน์และขนาดอาคาร
+        function createDetailedTable() {
+            if (!selectedLocalOrgField) return;
+            
+            const tableHead = document.getElementById('detailedTableHead');
+            const tableBody = document.getElementById('detailedTableBody');
+            
+            // ล้างข้อมูลเดิม
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+            
+            // สร้างหัวตาราง
+            const headerRow = document.createElement('tr');
+            
+            // คอลัมน์ชื่อองค์กรปกครองส่วนท้องถิ่น
+            const orgHeader = document.createElement('th');
+            orgHeader.rowSpan = 2;
+            orgHeader.textContent = 'ชื่อองค์กรปกครองส่วนท้องถิ่น';
+            headerRow.appendChild(orgHeader);
+            
+            // คอลัมน์ประเภทการใช้ประโยชน์ที่ดิน
+            const usageHeader = document.createElement('th');
+            usageHeader.rowSpan = 2;
+            usageHeader.textContent = 'ประเภทการใช้ประโยชน์ที่ดิน';
+            headerRow.appendChild(usageHeader);
+            
+            // คอลัมน์ประเภทอาคาร
+            const typeHeader = document.createElement('th');
+            typeHeader.rowSpan = 2;
+            typeHeader.textContent = 'ประเภทอาคาร';
+            headerRow.appendChild(typeHeader);
+            
+            // คอลัมน์ขนาดพื้นที่อาคาร
+            const sizeHeader = document.createElement('th');
+            sizeHeader.colSpan = 7;
+            sizeHeader.textContent = 'ขนาดพื้นที่อาคาร';
+            sizeHeader.className = 'text-center';
+            headerRow.appendChild(sizeHeader);
+            
+            // คอลัมน์รวม
+            const totalHeader = document.createElement('th');
+            totalHeader.rowSpan = 2;
+            totalHeader.textContent = 'รวม';
+            totalHeader.className = 'text-center';
+            headerRow.appendChild(totalHeader);
+            
+            tableHead.appendChild(headerRow);
+            
+            // สร้างแถวสำหรับหัวย่อยของขนาดพื้นที่อาคาร
+            const subHeaderRow = document.createElement('tr');
+            
+            Object.keys(sizeDescriptions).forEach(sizeCode => {
+                const sizeHeader = document.createElement('th');
+                sizeHeader.textContent = sizeDescriptions[sizeCode];
+                sizeHeader.className = 'text-center';
+                subHeaderRow.appendChild(sizeHeader);
+            });
+            
+            tableHead.appendChild(subHeaderRow);
+            
+            // กรองข้อมูลตามตัวกรองที่เลือก
+            const filteredData = processedData.filter(item => {
+                const classMatch = selectedClassFilters.includes(item.class);
+                const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR ? item.ACQYEAR.toString() : '');
+                return classMatch && yearMatch;
+            });
+            
+            // รวบรวมองค์กรปกครองส่วนท้องถิ่นที่ไม่ซ้ำกัน
+            const uniqueOrgs = [...new Set(filteredData.map(item => item[selectedLocalOrgField]))].filter(Boolean).sort();
+            
+            // สร้างตาราง
+            uniqueOrgs.forEach(org => {
+                // กรองข้อมูลเฉพาะองค์กรปกครองส่วนท้องถิ่นที่เลือก
+                const orgData = filteredData.filter(item => item[selectedLocalOrgField] === org);
+                
+                // สร้างแถวสำหรับแต่ละประเภทการใช้ประโยชน์ที่ดิน
+                const usageClasses = ["10", "20", "30", "41", "42", "43"];
+                
+                usageClasses.forEach(usageClass => {
+                    // กรองข้อมูลตามประเภทการใช้ประโยชน์ที่ดิน
+                    const usageData = orgData.filter(item => item.class === usageClass);
+                    
+                    if (usageData.length > 0) {
+                        // สร้างแถวสำหรับแสดงหัวข้อประเภทการใช้ประโยชน์ที่ดิน
+                        const usageRow = document.createElement('tr');
+                        usageRow.className = 'table-light fw-bold';
+                        
+                        // คอลัมน์องค์กรปกครองส่วนท้องถิ่น
+                        const orgCell = document.createElement('td');
+                        orgCell.textContent = org;
+                        usageRow.appendChild(orgCell);
+                        
+                        // คอลัมน์ประเภทการใช้ประโยชน์ที่ดิน
+                        const usageCell = document.createElement('td');
+                        usageCell.textContent = detailedClassDescriptions[usageClass];
+                        usageRow.appendChild(usageCell);
+                        
+                        // คอลัมน์ประเภทอาคาร (ว่างสำหรับแถวหัวข้อ)
+                        const typeCell = document.createElement('td');
+                        typeCell.textContent = '';
+                        usageRow.appendChild(typeCell);
+                        
+                        // คำนวณจำนวนอาคารตามขนาด
+                        const sizeCountsForUsage = {};
+                        for (let i = 1; i <= 7; i++) {
+                            sizeCountsForUsage[i] = usageData.filter(item => item.size === i.toString()).length;
+                        }
+                        
+                        // คอลัมน์ขนาดพื้นที่อาคาร
+                        for (let i = 1; i <= 7; i++) {
+                            const sizeCell = document.createElement('td');
+                            sizeCell.className = 'text-center';
+                            sizeCell.textContent = sizeCountsForUsage[i];
+                            usageRow.appendChild(sizeCell);
+                        }
+                        
+                        // คอลัมน์รวม
+                        const totalCell = document.createElement('td');
+                        totalCell.className = 'text-center fw-bold';
+                        totalCell.textContent = usageData.length;
+                        usageRow.appendChild(totalCell);
+                        
+                        tableBody.appendChild(usageRow);
+                        
+                        // สร้างแถวย่อยสำหรับแต่ละประเภทอาคาร
+                        const buildingTypes = ["1", "2", "3", "4", "5", "6", "7", "8"];
+                        
+                        buildingTypes.forEach(buildingType => {
+                            // กรองข้อมูลตามประเภทอาคาร
+                            const typeData = usageData.filter(item => {
+                                return item.BL_TYPE ? item.BL_TYPE.toString() === buildingType : false;
+                            });
+                            
+                            if (typeData.length > 0) {
+                                const typeRow = document.createElement('tr');
+                                
+                                // คอลัมน์องค์กรปกครองส่วนท้องถิ่น (ว่างสำหรับแถวย่อย)
+                                const orgCell = document.createElement('td');
+                                orgCell.textContent = '';
+                                typeRow.appendChild(orgCell);
+                                
+                                // คอลัมน์ประเภทการใช้ประโยชน์ที่ดิน (ว่างสำหรับแถวย่อย)
+                                const usageCell = document.createElement('td');
+                                usageCell.textContent = '';
+                                typeRow.appendChild(usageCell);
+                                
+                                // คอลัมน์ประเภทอาคาร
+                                const typeCell = document.createElement('td');
+                                typeCell.textContent = buildingTypeDescriptions[buildingType];
+                                typeRow.appendChild(typeCell);
+                                
+                                // คำนวณจำนวนอาคารตามขนาด
+                                const sizeCountsForType = {};
+                                for (let i = 1; i <= 7; i++) {
+                                    sizeCountsForType[i] = typeData.filter(item => item.size === i.toString()).length;
+                                }
+                                
+                                // คอลัมน์ขนาดพื้นที่อาคาร
+                                for (let i = 1; i <= 7; i++) {
+                                    const sizeCell = document.createElement('td');
+                                    sizeCell.className = 'text-center';
+                                    sizeCell.textContent = sizeCountsForType[i];
+                                    typeRow.appendChild(sizeCell);
+                                }
+                                
+                                // คอลัมน์รวม
+                                const totalCell = document.createElement('td');
+                                totalCell.className = 'text-center';
+                                totalCell.textContent = typeData.length;
+                                typeRow.appendChild(totalCell);
+                                
+                                tableBody.appendChild(typeRow);
+                            }
+                        });
+                    }
+                });
             });
         }
 
@@ -915,77 +1282,169 @@
 
         // นำออกข้อมูลสรุป
         function exportSummary() {
-    if (processedData.length === 0) {
-        alert('ไม่มีข้อมูลที่จะนำออก');
-        return;
-    }
-    
-    // กรองข้อมูลตามตัวกรองที่เลือก
-    const filteredData = processedData.filter(item => {
-        const classMatch = selectedClassFilters.includes(item.class);
-        const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR);
-        return classMatch && yearMatch;
-    });
-    
-    // จัดกลุ่มข้อมูลตาม class
-    const groupedData = {};
-    filteredData.forEach(item => {
-        if (!groupedData[item.class]) {
-            groupedData[item.class] = {
-                count: 0,
-                area: 0
-            };
+            if (processedData.length === 0) {
+                alert('ไม่มีข้อมูลที่จะนำออก');
+                return;
+            }
+            
+            // กรองข้อมูลตามตัวกรองที่เลือก
+            const filteredData = processedData.filter(item => {
+                const classMatch = selectedClassFilters.includes(item.class);
+                const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR ? item.ACQYEAR.toString() : '');
+                return classMatch && yearMatch;
+            });
+            
+            // จัดกลุ่มข้อมูลตาม class
+            const groupedData = {};
+            filteredData.forEach(item => {
+                if (!groupedData[item.class]) {
+                    groupedData[item.class] = {
+                        count: 0,
+                        area: 0
+                    };
+                }
+                
+                groupedData[item.class].count += 1;
+                groupedData[item.class].area += parseFloat(item.BL_AREA) || 0;
+            });
+            
+            // คำนวณผลรวม
+            const totalCount = Object.values(groupedData).reduce((sum, group) => sum + group.count, 0);
+            const totalArea = Object.values(groupedData).reduce((sum, group) => sum + group.area, 0);
+            
+            // สร้างข้อมูลสำหรับนำออก
+            const exportData = [];
+            
+            // เรียงลำดับตาม class
+            const sortedClasses = Object.keys(groupedData).sort();
+            
+            sortedClasses.forEach(classCode => {
+                const group = groupedData[classCode];
+                const countPct = totalCount > 0 ? (group.count / totalCount) * 100 : 0;
+                const areaPct = totalArea > 0 ? (group.area / totalArea) * 100 : 0;
+                
+                exportData.push({
+                    'code': classCode,
+                    'การใช้ประโยชน์อาคาร': classDescriptions[classCode] || 'ไม่ระบุ',
+                    'จำนวน (หลัง)': group.count,
+                    'ร้อยละจำนวน': countPct.toFixed(2) + '%',
+                    'พื้นที่รวม (ตร.ม.)': Number(group.area.toFixed(2)),  // เปลี่ยนเป็น Number เพื่อให้ Excel แสดงเป็นตัวเลข
+                    'ร้อยละพื้นที่': areaPct.toFixed(2) + '%'
+                });
+            });
+            
+            // เพิ่มแถวรวม
+            exportData.push({
+                'code': 'รวมทั้งหมด',
+                'การใช้ประโยชน์อาคาร': '',
+                'จำนวน (หลัง)': totalCount,
+                'ร้อยละจำนวน': totalCount > 0 ? '100.00%' : '0.00%',
+                'พื้นที่รวม (ตร.ม.)': Number(totalArea.toFixed(2)),  // เปลี่ยนเป็น Number เพื่อให้ Excel แสดงเป็นตัวเลข
+                'ร้อยละพื้นที่': totalArea > 0 ? '100.00%' : '0.00%'
+            });
+            
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            
+            // กำหนดรูปแบบคอลัมน์ "พื้นที่รวม (ตร.ม.)" ให้เป็นตัวเลขทศนิยม 2 ตำแหน่ง
+            if(!ws['!cols']) ws['!cols'] = [];
+            ws['!cols'][4] = { wch: 15, numFmt: '0.00' };  // คอลัมน์ E (index 4) คือ "พื้นที่รวม (ตร.ม.)"
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ตารางการใช้ประโยชน์อาคาร");
+            XLSX.writeFile(wb, "building_usage_summary.xlsx");
         }
-        
-        groupedData[item.class].count += 1;
-        groupedData[item.class].area += parseFloat(item.BL_AREA) || 0;
-    });
-    
-    // คำนวณผลรวม
-    const totalCount = Object.values(groupedData).reduce((sum, group) => sum + group.count, 0);
-    const totalArea = Object.values(groupedData).reduce((sum, group) => sum + group.area, 0);
-    
-    // สร้างข้อมูลสำหรับนำออก
-    const exportData = [];
-    
-    // เรียงลำดับตาม class
-    const sortedClasses = Object.keys(groupedData).sort();
-    
-    sortedClasses.forEach(classCode => {
-        const group = groupedData[classCode];
-        const countPct = (group.count / totalCount) * 100;
-        const areaPct = (group.area / totalArea) * 100;
-        
-        exportData.push({
-            'code': classCode,
-            'การใช้ประโยชน์อาคาร': classDescriptions[classCode] || 'ไม่ระบุ',
-            'จำนวน (หลัง)': group.count,
-            'ร้อยละจำนวน': countPct.toFixed(2) + '%',
-            'พื้นที่รวม (ตร.ม.)': Number(group.area.toFixed(2)),  // เปลี่ยนเป็น Number เพื่อให้ Excel แสดงเป็นตัวเลข
-            'ร้อยละพื้นที่': areaPct.toFixed(2) + '%'
-        });
-    });
-    
-    // เพิ่มแถวรวม
-    exportData.push({
-        'code': 'รวมทั้งหมด',
-        'การใช้ประโยชน์อาคาร': '',
-        'จำนวน (หลัง)': totalCount,
-        'ร้อยละจำนวน': '100.00%',
-        'พื้นที่รวม (ตร.ม.)': Number(totalArea.toFixed(2)),  // เปลี่ยนเป็น Number เพื่อให้ Excel แสดงเป็นตัวเลข
-        'ร้อยละพื้นที่': '100.00%'
-    });
-    
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    
-    // กำหนดรูปแบบคอลัมน์ "พื้นที่รวม (ตร.ม.)" ให้เป็นตัวเลขทศนิยม 2 ตำแหน่ง
-    if(!ws['!cols']) ws['!cols'] = [];
-    ws['!cols'][4] = { wch: 15, numFmt: '0.00' };  // คอลัมน์ E (index 4) คือ "พื้นที่รวม (ตร.ม.)"
-    
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "ตารางการใช้ประโยชน์อาคาร");
-    XLSX.writeFile(wb, "building_usage_summary.xlsx");
-}
+
+        // นำออกข้อมูลตารางจำแนก
+        function exportDetailedSummary() {
+            if (!selectedLocalOrgField) {
+                alert('กรุณาเลือกฟิลด์ชื่อองค์กรปกครองส่วนท้องถิ่นก่อนนำออกข้อมูล');
+                return;
+            }
+            
+            if (processedData.length === 0) {
+                alert('ไม่มีข้อมูลที่จะนำออก');
+                return;
+            }
+            
+            // กรองข้อมูลตามตัวกรองที่เลือก
+            const filteredData = processedData.filter(item => {
+                const classMatch = selectedClassFilters.includes(item.class);
+                const yearMatch = !item.ACQYEAR || selectedYearFilters.includes(item.ACQYEAR ? item.ACQYEAR.toString() : '');
+                return classMatch && yearMatch;
+            });
+            
+            // รวบรวมองค์กรปกครองส่วนท้องถิ่นที่ไม่ซ้ำกัน
+            const uniqueOrgs = [...new Set(filteredData.map(item => item[selectedLocalOrgField]))].filter(Boolean).sort();
+            
+            // เตรียมข้อมูลสำหรับ Excel
+            const detailedData = [];
+            
+            // ประเภทการใช้ประโยชน์ที่ดิน
+            const usageClasses = ["10", "20", "30", "41", "42", "43"];
+            // ประเภทอาคาร
+            const buildingTypes = ["1", "2", "3", "4", "5", "6", "7", "8"];
+            
+            uniqueOrgs.forEach(org => {
+                // กรองข้อมูลเฉพาะองค์กรปกครองส่วนท้องถิ่นที่เลือก
+                const orgData = filteredData.filter(item => item[selectedLocalOrgField] === org);
+                
+                usageClasses.forEach(usageClass => {
+                    // กรองข้อมูลตามประเภทการใช้ประโยชน์ที่ดิน
+                    const usageData = orgData.filter(item => item.class === usageClass);
+                    
+                    if (usageData.length > 0) {
+                        // สร้างแถวสำหรับแต่ละประเภทการใช้ประโยชน์ที่ดิน
+                        const usageRow = {
+                            'ชื่อองค์กรปกครองส่วนท้องถิ่น': org,
+                            'ประเภทการใช้ประโยชน์ที่ดิน': detailedClassDescriptions[usageClass],
+                            'ประเภทอาคาร': '',
+                        };
+                        
+                        // นับจำนวนอาคารตามขนาด
+                        for (let i = 1; i <= 7; i++) {
+                            usageRow[sizeDescriptions[i]] = usageData.filter(item => item.size === i.toString()).length;
+                        }
+                        
+                        // รวม
+                        usageRow['รวม'] = usageData.length;
+                        
+                        detailedData.push(usageRow);
+                        
+                        // สร้างแถวย่อยสำหรับแต่ละประเภทอาคาร
+                        buildingTypes.forEach(buildingType => {
+                            // กรองข้อมูลตามประเภทอาคาร
+                            const typeData = usageData.filter(item => {
+                                return item.BL_TYPE ? item.BL_TYPE.toString() === buildingType : false;
+                            });
+                            
+                            if (typeData.length > 0) {
+                                const typeRow = {
+                                    'ชื่อองค์กรปกครองส่วนท้องถิ่น': '',
+                                    'ประเภทการใช้ประโยชน์ที่ดิน': '',
+                                    'ประเภทอาคาร': buildingTypeDescriptions[buildingType],
+                                };
+                                
+                                // นับจำนวนอาคารตามขนาด
+                                for (let i = 1; i <= 7; i++) {
+                                    typeRow[sizeDescriptions[i]] = typeData.filter(item => item.size === i.toString()).length;
+                                }
+                                
+                                // รวม
+                                typeRow['รวม'] = typeData.length;
+                                
+                                detailedData.push(typeRow);
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // สร้าง Excel
+            const ws = XLSX.utils.json_to_sheet(detailedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ตารางจำแนกการใช้ประโยชน์อาคาร");
+            XLSX.writeFile(wb, "building_usage_detailed.xlsx");
+        }
     </script>
 </body>
 </html>
