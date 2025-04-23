@@ -245,8 +245,10 @@
 
         .datatable-container {
             overflow-x: auto;
-            max-height: none; /* ลบการจำกัดความสูง */
-            overflow-y: visible; /* เปลี่ยนเป็น visible เพื่อให้เห็นเนื้อหาทั้งหมด */
+            max-height: 70vh; /* ความสูงสูงสุดสำหรับคอนเทนเนอร์ */
+            position: relative;
+            border: 1px solid var(--gray-light);
+            border-radius: 0.5rem;
         }
 
         .file-name {
@@ -273,6 +275,55 @@
         
         .nav-tabs .nav-link:hover {
             border-color: var(--gray-light) var(--gray-light) var(--gray-light);
+        }
+
+        /* เพิ่มสไตล์สำหรับคอลัมน์แรกที่ล็อก */
+        .fixed-column {
+            position: sticky;
+            left: 0;
+            background-color: white;
+            z-index: 5;
+        }
+
+        .fixed-column.header {
+            z-index: 15; /* ค่า z-index ที่สูงกว่าสำหรับเซลล์มุม */
+            background-color: var(--light-color);
+        }
+
+        /* สไตล์สำหรับปุ่มเต็มหน้าจอ */
+        .fullscreen-btn {
+            margin-bottom: 10px;
+        }
+
+        .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            background: white;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        /* สไตล์สำหรับการแสดงผลแบบเต็มหน้าจอ */
+        .fullscreen .table {
+            width: 100%;
+        }
+
+        .fullscreen .datatable-container {
+            max-height: 85vh;
+            border: none;
+        }
+
+        .exit-fullscreen-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1001;
         }
 
         @media (max-width: 768px) {
@@ -450,6 +501,9 @@
                             <!-- Detailed Tab -->
                             <div class="tab-pane fade" id="detailed" role="tabpanel" aria-labelledby="detailed-tab">
                                 <div id="detailedTableContainer" class="datatable-container">
+                                    <button id="fullscreenBtn" class="btn btn-sm btn-secondary fullscreen-btn d-none">
+                                        <i class="bi bi-arrows-fullscreen"></i> ขยายเต็มหน้าจอ
+                                    </button>
                                     <div class="text-center py-4 text-secondary" id="noOrgFieldSelected">
                                         <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
                                         กรุณาเลือกฟิลด์ชื่อองค์กรปกครองส่วนท้องถิ่น เพื่อแสดงตารางจำแนก
@@ -682,10 +736,12 @@
                     if (selectedLocalOrgField) {
                         document.getElementById('noOrgFieldSelected').classList.add('d-none');
                         document.getElementById('detailedTable').classList.remove('d-none');
+                        document.getElementById('fullscreenBtn').classList.remove('d-none');
                         createDetailedTable();
                     } else {
                         document.getElementById('noOrgFieldSelected').classList.remove('d-none');
                         document.getElementById('detailedTable').classList.add('d-none');
+                        document.getElementById('fullscreenBtn').classList.add('d-none');
                     }
                 } catch (error) {
                     console.error('Error processing Excel file:', error);
@@ -713,6 +769,11 @@
                 
                 // สร้างข้อมูลใหม่
                 const newRow = {...row};
+                
+                // ตรวจสอบและแก้ไขค่า ACQYEAR ที่ไม่มีข้อมูล
+                if (!newRow.ACQYEAR) {
+                    newRow.ACQYEAR = "ไม่ระบุ"; // เพิ่มค่า "ไม่ระบุ" เมื่อไม่มีข้อมูล ACQYEAR
+                }
                 
                 // แปลงข้อมูลเป็น string ถ้าจำเป็น
                 const blUse = row.BL_USE ? row.BL_USE.toString() : '';
@@ -1098,6 +1159,7 @@
             const orgHeader = document.createElement('th');
             orgHeader.rowSpan = 2;
             orgHeader.textContent = 'ชื่อองค์กรปกครองส่วนท้องถิ่น';
+            orgHeader.className = 'fixed-column header'; // เพิ่มคลาสเพื่อล็อกคอลัมน์แรก
             headerRow.appendChild(orgHeader);
             
             // คอลัมน์ประเภทการใช้ประโยชน์ที่ดิน
@@ -1170,6 +1232,7 @@
                         // คอลัมน์องค์กรปกครองส่วนท้องถิ่น
                         const orgCell = document.createElement('td');
                         orgCell.textContent = org;
+                        orgCell.className = 'fixed-column'; // เพิ่มคลาสเพื่อล็อกคอลัมน์แรก
                         usageRow.appendChild(orgCell);
                         
                         // คอลัมน์ประเภทการใช้ประโยชน์ที่ดิน
@@ -1219,6 +1282,7 @@
                                 // คอลัมน์องค์กรปกครองส่วนท้องถิ่น (ว่างสำหรับแถวย่อย)
                                 const orgCell = document.createElement('td');
                                 orgCell.textContent = '';
+                                orgCell.className = 'fixed-column'; // เพิ่มคลาสเพื่อล็อกคอลัมน์แรก
                                 typeRow.appendChild(orgCell);
                                 
                                 // คอลัมน์ประเภทการใช้ประโยชน์ที่ดิน (ว่างสำหรับแถวย่อย)
@@ -1257,6 +1321,38 @@
                     }
                 });
             });
+            
+            // เพิ่มฟังก์ชันขยายเต็มหน้าจอ
+            document.getElementById('fullscreenBtn').onclick = toggleFullscreen;
+        }
+        
+        // ฟังก์ชันเปิด/ปิดโหมดเต็มหน้าจอ
+        function toggleFullscreen() {
+            const tableContainer = document.getElementById('detailedTableContainer');
+            tableContainer.classList.toggle('fullscreen');
+            
+            // เปลี่ยนข้อความปุ่ม
+            const btn = document.getElementById('fullscreenBtn');
+            if (tableContainer.classList.contains('fullscreen')) {
+                btn.innerHTML = '<i class="bi bi-fullscreen-exit"></i> ย่อขนาด';
+                
+                // เพิ่มปุ่มปิดเมื่ออยู่ในโหมดเต็มหน้าจอ
+                if (!document.querySelector('.exit-fullscreen-btn')) {
+                    const exitBtn = document.createElement('button');
+                    exitBtn.className = 'btn btn-sm btn-danger exit-fullscreen-btn';
+                    exitBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+                    exitBtn.onclick = toggleFullscreen;
+                    tableContainer.appendChild(exitBtn);
+                }
+            } else {
+                btn.innerHTML = '<i class="bi bi-arrows-fullscreen"></i> ขยายเต็มหน้าจอ';
+                
+                // ลบปุ่มปิดเมื่อออกจากโหมดเต็มหน้าจอ
+                const exitBtn = document.querySelector('.exit-fullscreen-btn');
+                if (exitBtn) {
+                    exitBtn.remove();
+                }
+            }
         }
 
         // นำออกข้อมูลทั้งหมด
