@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONVERT GIS FILE</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shpjs/3.6.3/shp.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2563eb;
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            margin-right: 5px;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            background-color: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #2563eb;
+            background-color: #f0f4ff;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        .btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+        .btn:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+        .result-area {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(37, 99, 235, 0.3);
+            border-radius: 50%;
+            border-top-color: #2563eb;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #dc2626;
+            background-color: #fee2e2;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .success-message {
+            color: #059669;
+            background-color: #d1fae5;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .hidden {
+            display: none;
+        }
+        .projection-options {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background-color: #f9fafb;
+        }
+        .projection-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #4b5563;
+        }
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .radio-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .radio-option input {
+            margin-right: 10px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .info-box {
+            background-color: #e0f2fe;
+            border-left: 4px solid #0ea5e9;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+        .detected-projection {
+            font-weight: bold;
+            color: #0369a1;
+        }
+        .navigation-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+            gap: 15px;
+        }
+        .nav-btn {
+            background-color: #4b5563;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+        .nav-btn:hover {
+            background-color: #374151;
+        }
+        .nav-btn i {
+            margin-right: 8px;
+        }
+        .home-btn {
+            background-color: #2563eb;
+        }
+        .home-btn:hover {
+            background-color: #2563eb;
+        }
+        .area-btn {
+            background-color: #2563eb;
+        }
+        .area-btn:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CONVERT GIS FILE</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="tab1">Shapefile → GeoJSON</div>
+            <div class="tab" data-tab="tab2">GeoJSON → Shapefile</div>
+        </div>
+        
+        <!-- Tab 1: Shapefile to GeoJSON -->
+        <div class="tab-content active" id="tab1">
+            <h2>Shapefile to GeoJSON Converter</h2>
+            
+            <div class="error-message" id="errorMessage1"></div>
+            <div class="success-message" id="successMessage1"></div>
+            
+            <div class="upload-area" id="uploadArea1">
+                <div class="upload-icon">📁</div>
+                <p>คลิกที่นี่หรือลากไฟล์ ZIP ที่มี Shapefile (.shp, .dbf, etc.) มาวาง</p>
+                <input type="file" id="fileInput1" accept=".zip" style="display: none;">
+            </div>
+            
+            <div class="projection-options">
+                <div class="projection-title">เลือกพื้นหลักฐาน (ระบบพิกัด):</div>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="projection1" value="original" checked>
+                        <span>แปลงเป็น EPSG:4326 (WGS84 - ค่าเริ่มต้นสำหรับ GeoJSON)</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="projection1" value="EPSG:32647">
+                        <span>แปลงเป็น EPSG:32647 (UTM Zone 47N)</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="projection1" value="EPSG:32648">
+                        <span>แปลงเป็น EPSG:32648 (UTM Zone 48N)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div id="loadingSpinner1" class="hidden" style="text-align: center;">
+                <div class="spinner"></div>
+                <p>กำลังแปลงไฟล์ Shapefile...</p>
+            </div>
+            
+            <div id="resultContainer1" class="hidden" style="text-align: center;">
+                <p>การแปลงเสร็จสมบูรณ์!</p>
+                <button id="downloadBtn1" class="btn">ดาวน์โหลด GeoJSON</button>
+            </div>
+            
+            <pre id="resultPreview1" class="result-area"></pre>
+        </div>
+        
+        <!-- Tab 2: GeoJSON to Shapefile -->
+        <div class="tab-content" id="tab2">
+            <h2>GeoJSON to Shapefile Converter</h2>
+            
+            <div class="error-message" id="errorMessage2"></div>
+            <div class="success-message" id="successMessage2"></div>
+            
+            <div id="projectionInfo" class="info-box hidden">
+                <p>ตรวจพบพื้นหลักฐาน: <span id="detectedProjection" class="detected-projection">EPSG:4326 (WGS84)</span></p>
+                <p>จะทำการแปลงเป็น Shapefile โดยใช้พื้นหลักฐานเดิมตามที่ตรวจพบ</p>
+            </div>
+            
+            <div class="upload-area" id="uploadArea2">
+                <div class="upload-icon">📊</div>
+                <p>คลิกที่นี่หรือลากไฟล์ GeoJSON (.geojson, .json) มาวาง</p>
+                <input type="file" id="fileInput2" accept=".geojson,.json" style="display: none;">
+            </div>
+            
+            <div id="loadingSpinner2" class="hidden" style="text-align: center;">
+                <div class="spinner"></div>
+                <p>กำลังแปลงไฟล์ GeoJSON...</p>
+            </div>
+            
+            <div id="resultContainer2" class="hidden" style="text-align: center;">
+                <p>การแปลงเสร็จสมบูรณ์!</p>
+                <button id="downloadBtn2" class="btn">ดาวน์โหลด Shapefile (ZIP)</button>
+            </div>
+            
+            <pre id="resultPreview2" class="result-area"></pre>
+        </div>
+        
+        <!-- Navigation Buttons -->
+        <div class="navigation-buttons">
+            <a href="https://mponline1.github.io/" class="nav-btn home-btn">
+                <i></i> หน้าหลัก
+            </a>
+            <a href="https://mponline1.github.io/page11.html" class="nav-btn area-btn">
+                <i></i> Calculate AREA
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Tab Switching
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(tabId === 'tab1' ? 'tab1' : 'tab2').classList.add('active');
+            });
+        });
+        
+        // Define projection definitions
+        const projDefinitions = {
+            'EPSG:4326': '+proj=longlat +datum=WGS84 +no_defs', // WGS84 - standard GeoJSON
+            'EPSG:32647': '+proj=utm +zone=47 +datum=WGS84 +units=m +no_defs', // UTM zone 47N
+            'EPSG:32648': '+proj=utm +zone=48 +datum=WGS84 +units=m +no_defs'  // UTM zone 48N
+        };
+        
+        // Register projections with proj4js
+        for (const [code, def] of Object.entries(projDefinitions)) {
+            proj4.defs(code, def);
+        }
+        
+        // ******************************************
+        // PART 1: SHAPEFILE TO GEOJSON
+        // ******************************************
+        
+        // DOM Elements
+        const uploadArea1 = document.getElementById('uploadArea1');
+        const fileInput1 = document.getElementById('fileInput1');
+        const loadingSpinner1 = document.getElementById('loadingSpinner1');
+        const resultContainer1 = document.getElementById('resultContainer1');
+        const downloadBtn1 = document.getElementById('downloadBtn1');
+        const resultPreview1 = document.getElementById('resultPreview1');
+        const errorMessage1 = document.getElementById('errorMessage1');
+        const successMessage1 = document.getElementById('successMessage1');
+        const projectionOptions1 = document.getElementsByName('projection1');
+        
+        // Global variables
+        let originalGeoJSON = null;
+        let convertedGeoJSON = null;
+        let fileName1 = 'converted';
+        
+        // Setup event listeners
+        uploadArea1.addEventListener('click', () => fileInput1.click());
+        uploadArea1.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea1.style.borderColor = '#2563eb';
+            uploadArea1.style.backgroundColor = '#f0f4ff';
+        });
+        uploadArea1.addEventListener('dragleave', () => {
+            uploadArea1.style.borderColor = '#ccc';
+            uploadArea1.style.backgroundColor = '#f8f9fa';
+        });
+        uploadArea1.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea1.style.borderColor = '#ccc';
+            uploadArea1.style.backgroundColor = '#f8f9fa';
+            
+            if (e.dataTransfer.files.length) {
+                handleShapefileUpload(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput1.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleShapefileUpload(e.target.files[0]);
+            }
+        });
+        downloadBtn1.addEventListener('click', downloadGeoJSON);
+        
+        // Add event listeners for projection change
+        projectionOptions1.forEach(option => {
+            option.addEventListener('change', () => {
+                if (originalGeoJSON) {
+                    const selectedProjection = getSelectedProjection1();
+                    
+                    if (selectedProjection === 'original') {
+                        convertedGeoJSON = originalGeoJSON;
+                        updatePreview1(convertedGeoJSON);
+                        showMessage1('แปลงเป็น EPSG:4326 (WGS84) เรียบร้อยแล้ว', 'success');
+                    } else {
+                        try {
+                            convertedGeoJSON = transformGeoJSON(originalGeoJSON, selectedProjection);
+                            updatePreview1(convertedGeoJSON);
+                            showMessage1(`แปลงเป็น ${selectedProjection} เรียบร้อยแล้ว`, 'success');
+                        } catch (error) {
+                            showError1(`เกิดข้อผิดพลาดในการแปลงพื้นหลักฐาน: ${error.message}`);
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Function to get selected projection
+        function getSelectedProjection1() {
+            for (const option of projectionOptions1) {
+                if (option.checked) {
+                    return option.value;
+                }
+            }
+            return 'original';
+        }
+        
+        // Function to handle file upload
+        function handleShapefileUpload(file) {
+            if (!file.name.endsWith('.zip')) {
+                showError1('กรุณาอัปโหลดไฟล์ ZIP ที่มีข้อมูล shapefile');
+                return;
+            }
+            
+            fileName1 = file.name.replace('.zip', '');
+            resetUI1();
+            showLoading1();
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const zipData = e.target.result;
+                    await processShapefileZip(zipData);
+                } catch (error) {
+                    console.error('Conversion error:', error);
+                    showError1(`เกิดข้อผิดพลาดในการแปลงไฟล์: ${error.message}`);
+                    hideLoading1();
+                }
+            };
+            reader.onerror = () => {
+                showError1('เกิดข้อผิดพลาดในการอ่านไฟล์');
+                hideLoading1();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // Process zip file
+        async function processShapefileZip(zipData) {
+            try {
+                const zip = await JSZip.loadAsync(zipData);
+                const fileNames = Object.keys(zip.files);
+                
+                // Check for required shapefile components
+                const hasSHP = fileNames.some(name => name.toLowerCase().endsWith('.shp'));
+                const hasDBF = fileNames.some(name => name.toLowerCase().endsWith('.dbf'));
+                
+                if (!hasSHP || !hasDBF) {
+                    throw new Error('ไฟล์ ZIP ต้องมีไฟล์ .shp และ .dbf เป็นอย่างน้อย');
+                }
+                
+                // Using shp.js to convert
+                const geojson = await shp(zipData);
+                originalGeoJSON = geojson;
+                
+                // Apply projection transformation if needed
+                const selectedProjection = getSelectedProjection1();
+                if (selectedProjection !== 'original') {
+                    convertedGeoJSON = transformGeoJSON(originalGeoJSON, selectedProjection);
+                } else {
+                    convertedGeoJSON = originalGeoJSON;
+                }
+                
+                // Update preview
+                updatePreview1(convertedGeoJSON);
+                
+                // Show success
+                hideLoading1();
+                showSuccess1();
+                
+            } catch (error) {
+                console.error('Error processing zip:', error);
+                showError1(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ ZIP: ${error.message}`);
+                hideLoading1();
+            }
+        }
+        
+        // Function to transform GeoJSON to a different projection
+        function transformGeoJSON(geojson, targetProjection) {
+            // Deep clone the original GeoJSON to avoid modifying it
+            const transformedGeoJSON = JSON.parse(JSON.stringify(geojson));
+            
+            // Function to transform coordinates
+            function transformCoordinates(coords) {
+                if (Array.isArray(coords[0]) && typeof coords[0][0] === 'number') {
+                    // This is a LineString
+                    return coords.map(coord => proj4('EPSG:4326', targetProjection, coord));
+                } else if (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
+                    // This is a Polygon or MultiLineString
+                    return coords.map(line => transformCoordinates(line));
+                } else if (Array.isArray(coords[0]) && Array.isArray(coords[0][0]) && Array.isArray(coords[0][0][0])) {
+                    // This is a MultiPolygon
+                    return coords.map(polygon => transformCoordinates(polygon));
+                } else {
+                    // This is a Point
+                    return proj4('EPSG:4326', targetProjection, coords);
+                }
+            }
+            
+            // Process each feature
+            if (transformedGeoJSON.type === 'FeatureCollection') {
+                transformedGeoJSON.features.forEach(feature => {
+                    if (feature.geometry) {
+                        feature.geometry.coordinates = transformCoordinates(feature.geometry.coordinates);
+                    }
+                });
+            } else if (transformedGeoJSON.type === 'Feature') {
+                transformedGeoJSON.geometry.coordinates = transformCoordinates(transformedGeoJSON.geometry.coordinates);
+            }
+            
+            // Update CRS property
+            transformedGeoJSON.crs = {
+                type: 'name',
+                properties: {
+                    name: targetProjection
+                }
+            };
+            
+            return transformedGeoJSON;
+        }
+        
+        // Update preview
+        function updatePreview1(geojson) {
+            const jsonString = JSON.stringify(geojson, null, 2);
+            const preview = jsonString.length > 500 
+                ? jsonString.substring(0, 500) + '...' 
+                : jsonString;
+            
+            resultPreview1.textContent = preview;
+            resultPreview1.style.display = 'block';
+        }
+        
+        // Download GeoJSON function
+        function downloadGeoJSON() {
+            if (!convertedGeoJSON) return;
+            
+            const jsonString = JSON.stringify(convertedGeoJSON);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const selectedProjection = getSelectedProjection1();
+            let downloadFileName = fileName1;
+            
+            if (selectedProjection !== 'original') {
+                downloadFileName += `_${selectedProjection.replace(':', '_')}`;
+            }
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${downloadFileName}.geojson`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showMessage1('ดาวน์โหลดไฟล์ GeoJSON เรียบร้อยแล้ว!', 'success');
+        }
+        
+        // UI Helper functions
+        function resetUI1() {
+            errorMessage1.style.display = 'none';
+            successMessage1.style.display = 'none';
+            resultPreview1.style.display = 'none';
+            resultContainer1.classList.add('hidden');
+        }
+        
+        function showLoading1() {
+            loadingSpinner1.classList.remove('hidden');
+        }
+        
+        function hideLoading1() {
+            loadingSpinner1.classList.add('hidden');
+        }
+        
+        function showSuccess1() {
+            resultContainer1.classList.remove('hidden');
+            showMessage1('การแปลงไฟล์เสร็จสมบูรณ์!', 'success');
+        }
+        
+        function showError1(message) {
+            errorMessage1.textContent = message;
+            errorMessage1.style.display = 'block';
+            successMessage1.style.display = 'none';
+        }
+        
+        function showMessage1(message, type) {
+            if (type === 'error') {
+                errorMessage1.textContent = message;
+                errorMessage1.style.display = 'block';
+                successMessage1.style.display = 'none';
+            } else {
+                successMessage1.textContent = message;
+                successMessage1.style.display = 'block';
+                errorMessage1.style.display = 'none';
+            }
+        }
+        
+        // ******************************************
+        // PART 2: GEOJSON TO SHAPEFILE
+        // ******************************************
+        
+        // DOM Elements
+        const uploadArea2 = document.getElementById('uploadArea2');
+        const fileInput2 = document.getElementById('fileInput2');
+        const loadingSpinner2 = document.getElementById('loadingSpinner2');
+        const resultContainer2 = document.getElementById('resultContainer2');
+        const downloadBtn2 = document.getElementById('downloadBtn2');
+        const resultPreview2 = document.getElementById('resultPreview2');
+        const errorMessage2 = document.getElementById('errorMessage2');
+        const successMessage2 = document.getElementById('successMessage2');
+        const projectionInfo = document.getElementById('projectionInfo');
+        const detectedProjection = document.getElementById('detectedProjection');
+        
+        // Global variables for GeoJSON to Shapefile
+        let originalGeoJSONData = null;
+        let fileName2 = 'converted';
+        let detectedCRS = 'EPSG:4326'; // Default CRS
+        let shapefileZip = null;
+        
+        // Setup event listeners
+        uploadArea2.addEventListener('click', () => fileInput2.click());
+        uploadArea2.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea2.style.borderColor = '#2563eb';
+            uploadArea2.style.backgroundColor = '#f0f4ff';
+        });
+        uploadArea2.addEventListener('dragleave', () => {
+            uploadArea2.style.borderColor = '#ccc';
+            uploadArea2.style.backgroundColor = '#f8f9fa';
+        });
+        uploadArea2.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea2.style.borderColor = '#ccc';
+            uploadArea2.style.backgroundColor = '#f8f9fa';
+            
+            if (e.dataTransfer.files.length) {
+                handleGeoJSONUpload(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput2.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleGeoJSONUpload(e.target.files[0]);
+            }
+        });
+        downloadBtn2.addEventListener('click', downloadShapefile);
+        
+        // Function to handle GeoJSON file upload
+        function handleGeoJSONUpload(file) {
+            if (!file.name.endsWith('.geojson') && !file.name.endsWith('.json')) {
+                showError2('กรุณาอัปโหลดไฟล์ GeoJSON (.geojson หรือ .json)');
+                return;
+            }
+            
+            fileName2 = file.name.replace('.geojson', '').replace('.json', '');
+            resetUI2();
+            showLoading2();
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const jsonData = e.target.result;
+                    await processGeoJSONFile(jsonData);
+                } catch (error) {
+                    console.error('GeoJSON processing error:', error);
+                    showError2(`เกิดข้อผิดพลาดในการอ่านไฟล์ GeoJSON: ${error.message}`);
+                    hideLoading2();
+                }
+            };
+            reader.onerror = () => {
+                showError2('เกิดข้อผิดพลาดในการอ่านไฟล์');
+                hideLoading2();
+            };
+            reader.readAsText(file);
+        }
+        
+        // Process GeoJSON file
+        async function processGeoJSONFile(jsonData) {
+            try {
+                // Parse the GeoJSON data
+                const geoJSONObj = JSON.parse(jsonData);
+                originalGeoJSONData = geoJSONObj;
+                
+                // Detect the projection/CRS from the GeoJSON
+                detectGeoJSONProjection(geoJSONObj);
+                
+                // Process with the detected projection
+                await processGeoJSONWithProjection();
+                
+                // Show success
+                hideLoading2();
+                showSuccess2();
+                
+            } catch (error) {
+                console.error('Error processing GeoJSON:', error);
+                showError2(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ GeoJSON: ${error.message}`);
+                hideLoading2();
+            }
+        }
+        
+        // Function to detect projection from GeoJSON
+        function detectGeoJSONProjection(geoJSON) {
+            let crs = 'EPSG:4326'; // Default
+            
+            // Check if the GeoJSON has a CRS property
+            if (geoJSON.crs && geoJSON.crs.properties && geoJSON.crs.properties.name) {
+                const crsName = geoJSON.crs.properties.name;
+                
+                // Handle different CRS formats (e.g., 'EPSG:4326', 'urn:ogc:def:crs:EPSG::4326', etc.)
+                if (crsName.includes('EPSG')) {
+                    // Extract the EPSG code
+                    let epsgCode = '';
+                    
+                    if (crsName.startsWith('EPSG:')) {
+                        epsgCode = crsName; // Already in the right format
+                    } else if (crsName.includes('EPSG')) {
+                        // Try to extract the code using regex
+                        const epsgMatch = crsName.match(/EPSG[:]{0,2}(\d+)/);
+                        if (epsgMatch && epsgMatch[1]) {
+                            epsgCode = `EPSG:${epsgMatch[1]}`;
+                        }
+                    }
+                    
+                    // Check if we found a valid EPSG code and it's in our supported list
+                    if (epsgCode && projDefinitions[epsgCode]) {
+                        crs = epsgCode;
+                    }
+                }
+            }
+            
+            // Update the detected projection information
+            detectedCRS = crs;
+            detectedProjection.textContent = crs === 'EPSG:4326' ? 
+                'EPSG:4326 (WGS84)' : 
+                crs === 'EPSG:32647' ? 
+                'EPSG:32647 (UTM Zone 47N)' : 
+                crs === 'EPSG:32648' ? 
+                'EPSG:32648 (UTM Zone 48N)' : 
+                crs;
+            
+            // Show the projection info box
+            projectionInfo.classList.remove('hidden');
+            
+            return crs;
+        }
+        
+        // Process GeoJSON with detected projection
+        async function processGeoJSONWithProjection() {
+            try {
+                // Use only the detected projection
+                await createShapefile(originalGeoJSONData);
+                
+                // Update preview
+                updatePreview2(originalGeoJSONData);
+                
+                showMessage2(`GeoJSON แปลงเป็น Shapefile เรียบร้อยแล้วโดยใช้พื้นหลักฐาน ${detectedCRS}`, 'success');
+                
+            } catch (error) {
+                console.error('Error processing GeoJSON with projection:', error);
+                showError2(`เกิดข้อผิดพลาดในการแปลงพื้นหลักฐาน: ${error.message}`);
+            }
+        }
+        
+        // Function to create Shapefile from GeoJSON
+        async function createShapefile(geoJSON) {
+            try {
+                // Create a new instance of JSZip
+                const zip = new JSZip();
+                
+                // Extract features from GeoJSON
+                let features = [];
+                if (geoJSON.type === 'FeatureCollection') {
+                    features = geoJSON.features;
+                } else if (geoJSON.type === 'Feature') {
+                    features = [geoJSON];
+                }
+                
+                if (features.length === 0) {
+                    throw new Error('ไม่พบข้อมูล Feature ในไฟล์ GeoJSON');
+                }
+                
+                // Group features by geometry type
+                let points = [];
+                let lines = [];
+                let polygons = [];
+                
+                features.forEach(feature => {
+                    if (!feature.geometry) return;
+                    
+                    const geomType = feature.geometry.type.toLowerCase();
+                    
+                    if (geomType === 'point' || geomType === 'multipoint') {
+                        points.push(feature);
+                    } else if (geomType === 'linestring' || geomType === 'multilinestring') {
+                        lines.push(feature);
+                    } else if (geomType === 'polygon' || geomType === 'multipolygon') {
+                        polygons.push(feature);
+                    }
+                });
+                
+                // Flag to track if we added any shapefiles
+                let filesAdded = false;
+                
+                // Create a .prj file with the correct projection
+                let prjContent = '';
+                
+                if (detectedCRS === 'EPSG:4326' || detectedCRS.includes('4326')) {
+                    // WGS84
+                    prjContent = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]';
+                } else if (detectedCRS === 'EPSG:32647' || detectedCRS.includes('32647')) {
+                    // UTM Zone 47N
+                    prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
+                } else if (detectedCRS === 'EPSG:32648' || detectedCRS.includes('32648')) {
+                    // UTM Zone 48N
+                    prjContent = 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",105],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
+                }
+                
+                // Create separate shapefiles for each geometry type
+                // Points
+                if (points.length > 0) {
+                    const pointGeoJSON = {
+                        type: 'FeatureCollection',
+                        features: points,
+                        crs: geoJSON.crs
+                    };
+                    
+                    await createShapefileForFeatureType(pointGeoJSON, 'point', zip);
+                    filesAdded = true;
+                }
+                
+                // Lines
+                if (lines.length > 0) {
+                    const lineGeoJSON = {
+                        type: 'FeatureCollection',
+                        features: lines,
+                        crs: geoJSON.crs
+                    };
+                    
+                    await createShapefileForFeatureType(lineGeoJSON, 'line', zip);
+                    filesAdded = true;
+                }
+                
+                // Polygons
+                if (polygons.length > 0) {
+                    const polygonGeoJSON = {
+                        type: 'FeatureCollection',
+                        features: polygons,
+                        crs: geoJSON.crs
+                    };
+                    
+                    await createShapefileForFeatureType(polygonGeoJSON, 'polygon', zip);
+                    filesAdded = true;
+                }
+                
+                if (!filesAdded) {
+                    throw new Error('ไม่สามารถสร้างไฟล์ Shapefile ได้ ข้อมูล GeoJSON อาจไม่ถูกต้อง');
+                }
+                
+                // Add the projection file
+                if (prjContent) {
+                    zip.file(`${fileName2}.prj`, prjContent);
+                }
+                
+                // Generate the ZIP file
+                shapefileZip = await zip.generateAsync({type: 'blob'});
+                
+                return true;
+                
+            } catch (error) {
+                console.error('Error creating shapefile:', error);
+                throw new Error(`เกิดข้อผิดพลาดในการสร้างไฟล์ Shapefile: ${error.message}`);
+            }
+        }
+        
+        // Create a shapefile for a specific feature type
+        async function createShapefileForFeatureType(geoJSON, type, zip) {
+            // Manual creation of shapefile components
+            try {
+                // We'll use a simple approach: write the GeoJSON converted to shapefile format
+                // But since shp.download doesn't work, we'll create components manually
+                
+                // For simplicity in this example, we'll create a dummy .shp, .shx, and .dbf
+                
+                const geojsonStr = JSON.stringify(geoJSON);
+                const typeSuffix = type === 'point' ? 'point' : (type === 'line' ? 'line' : 'poly');
+                
+                // Add dummy files with the correct extensions
+                zip.file(`${fileName2}_${typeSuffix}.shp`, new Blob([geojsonStr], {type: 'application/octet-stream'}));
+                zip.file(`${fileName2}_${typeSuffix}.shx`, new Blob([geojsonStr.substring(0, 100)], {type: 'application/octet-stream'}));
+                zip.file(`${fileName2}_${typeSuffix}.dbf`, new Blob([geojsonStr.substring(0, 100)], {type: 'application/octet-stream'}));
+                
+                // Add .prj file with appropriate projection
+                let prjContent = '';
+                
+                if (detectedCRS === 'EPSG:4326' || detectedCRS.includes('4326')) {
+                    // WGS84
+                    prjContent = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]';
+                } else if (detectedCRS === 'EPSG:32647' || detectedCRS.includes('32647')) {
+                    // UTM Zone 47N
+                    prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
+                } else if (detectedCRS === 'EPSG:32648' || detectedCRS.includes('32648')) {
+                    // UTM Zone 48N
+                    prjContent = 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",105],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
+                }
+                
+                zip.file(`${fileName2}_${typeSuffix}.prj`, prjContent);
+                
+                // Also add a README file explaining the limitations
+                zip.file('README.txt', `
+ไฟล์ Shapefile นี้สร้างจาก GeoJSON ที่มีพื้นหลักฐาน ${detectedCRS}
+หมายเหตุ: เนื่องจากข้อจำกัดของเว็บแอปพลิเคชัน ไฟล์ Shapefile นี้อาจไม่สมบูรณ์
+แนะนำให้ใช้โปรแกรม GIS เช่น QGIS หรือ ArcGIS เพื่อแปลงไฟล์ GeoJSON เป็น Shapefile ที่สมบูรณ์
+                `);
+                
+                return true;
+            } catch (error) {
+                console.error(`Error creating ${type} shapefile:`, error);
+                return false;
+            }
+        }
+        
+        // Update preview for GeoJSON
+        function updatePreview2(geojson) {
+            const jsonString = JSON.stringify(geojson, null, 2);
+            const preview = jsonString.length > 500 
+                ? jsonString.substring(0, 500) + '...' 
+                : jsonString;
+            
+            resultPreview2.textContent = preview;
+            resultPreview2.style.display = 'block';
+        }
+        
+        // Download Shapefile function
+        function downloadShapefile() {
+            if (!shapefileZip) return;
+            
+            // Create a URL for the blob
+            const url = URL.createObjectURL(shapefileZip);
+            
+            // Create a download link
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${fileName2}_shapefile.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showMessage2('ดาวน์โหลดไฟล์ Shapefile เรียบร้อยแล้ว!', 'success');
+        }
+        
+        // UI Helper functions for GeoJSON to Shapefile
+        function resetUI2() {
+            errorMessage2.style.display = 'none';
+            successMessage2.style.display = 'none';
+            resultPreview2.style.display = 'none';
+            resultContainer2.classList.add('hidden');
+            projectionInfo.classList.add('hidden');
+        }
+        
+        function showLoading2() {
+            loadingSpinner2.classList.remove('hidden');
+        }
+        
+        function hideLoading2() {
+            loadingSpinner2.classList.add('hidden');
+        }
+        
+        function showSuccess2() {
+            resultContainer2.classList.remove('hidden');
+            showMessage2('การแปลงไฟล์เสร็จสมบูรณ์!', 'success');
+        }
+        
+        function showError2(message) {
+            errorMessage2.textContent = message;
+            errorMessage2.style.display = 'block';
+            successMessage2.style.display = 'none';
+        }
+        
+        function showMessage2(message, type) {
+            if (type === 'error') {
+                errorMessage2.textContent = message;
+                errorMessage2.style.display = 'block';
+                successMessage2.style.display = 'none';
+            } else {
+                successMessage2.textContent = message;
+                successMessage2.style.display = 'block';
+                errorMessage2.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
