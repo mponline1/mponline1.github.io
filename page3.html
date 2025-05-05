@@ -147,7 +147,7 @@
                         Reclass BLDG
                     </button>
                     <button onclick="window.location.href='page5.html'" class="header-button primary">
-                        Prepare PLLU
+                        PREP PLLU
                     </button>
                     <button onclick="window.location.href='index.html'" class="header-button home" aria-label="Home">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
@@ -164,7 +164,7 @@
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                 </svg>
-                <a href="Calculate Landuse Handbook.pdf" class="text-blue-700 hover:underline">
+                <a href="page.html" class="text-blue-700 hover:underline">
                     คู่มือการใช้งาน
                 </a>
             </div>
@@ -208,12 +208,12 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium mb-2">กรองตาม ACQYEAR:</label>
-                        <div id="acqyear-filter" class="checkbox-group"></div>
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium mb-2">กรองตาม RE_BL_USE:</label>
                         <div id="re-bl-use-filter" class="checkbox-group"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">กรองตาม ACQYEAR:</label>
+                        <div id="acqyear-filter" class="checkbox-group"></div>
                     </div>
                 </div>
             </div>
@@ -224,7 +224,416 @@
     </div>
 
     <script>
-(function(_0x1e4e3d,_0x175a8e){const _0x17482e=_0x44ee,_0x28c0dd=_0x1e4e3d();while(!![]){try{const _0x4fe741=-parseInt(_0x17482e(0x13a))/0x1*(parseInt(_0x17482e(0x11a))/0x2)+-parseInt(_0x17482e(0x121))/0x3*(-parseInt(_0x17482e(0x147))/0x4)+-parseInt(_0x17482e(0xf8))/0x5*(parseInt(_0x17482e(0x145))/0x6)+-parseInt(_0x17482e(0x13b))/0x7*(-parseInt(_0x17482e(0x120))/0x8)+-parseInt(_0x17482e(0x106))/0x9*(-parseInt(_0x17482e(0x11d))/0xa)+parseInt(_0x17482e(0xfd))/0xb+-parseInt(_0x17482e(0x134))/0xc;if(_0x4fe741===_0x175a8e)break;else _0x28c0dd['push'](_0x28c0dd['shift']());}catch(_0x3480f5){_0x28c0dd['push'](_0x28c0dd['shift']());}}}(_0x5273,0x57f0f));let buildingData,plluData;function processFiles(){const _0x372eaf=_0x44ee,_0x333b8b=document[_0x372eaf(0x112)]('buildingFile')[_0x372eaf(0x130)][0x0],_0x358c5e=document[_0x372eaf(0x112)](_0x372eaf(0xf5))[_0x372eaf(0x130)][0x0];if(!_0x333b8b||!_0x358c5e){alert('กรุณาเลือกไฟล์ทั้งสองไฟล์');return;}const _0xb20554=new FileReader();_0xb20554[_0x372eaf(0x108)]=function(_0xd160ec){const _0x5f3a79=_0x372eaf,_0x540f52=new Uint8Array(_0xd160ec['target'][_0x5f3a79(0x114)]),_0x196951=XLSX[_0x5f3a79(0x10c)](_0x540f52,{'type':_0x5f3a79(0x10f)});buildingData=XLSX[_0x5f3a79(0x136)][_0x5f3a79(0x123)](_0x196951['Sheets'][_0x196951[_0x5f3a79(0x118)][0x0]]),buildingData=buildingData[_0x5f3a79(0x105)](_0x4c2430=>({..._0x4c2430,'BL_TYPE':String(_0x4c2430[_0x5f3a79(0x141)]||''),'BL_USE':String(_0x4c2430[_0x5f3a79(0xf6)]||''),'ACQYEAR':String(_0x4c2430['ACQYEAR']||''),'PL_BLOCK':String(_0x4c2430[_0x5f3a79(0x115)]||''),'RE_BL_USE':parseFloat(_0x4c2430[_0x5f3a79(0x12e)])||0x0,'RE_BL_AREA':parseFloat(_0x4c2430[_0x5f3a79(0x14c)])||0x0,'BL_AREA':parseFloat(_0x4c2430[_0x5f3a79(0x10d)])||0x0}));const _0x36d444=new FileReader();_0x36d444[_0x5f3a79(0x108)]=function(_0x1c0ebd){const _0xe5abce=_0x5f3a79,_0x1448e2=new Uint8Array(_0x1c0ebd[_0xe5abce(0x12b)][_0xe5abce(0x114)]),_0x345b02=XLSX[_0xe5abce(0x10c)](_0x1448e2,{'type':_0xe5abce(0x10f)});plluData=XLSX[_0xe5abce(0x136)][_0xe5abce(0x123)](_0x345b02[_0xe5abce(0x152)][_0x345b02[_0xe5abce(0x118)][0x0]]),plluData=plluData[_0xe5abce(0x105)](_0xe15d62=>({..._0xe15d62,'PL_BLOCK':String(_0xe15d62[_0xe5abce(0x115)]||''),'PL_USE':String(_0xe15d62[_0xe5abce(0x140)]||''),'AREA':parseFloat(_0xe15d62['AREA'])||0x0})),setupFilters(),calculateAndDisplayTable();},_0x36d444[_0x5f3a79(0x14d)](_0x358c5e);},_0xb20554[_0x372eaf(0x14d)](_0x333b8b);}function _0x44ee(_0x549252,_0x5bcb14){const _0x5273ed=_0x5273();return _0x44ee=function(_0x44eee7,_0x29766e){_0x44eee7=_0x44eee7-0xf4;let _0xaaae5b=_0x5273ed[_0x44eee7];return _0xaaae5b;},_0x44ee(_0x549252,_0x5bcb14);}function setupFilters(){const _0x49b1b1=_0x44ee,_0x147a2e=document[_0x49b1b1(0x112)](_0x49b1b1(0x107)),_0x4f079f=document['getElementById'](_0x49b1b1(0x122)),_0x341af5=document[_0x49b1b1(0x112)](_0x49b1b1(0x10b));_0x147a2e[_0x49b1b1(0xf4)]=_0x49b1b1(0x139),_0x4f079f[_0x49b1b1(0xf4)]='',_0x341af5[_0x49b1b1(0xf4)]='';const _0x53f8d8=[...new Set(plluData['map'](_0x461def=>String(_0x461def[_0x49b1b1(0x140)])))]['sort']();_0x53f8d8[_0x49b1b1(0x109)](_0x2dfdf5=>{const _0x3c4ce1=_0x49b1b1,_0x3d88b5=document[_0x3c4ce1(0x144)](_0x3c4ce1(0x143));_0x3d88b5[_0x3c4ce1(0xff)]=_0x2dfdf5,_0x3d88b5[_0x3c4ce1(0x11f)]=_0x2dfdf5,_0x147a2e[_0x3c4ce1(0x135)](_0x3d88b5);});const _0x4fc37d=[...new Set(buildingData[_0x49b1b1(0x105)](_0x17106a=>String(_0x17106a[_0x49b1b1(0x119)])))]['sort']();_0x4fc37d[_0x49b1b1(0x109)](_0x29f356=>{const _0x4ea26e=_0x49b1b1,_0x4c889e=document[_0x4ea26e(0x144)](_0x4ea26e(0x110));_0x4c889e['type']=_0x4ea26e(0xfa),_0x4c889e['id']=_0x4ea26e(0x137)+_0x29f356,_0x4c889e['value']=_0x29f356,_0x4c889e[_0x4ea26e(0x133)]=!![];const _0x5a7ff0=document[_0x4ea26e(0x144)](_0x4ea26e(0x146));_0x5a7ff0[_0x4ea26e(0x102)]=_0x4ea26e(0x137)+_0x29f356,_0x5a7ff0['textContent']=_0x29f356,_0x4f079f['appendChild'](_0x4c889e),_0x4f079f[_0x4ea26e(0x135)](_0x5a7ff0);});const _0x59e4e6=[...new Set(buildingData['map'](_0x160f10=>parseFloat(_0x160f10[_0x49b1b1(0x12e)]))[_0x49b1b1(0x150)](_0x46481e=>!isNaN(_0x46481e)&&_0x46481e>=0xa))][_0x49b1b1(0x129)]((_0xb6300e,_0x124cfb)=>_0xb6300e-_0x124cfb);_0x59e4e6['forEach'](_0x356057=>{const _0x1a5d9f=_0x49b1b1,_0x4680a4=document[_0x1a5d9f(0x144)](_0x1a5d9f(0x110));_0x4680a4[_0x1a5d9f(0x127)]=_0x1a5d9f(0xfa),_0x4680a4['id']=_0x1a5d9f(0xfb)+_0x356057,_0x4680a4['value']=_0x356057,_0x4680a4[_0x1a5d9f(0x133)]=!![];const _0x40b48d=document[_0x1a5d9f(0x144)](_0x1a5d9f(0x146));_0x40b48d[_0x1a5d9f(0x102)]=_0x1a5d9f(0xfb)+_0x356057,_0x40b48d[_0x1a5d9f(0x11f)]=_0x356057,_0x341af5[_0x1a5d9f(0x135)](_0x4680a4),_0x341af5[_0x1a5d9f(0x135)](_0x40b48d);}),_0x147a2e[_0x49b1b1(0x12f)]('change',calculateAndDisplayTable),_0x4f079f[_0x49b1b1(0x12f)]('change',calculateAndDisplayTable),_0x341af5['addEventListener'](_0x49b1b1(0x148),calculateAndDisplayTable);}function calculateAndDisplayTable(){const _0x2fd3cd=_0x44ee,_0x24774b=document[_0x2fd3cd(0x112)](_0x2fd3cd(0x107))[_0x2fd3cd(0xff)],_0x58a254=Array[_0x2fd3cd(0x12c)](document['querySelectorAll'](_0x2fd3cd(0x104)))['map'](_0x97eac9=>String(_0x97eac9[_0x2fd3cd(0xff)])),_0x1018df=Array[_0x2fd3cd(0x12c)](document[_0x2fd3cd(0x151)]('#re-bl-use-filter\x20input:checked'))[_0x2fd3cd(0x105)](_0x30b947=>String(_0x30b947[_0x2fd3cd(0xff)])),_0x282c5c=_0x24774b===_0x2fd3cd(0x13f)?plluData:plluData[_0x2fd3cd(0x150)](_0xe75db2=>String(_0xe75db2[_0x2fd3cd(0x140)])===_0x24774b),_0x321d7c=buildingData[_0x2fd3cd(0x150)](_0x1d1589=>_0x58a254[_0x2fd3cd(0x117)](String(_0x1d1589['ACQYEAR']))&&_0x1018df[_0x2fd3cd(0x117)](String(_0x1d1589[_0x2fd3cd(0x12e)]))&&parseFloat(_0x1d1589[_0x2fd3cd(0x12e)])>=0xa),_0x502e8b=_0x1018df[_0x2fd3cd(0xf9)](_0x1a79a0=>[0x1,0x2,0x3,0x4,0x5][_0x2fd3cd(0x105)](_0x241bec=>_0x1a79a0+'_'+_0x241bec))[_0x2fd3cd(0x129)](),_0x4c2476=_0x282c5c[_0x2fd3cd(0x105)](_0x566869=>{const _0x2ce69f=_0x2fd3cd,_0x436c98=_0x321d7c[_0x2ce69f(0x150)](_0x1a1f3d=>String(_0x1a1f3d['PL_BLOCK'])===String(_0x566869[_0x2ce69f(0x115)])),_0x26c958={};return _0x502e8b['forEach'](_0x4e27c2=>{const _0x2c0bd0=_0x2ce69f,[_0x563340,_0x5ed8b8]=_0x4e27c2['split']('_')[_0x2c0bd0(0x105)](Number),_0x2c042d=_0x436c98[_0x2c0bd0(0x150)](_0x5c3b23=>parseFloat(_0x5c3b23[_0x2c0bd0(0x12e)])===_0x563340&&parseFloat(_0x5c3b23[_0x2c0bd0(0x14c)])===_0x5ed8b8);_0x2c042d[_0x2c0bd0(0x10a)]>0x0&&(_0x26c958[_0x4e27c2]={'buildingCount':_0x2c042d['length'],'coveredArea':_0x2c042d[_0x2c0bd0(0x142)]((_0x15e16d,_0x54d596)=>_0x15e16d+parseFloat(_0x54d596['BL_AREA']),0x0),'landUseArea':calculateLandUseArea(_0x2c042d,_0x563340,_0x5ed8b8)});}),{'PL_BLOCK':_0x566869[_0x2ce69f(0x115)],'AREA':parseFloat(_0x566869[_0x2ce69f(0xfc)])||0x0,..._0x26c958};}),_0x5b7195=_0x4c2476['reduce']((_0x343a6d,_0x490007)=>{const _0x858d14=_0x2fd3cd;return _0x343a6d[_0x858d14(0xfc)]+=_0x490007[_0x858d14(0xfc)],_0x502e8b['forEach'](_0x35f955=>{const _0xc1012e=_0x858d14;_0x490007[_0x35f955]&&(!_0x343a6d[_0x35f955]&&(_0x343a6d[_0x35f955]={'buildingCount':0x0,'coveredArea':0x0,'landUseArea':0x0}),_0x343a6d[_0x35f955][_0xc1012e(0x128)]+=_0x490007[_0x35f955][_0xc1012e(0x128)],_0x343a6d[_0x35f955][_0xc1012e(0x14a)]+=_0x490007[_0x35f955][_0xc1012e(0x14a)],_0x343a6d[_0x35f955]['landUseArea']+=_0x490007[_0x35f955][_0xc1012e(0x132)]);}),_0x343a6d;},{'AREA':0x0}),_0x47be00=document[_0x2fd3cd(0x112)](_0x2fd3cd(0x113));let _0x47754d=_0x2fd3cd(0x13c);_0x502e8b[_0x2fd3cd(0x109)](_0x3e9506=>{const _0x49d26f=_0x2fd3cd;_0x4c2476[_0x49d26f(0x126)](_0x255f79=>_0x255f79[_0x3e9506])&&(_0x47754d+=_0x49d26f(0x11b)+_0x3e9506+_0x49d26f(0x13e));}),_0x47754d+=_0x2fd3cd(0x149),_0x47754d+=_0x2fd3cd(0x14b),_0x502e8b[_0x2fd3cd(0x109)](_0xfa5b7e=>{_0x4c2476['some'](_0x458006=>_0x458006[_0xfa5b7e])&&(_0x47754d+='<th>จำนวนอาคาร</th><th>พื้นที่อาคารคลุมดินรวม</th><th>พื้นที่การใช้ที่ดินรวม</th>');}),_0x47754d+=_0x2fd3cd(0x12a),_0x4c2476[_0x2fd3cd(0x109)](_0x3088fb=>{const _0x4a1d4b=_0x2fd3cd;_0x47754d+=_0x4a1d4b(0x11c)+_0x3088fb[_0x4a1d4b(0x115)]+_0x4a1d4b(0x14e)+formatNumber(_0x3088fb[_0x4a1d4b(0xfc)])+'</td>';let _0x11c932=0x0,_0x5ce8d2=0x0,_0x2600cd=0x0;_0x502e8b[_0x4a1d4b(0x109)](_0x4b0fc5=>{const _0x2ea33d=_0x4a1d4b;_0x4c2476[_0x2ea33d(0x126)](_0x372fad=>_0x372fad[_0x4b0fc5])&&(_0x3088fb[_0x4b0fc5]?(_0x47754d+=_0x2ea33d(0x12d)+formatNumber(_0x3088fb[_0x4b0fc5][_0x2ea33d(0x128)])+_0x2ea33d(0x11e)+formatNumber(_0x3088fb[_0x4b0fc5][_0x2ea33d(0x14a)])+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>'+formatNumber(_0x3088fb[_0x4b0fc5][_0x2ea33d(0x132)])+_0x2ea33d(0x116),_0x11c932+=_0x3088fb[_0x4b0fc5]['buildingCount'],_0x5ce8d2+=_0x3088fb[_0x4b0fc5][_0x2ea33d(0x14a)],_0x2600cd+=_0x3088fb[_0x4b0fc5]['landUseArea']):_0x47754d+=_0x2ea33d(0xfe));});const _0x2780d6=_0x2600cd/_0x3088fb[_0x4a1d4b(0xfc)]*0x64;_0x47754d+='<td>'+formatNumber(_0x11c932)+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>'+formatNumber(_0x5ce8d2)+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>'+formatNumber(_0x2600cd)+_0x4a1d4b(0x14e)+formatNumber(_0x2780d6)+_0x4a1d4b(0x10e);}),_0x47754d+=_0x2fd3cd(0xf7)+formatNumber(_0x5b7195['AREA'])+_0x2fd3cd(0x116);let _0x340286=0x0,_0x4d7c68=0x0,_0x58ec1d=0x0;_0x502e8b['forEach'](_0x539747=>{const _0x382525=_0x2fd3cd;_0x4c2476['some'](_0x47e4fc=>_0x47e4fc[_0x539747])&&(_0x5b7195[_0x539747]?(_0x47754d+=_0x382525(0x12d)+formatNumber(_0x5b7195[_0x539747][_0x382525(0x128)])+_0x382525(0x125)+formatNumber(_0x5b7195[_0x539747][_0x382525(0x14a)])+_0x382525(0x125)+formatNumber(_0x5b7195[_0x539747][_0x382525(0x132)])+_0x382525(0x116),_0x340286+=_0x5b7195[_0x539747][_0x382525(0x128)],_0x4d7c68+=_0x5b7195[_0x539747][_0x382525(0x14a)],_0x58ec1d+=_0x5b7195[_0x539747][_0x382525(0x132)]):_0x47754d+=_0x382525(0xfe));});const _0x4cc9a8=_0x58ec1d/_0x5b7195[_0x2fd3cd(0xfc)]*0x64;_0x47754d+=_0x2fd3cd(0x12d)+formatNumber(_0x340286)+_0x2fd3cd(0x13d)+formatNumber(_0x4d7c68)+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>'+formatNumber(_0x58ec1d)+_0x2fd3cd(0x13d)+formatNumber(_0x4cc9a8)+'%</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20</tr>',_0x47754d+=_0x2fd3cd(0x101),_0x47be00[_0x2fd3cd(0xf4)]=_0x47754d;}function calculateLandUseArea(_0xf65ae2,_0x591102,_0x5e1b26){const _0xeaa8f5=_0x44ee;return _0xf65ae2[_0xeaa8f5(0x142)]((_0x2e9c25,_0x463779)=>{const _0x287aa1=_0xeaa8f5;let _0x177931;const _0x25e256=parseFloat(_0x463779[_0x287aa1(0x10d)])||0x0;if(_0x591102==0xa){if(_0x5e1b26==0x1)_0x177931=0x32;else{if(_0x5e1b26==0x2||_0x5e1b26==0x3)_0x177931=0x3c;else{if(_0x5e1b26==0x4)_0x177931=0x28;else{if(_0x5e1b26==0x5)_0x177931=0x41;}}}}else{if(_0x591102==0x14){if(_0x5e1b26==0x1)_0x177931=0x46;else{if(_0x5e1b26==0x2)_0x177931=0x28;else{if(_0x5e1b26==0x3)_0x177931=0x41;}}}else{if(_0x591102==0x29){if(_0x5e1b26==0x1)_0x177931=0x46;else{if(_0x5e1b26==0x2)_0x177931=0x28;else{if(_0x5e1b26==0x3)_0x177931=0x41;}}}else{if(_0x591102==0x1e){if(_0x5e1b26==0x1)_0x177931=0x46;else{if(_0x5e1b26==0x2||_0x5e1b26==0x4)_0x177931=0x2d;else{if(_0x5e1b26==0x3)_0x177931=0x32;}}}else{if(_0x591102==0x21){if(_0x5e1b26==0x1)_0x177931=0x14;else{if(_0x5e1b26==0x2)_0x177931=0x28;else{if(_0x5e1b26==0x3)_0x177931=0x32;}}}else{if(_0x591102==0x50&&_0x5e1b26==0x1)_0x177931=0x14;else _0x591102==0x5a&&_0x5e1b26==0x1&&(_0x177931=0x46);}}}}}return _0x2e9c25+_0x25e256*0x64/(_0x177931||0x1);},0x0);}function formatNumber(_0x5a640d){const _0x16cf06=_0x44ee;return Number(_0x5a640d)[_0x16cf06(0x14f)](_0x16cf06(0x124),{'maximumFractionDigits':0x2});}function _0x5273(){const _0x4a28f0=['createElement','16938ISYJYV','label','24HQRasB','change','<th\x20colspan=\x222\x22>รวมพื้นที่อาคารคลุมดิน</th><th\x20colspan=\x222\x22>การใช้ประโยชน์ที่ดิน</th></tr>','coveredArea','<tr><th></th><th></th>','RE_BL_AREA','readAsArrayBuffer','</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>','toLocaleString','filter','querySelectorAll','Sheets','innerHTML','plluFile','BL_USE','<tr\x20class=\x22total-row\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>ผลรวม</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>','25pmkPrU','flatMap','checkbox','re-bl-use-','AREA','44066wDdmiY','<td>0</td><td>0</td><td>0</td>','value','Sheet\x20JS','</table>','htmlFor','writeFile','#acqyear-filter\x20input:checked','map','2007iYBChv','pl-use-filter','onload','forEach','length','re-bl-use-filter','read','BL_AREA','%</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</tr>','array','input','land_use_calculation.xlsx','getElementById','tableContainer','result','PL_BLOCK','</td>','includes','SheetNames','ACQYEAR','411498gMHiyX','<th\x20colspan=\x223\x22>','<tr>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>','1270TeeJAW','</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>','textContent','120QWnLqL','173451qwAnur','acqyear-filter','sheet_to_json','en-US','</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>','some','type','buildingCount','sort','<th>จำนวนอาคาร</th><th>พื้นที่อาคารรวม</th><th>พื้นที่</th><th>ร้อยละพื้นที่</th></tr>','target','from','<td>','RE_BL_USE','addEventListener','files','table_to_book','landUseArea','checked','5925516YvJpxA','appendChild','utils','acqyear-','กรุณาคำนวณข้อมูลก่อนการนำออกไฟล์\x20Excel','<option\x20value=\x22all\x22>ทั้งหมด</option>','1GyxcXP','324163gmzcSV','<table><tr><th>บริเวณการใช้ประโยชน์ที่ดิน</th><th>พื้นที่\x20block</th>','</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>','</th>','all','PL_USE','BL_TYPE','reduce','option'];_0x5273=function(){return _0x4a28f0;};return _0x5273();}function exportToExcel(){const _0x4bb483=_0x44ee,_0x5968bf=document['querySelector']('table');if(_0x5968bf){const _0x3899d2=XLSX['utils'][_0x4bb483(0x131)](_0x5968bf,{'sheet':_0x4bb483(0x100)});XLSX[_0x4bb483(0x103)](_0x3899d2,_0x4bb483(0x111));}else alert(_0x4bb483(0x138));}
+    let buildingData, plluData;
+    
+    // ข้อมูลการแปลงรหัสเป็นข้อความอธิบาย
+    const reBLUseLabelMap = {
+        "10_1": "พักอาศัย บ้านเดี่ยว บ้านแฝด",
+        "10_2": "พักอาศัย บ้านแถว ห้องแถว ตึกแถว",
+        "10_3": "พักอาศัย อาคารพักอาศัยรวม",
+        "10_4": "พักอาศัย อาคารขนาดใหญ่และสูง (พื้นที่คลุมดิน 101 - 400 ตร.ม.)",
+        "10_5": "พักอาศัย อาคารขนาดใหญ่และสูง (พื้นที่คลุมดิน 401 ตร.ม. ขึ้นไป)",
+        "20_1": "พาณิชย์ อาคารทั่วไป",
+        "20_2": "พาณิชย์ อาคารขนาดใหญ่และสูง (พื้นที่คลุมดิน 101 - 400 ตร.ม.)",
+        "20_3": "พาณิชย์ อาคารขนาดใหญ่และสูง (พื้นที่คลุมดิน 401 ตร.ม. ขึ้นไป)",
+        "41_1": "พักอาศัยกึ่งพาณิชย์ อาคารทั่วไป",
+        "41_2": "พักอาศัยกึ่งพาณิชย์ อาคารขนาดใหญ่และสูง (พื้นที่คลุมดิน 101 - 400 ตร.ม.)",
+        "41_3": "พักอาศัยกึ่งพาณิชย์ อาคารขนาดใหญ่และสูง (พื้นที่คลุมดิน 401 ตร.ม. ขึ้นไป)",
+        "30_1": "อุตสาหกรรม (พื้นที่คลุมดินไม่เกิน 200 ตร.ม.)",
+        "30_2": "อุตสาหกรรม (พื้นที่คลุมดิน 201 - 500 ตร.ม.)",
+        "30_3": "อุตสาหกรรม (พื้นที่คลุมดิน 501 - 1,000 ตร.ม.)",
+        "30_4": "อุตสาหกรรม (พื้นที่คลุมดิน 1,001 ตร.ม. ขึ้นไป)",
+        "33_1": "คลังสินค้า (พื้นที่คลุมดินไม่เกิน 100 ตร.ม.)",
+        "33_2": "คลังสินค้า (พื้นที่คลุมดิน 101 - 500 ตร.ม.)",
+        "33_3": "คลังสินค้า (พื้นที่คลุมดิน 501 ตร.ม. ขึ้นไป)",
+        "80_1": "เกษตรกรรม (พักอาศัย คอกปศุสัตว์ ฟาร์ม ยุ้งฉาง)",
+        "90_1": "อื่นๆ"
+    };
+
+    function processFiles() {
+        const buildingFile = document.getElementById('buildingFile').files[0];
+        const plluFile = document.getElementById('plluFile').files[0];
+        
+        if (!buildingFile || !plluFile) {
+            alert('กรุณาเลือกไฟล์ทั้งสองไฟล์');
+            return;
+        }
+        
+        const reader1 = new FileReader();
+        reader1.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            buildingData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            
+            // Normalize building data
+            buildingData = buildingData.map(item => ({
+                ...item,
+                BL_TYPE: String(item.BL_TYPE || ''),
+                BL_USE: String(item.BL_USE || ''),
+                ACQYEAR: String(item.ACQYEAR || ''),
+                PL_BLOCK: String(item.PL_BLOCK || ''),
+                RE_BL_USE: parseFloat(item.RE_BL_USE) || 0,
+                RE_BL_AREA: parseFloat(item.RE_BL_AREA) || 0,
+                BL_AREA: parseFloat(item.BL_AREA) || 0
+            }));
+            
+            const reader2 = new FileReader();
+            reader2.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                plluData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                
+                // Normalize pllu data
+                plluData = plluData.map(item => ({
+                    ...item,
+                    PL_BLOCK: String(item.PL_BLOCK || ''),
+                    PL_USE: String(item.PL_USE || ''),
+                    AREA: parseFloat(item.AREA) || 0
+                }));
+                
+                setupFilters();
+                calculateAndDisplayTable();
+            };
+            reader2.readAsArrayBuffer(plluFile);
+        };
+        reader1.readAsArrayBuffer(buildingFile);
+    }
+
+    function setupFilters() {
+        const plUseFilter = document.getElementById('pl-use-filter');
+        const reBLUseFilter = document.getElementById('re-bl-use-filter');
+        const acqyearFilter = document.getElementById('acqyear-filter');
+        
+        // Clear existing options
+        plUseFilter.innerHTML = '<option value="all">ทั้งหมด</option>';
+        reBLUseFilter.innerHTML = '';
+        acqyearFilter.innerHTML = '';
+        
+        // Setup PL_USE filter with text values
+        const plUseValues = [...new Set(plluData.map(item => String(item.PL_USE)))].sort();
+        plUseValues.forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            plUseFilter.appendChild(option);
+        });
+        
+        // เก็บข้อมูล RE_BL_USE ที่พบในข้อมูลเข้าระบบ
+        const reBLUseValuesFromData = [...new Set(buildingData
+            .map(item => parseFloat(item.RE_BL_USE))
+            .filter(value => !isNaN(value) && value >= 10)
+        )].sort((a, b) => a - b);
+        
+        // สร้าง filter RE_BL_USE ตามข้อมูลที่พบ
+        reBLUseValuesFromData.forEach(value => {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `re-bl-use-${value}`;
+            checkbox.value = value;
+            checkbox.checked = true;
+            
+            const label = document.createElement('label');
+            label.htmlFor = `re-bl-use-${value}`;
+            
+            // ใช้ข้อความอธิบายหากมี
+            const labelText = `${value}`; 
+            label.textContent = labelText;
+            
+            reBLUseFilter.appendChild(checkbox);
+            reBLUseFilter.appendChild(label);
+        });
+        
+        // Setup ACQYEAR filter with text values
+        const acqyearValues = [...new Set(buildingData.map(item => String(item.ACQYEAR)))].sort();
+        acqyearValues.forEach(value => {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `acqyear-${value}`;
+            checkbox.value = value;
+            checkbox.checked = true;
+            
+            const label = document.createElement('label');
+            label.htmlFor = `acqyear-${value}`;
+            label.textContent = value;
+            
+            acqyearFilter.appendChild(checkbox);
+            acqyearFilter.appendChild(label);
+        });
+        
+        // Add event listeners
+        plUseFilter.addEventListener('change', function() {
+            // อัปเดต RE_BL_USE filter ตาม PL_USE ที่เลือก
+            updateReBLUseFilter();
+            calculateAndDisplayTable();
+        });
+        
+        reBLUseFilter.addEventListener('change', calculateAndDisplayTable);
+        acqyearFilter.addEventListener('change', calculateAndDisplayTable);
+        
+        // อัปเดต RE_BL_USE filter ครั้งแรก
+        updateReBLUseFilter();
+    }
+    
+    function updateReBLUseFilter() {
+        const selectedPLUse = document.getElementById('pl-use-filter').value;
+        const reBLUseFilter = document.getElementById('re-bl-use-filter');
+        
+        // เก็บค่า RE_BL_USE ที่เลือกไว้แล้ว
+        const selectedReBLUses = Array.from(document.querySelectorAll('#re-bl-use-filter input:checked'))
+            .map(cb => cb.value);
+        
+        // ล้างและสร้าง checkboxes ใหม่
+        reBLUseFilter.innerHTML = '';
+        
+        // กรอง buildingData ตาม PL_USE ที่เลือก (หากเลือก 'all' ให้แสดงทั้งหมด)
+        const filteredBuildingData = (selectedPLUse === 'all')
+            ? buildingData
+            : buildingData.filter(item => {
+                // หา PL_BLOCK จาก plluData ที่ตรงกับ PL_USE ที่เลือก
+                const matchingPlluBlocks = plluData
+                    .filter(plluItem => String(plluItem.PL_USE) === selectedPLUse)
+                    .map(plluItem => String(plluItem.PL_BLOCK));
+                
+                // กรองเฉพาะอาคารที่อยู่ใน PL_BLOCK ที่ตรงกับ PL_USE ที่เลือก
+                return matchingPlluBlocks.includes(String(item.PL_BLOCK));
+            });
+        
+        // ดึง RE_BL_USE ที่ยังคงมีอยู่หลังการกรอง
+        const reBLUseValues = [...new Set(filteredBuildingData
+            .map(item => parseFloat(item.RE_BL_USE))
+            .filter(value => !isNaN(value) && value >= 10)
+        )].sort((a, b) => a - b);
+        
+        // สร้าง checkboxes ใหม่
+        reBLUseValues.forEach(value => {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `re-bl-use-${value}`;
+            checkbox.value = value;
+            // เซ็ตค่า checked ตามค่าเดิมที่เคยเลือกไว้ หรือเป็น true หากไม่เคยเลือก
+            checkbox.checked = selectedReBLUses.includes(String(value)) || selectedReBLUses.length === 0;
+            
+            const label = document.createElement('label');
+            label.htmlFor = `re-bl-use-${value}`;
+            label.textContent = value;
+            
+            reBLUseFilter.appendChild(checkbox);
+            reBLUseFilter.appendChild(label);
+        });
+    }
+
+    function calculateAndDisplayTable() {
+        const selectedPLUse = document.getElementById('pl-use-filter').value;
+        const selectedAcqyears = Array.from(document.querySelectorAll('#acqyear-filter input:checked'))
+            .map(cb => String(cb.value));
+        const selectedReBLUses = Array.from(document.querySelectorAll('#re-bl-use-filter input:checked'))
+            .map(cb => String(cb.value));
+        
+        // Filter plluData based on selected PL_USE
+        const filteredPlluData = selectedPLUse === 'all' 
+            ? plluData 
+            : plluData.filter(item => String(item.PL_USE) === selectedPLUse);
+        
+        // Filter buildingData based on selected ACQYEAR and RE_BL_USE
+        const filteredBuildingData = buildingData.filter(item => 
+            selectedAcqyears.includes(String(item.ACQYEAR)) && 
+            selectedReBLUses.includes(String(item.RE_BL_USE)) &&
+            parseFloat(item.RE_BL_USE) >= 10
+        );
+        
+        // Sort RE_BL_USE and RE_BL_AREA combinations
+        const sortedReBLUseCombos = selectedReBLUses
+            .flatMap(reBLUse => [1, 2, 3, 4, 5].map(area => `${reBLUse}_${area}`))
+            .sort();
+
+        // Calculate results
+        const results = filteredPlluData.map(plluItem => {
+            const buildingsInBlock = filteredBuildingData.filter(buildingItem => 
+                String(buildingItem.PL_BLOCK) === String(plluItem.PL_BLOCK)
+            );
+            
+            const reBLUseResults = {};
+            sortedReBLUseCombos.forEach(combo => {
+                const [reBLUse, area] = combo.split('_').map(Number);
+                const buildingsInCategory = buildingsInBlock.filter(b => 
+                    parseFloat(b.RE_BL_USE) === reBLUse && 
+                    parseFloat(b.RE_BL_AREA) === area
+                );
+                
+                if (buildingsInCategory.length > 0) {
+                    reBLUseResults[combo] = {
+                        buildingCount: buildingsInCategory.length,
+                        coveredArea: buildingsInCategory.reduce((sum, b) => sum + parseFloat(b.BL_AREA), 0),
+                        landUseArea: calculateLandUseArea(buildingsInCategory, reBLUse, area)
+                    };
+                }
+            });
+            
+            return {
+                PL_BLOCK: plluItem.PL_BLOCK,
+                AREA: parseFloat(plluItem.AREA) || 0,
+                ...reBLUseResults
+            };
+        });
+        
+        // Calculate totals
+        const totals = results.reduce((acc, result) => {
+            acc.AREA += result.AREA;
+            sortedReBLUseCombos.forEach(combo => {
+                if (result[combo]) {
+                    if (!acc[combo]) {
+                        acc[combo] = { buildingCount: 0, coveredArea: 0, landUseArea: 0 };
+                    }
+                    acc[combo].buildingCount += result[combo].buildingCount;
+                    acc[combo].coveredArea += result[combo].coveredArea;
+                    acc[combo].landUseArea += result[combo].landUseArea;
+                }
+            });
+            return acc;
+        }, { AREA: 0 });
+
+        // Display results
+        const tableContainer = document.getElementById('tableContainer');
+        let tableHTML = '<table><tr><th>บริเวณการใช้ประโยชน์ที่ดิน</th><th>พื้นที่ block</th>';
+        
+        sortedReBLUseCombos.forEach(combo => {
+            if (results.some(result => result[combo])) {
+                // ใช้ชื่อที่มาจาก mapping หรือใช้รหัสถ้าไม่มีชื่อ
+                const comboLabel = reBLUseLabelMap[combo] || combo;
+                tableHTML += `<th colspan="3">${comboLabel}</th>`;
+            }
+        });
+        
+        tableHTML += '<th colspan="2">รวมพื้นที่อาคารคลุมดิน</th><th colspan="2">การใช้ประโยชน์ที่ดิน</th></tr>';
+        
+        tableHTML += '<tr><th></th><th></th>';
+        sortedReBLUseCombos.forEach(combo => {
+            if (results.some(result => result[combo])) {
+                tableHTML += '<th>จำนวนอาคาร</th><th>พื้นที่อาคารคลุมดินรวม</th><th>พื้นที่การใช้ที่ดินรวม</th>';
+            }
+        });
+        tableHTML += '<th>จำนวนอาคาร</th><th>พื้นที่อาคารรวม</th><th>พื้นที่</th><th>ร้อยละพื้นที่</th></tr>';
+        
+        results.forEach(result => {
+            tableHTML += `<tr>
+                <td>${result.PL_BLOCK}</td>
+                <td>${formatNumber(result.AREA)}</td>`;
+            
+            let totalBuildingCount = 0;
+            let totalCoveredArea = 0;
+            let totalLandUseArea = 0;
+            
+            sortedReBLUseCombos.forEach(combo => {
+                if (results.some(r => r[combo])) {
+                    if (result[combo]) {
+                        tableHTML += `<td>${formatNumber(result[combo].buildingCount)}</td>
+                            <td>${formatNumber(result[combo].coveredArea)}</td>
+                            <td>${formatNumber(result[combo].landUseArea)}</td>`;
+                        
+                        totalBuildingCount += result[combo].buildingCount;
+                        totalCoveredArea += result[combo].coveredArea;
+                        totalLandUseArea += result[combo].landUseArea;
+                    } else {
+                        tableHTML += '<td>0</td><td>0</td><td>0</td>';
+                    }
+                }
+            });
+            
+            const landUsePercentage = (totalLandUseArea / result.AREA) * 100;
+            
+            tableHTML += `<td>${formatNumber(totalBuildingCount)}</td>
+                <td>${formatNumber(totalCoveredArea)}</td>
+                <td>${formatNumber(totalLandUseArea)}</td>
+                <td>${formatNumber(landUsePercentage)}%</td>
+            </tr>`;
+        });
+        
+        // Add totals row
+        tableHTML += `<tr class="total-row">
+            <td>ผลรวม</td>
+            <td>${formatNumber(totals.AREA)}</td>`;
+        
+        let grandTotalBuildingCount = 0;
+        let grandTotalCoveredArea = 0;
+        let grandTotalLandUseArea = 0;
+        
+        sortedReBLUseCombos.forEach(combo => {
+            if (results.some(result => result[combo])) {
+                if (totals[combo]) {
+                    tableHTML += `<td>${formatNumber(totals[combo].buildingCount)}</td>
+                        <td>${formatNumber(totals[combo].coveredArea)}</td>
+                        <td>${formatNumber(totals[combo].landUseArea)}</td>`;
+                    
+                    grandTotalBuildingCount += totals[combo].buildingCount;
+                    grandTotalCoveredArea += totals[combo].coveredArea;
+                    grandTotalLandUseArea += totals[combo].landUseArea;
+                } else {
+                    tableHTML += '<td>0</td><td>0</td><td>0</td>';
+                }
+            }
+        });
+        
+        const grandTotalLandUsePercentage = (grandTotalLandUseArea / totals.AREA) * 100;
+        
+        tableHTML += `<td>${formatNumber(grandTotalBuildingCount)}</td>
+            <td>${formatNumber(grandTotalCoveredArea)}</td>
+            <td>${formatNumber(grandTotalLandUseArea)}</td>
+            <td>${formatNumber(grandTotalLandUsePercentage)}%</td>
+        </tr>`;
+        
+        tableHTML += '</table>';
+        tableContainer.innerHTML = tableHTML;
+    }
+
+    function calculateLandUseArea(buildings, reBLUse, area) {
+        return buildings.reduce((sum, building) => {
+            let factor;
+            const buildingArea = parseFloat(building.BL_AREA) || 0;
+            
+            if (reBLUse == 10) {
+                if (area == 1) factor = 50;
+                else if (area == 2 || area == 3) factor = 60;
+                else if (area == 4) factor = 40;
+                else if (area == 5) factor = 65;
+            } else if (reBLUse == 20) {
+                if (area == 1) factor = 70;
+                else if (area == 2) factor = 40;
+                else if (area == 3) factor = 65;
+            } else if (reBLUse == 41) {
+                if (area == 1) factor = 70;
+                else if (area == 2) factor = 40;
+                else if (area == 3) factor = 65;
+            } else if (reBLUse == 30) {
+                if (area == 1) factor = 70;
+                else if (area == 2 || area == 4) factor = 45;
+                else if (area == 3) factor = 50;
+            } else if (reBLUse == 33) {
+                if (area == 1) factor = 20;
+                else if (area == 2) factor = 40;
+                else if (area == 3) factor = 50;
+            } else if (reBLUse == 80 && area == 1) {
+                factor = 20;
+            } else if (reBLUse == 90 && area == 1) {
+                factor = 70;
+            }
+            
+            return sum + (buildingArea * 100 / (factor || 1));
+        }, 0);
+    }
+
+    function formatNumber(num) {
+        return Number(num).toLocaleString('en-US', {maximumFractionDigits: 2});
+    }
+
+    function exportToExcel() {
+        const table = document.querySelector('table');
+        if (table) {
+            const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet JS"});
+            XLSX.writeFile(wb, 'land_use_calculation.xlsx');
+        } else {
+            alert('กรุณาคำนวณข้อมูลก่อนการนำออกไฟล์ Excel');
+        }
+    }
     </script>
 </body>
 </html>
