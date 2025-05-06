@@ -331,6 +331,15 @@
             return '';
         }
 
+        // Function to check if PL_BLOCK follows the pattern (x.1-1, ย.1-1, etc.)
+        function checkPLBlockPattern(plBlock) {
+            if (!plBlock) return false;
+            
+            // Regular expression to match the pattern: letter.digit-digit
+            const regex = /[ก-๙a-zA-Z]+\.\d+-\d+/;
+            return regex.test(plBlock);
+        }
+
         fileInput.addEventListener('change', function(e) {
             processBtn.disabled = !e.target.files.length;
         });
@@ -377,14 +386,39 @@
                     const blockB = (b.PL_BLOCK || '').toString();
                     return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
                 })
-                .map((row, index) => ({
-                    ลำดับ: index + 1,
-                    PL_BLOCK: row.PL_BLOCK,
-                    PL_USE: row.PL_USE,
-                    AREA: row.AREA,
-                    'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2)),
-                    PL_BLOCK2: row.PL_BLOCK2
-                }));
+                .map((row, index) => {
+                    // 1. For any rows where PL_BLOCK2 is empty, fill it with PL_BLOCK
+                    if (!row.PL_BLOCK2) {
+                        row.PL_BLOCK2 = row.PL_BLOCK;
+                    }
+                    
+                    // Create the base record with original PL_USE value stored in PL_USE_O
+                    const record = {
+                        ลำดับ: index + 1,
+                        PL_BLOCK: row.PL_BLOCK,
+                        PL_USE_O: row.PL_USE,  // Store original PL_USE value in PL_USE_O
+                        PL_USE: row.PL_USE,    // Keep PL_USE as is for now
+                        AREA: row.AREA,
+                        'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2)),
+                        PL_BLOCK2: row.PL_BLOCK2
+                    };
+                    
+                    return record;
+                });
+
+                // Check if all items have PL_BLOCK2 values (not empty)
+                const allHavePLBlock2 = processedData.every(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
+                
+                // If all items have PL_BLOCK2, then process the PL_USE field for matching patterns
+                if (allHavePLBlock2) {
+                    processedData = processedData.map(row => {
+                        // If PL_BLOCK follows the pattern (e.g., ย.1-1), update PL_USE
+                        if (checkPLBlockPattern(row.PL_BLOCK)) {
+                            row.PL_USE = `${row.PL_USE_O}-${row.PL_BLOCK2}`;
+                        }
+                        return row;
+                    });
+                }
 
                 displayTable(processedData);
                 exportBtn.disabled = false;
@@ -462,6 +496,7 @@
             exportData.push({
                 ลำดับ: 'รวม',
                 PL_BLOCK: '',
+                PL_USE_O: '',
                 PL_USE: '',
                 AREA: totalArea,
                 'AREA(rai)': totalAreaRai,
@@ -475,4 +510,4 @@
         }
     </script>
 </body>
-</html>               
+</html>
