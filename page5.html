@@ -378,46 +378,63 @@
                 }, {});
 
                 // Convert grouped data to array and sort
-                processedData = Object.values(groupedData)
+                let initialData = Object.values(groupedData)
                 .sort((a, b) => {
                     const plUseCompare = a.order - b.order;
                     if (plUseCompare !== 0) return plUseCompare;
                     const blockA = (a.PL_BLOCK || '').toString();
                     const blockB = (b.PL_BLOCK || '').toString();
                     return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
-                })
-                .map((row, index) => {
-                    // 1. For any rows where PL_BLOCK2 is empty, fill it with PL_BLOCK
-                    if (!row.PL_BLOCK2) {
-                        row.PL_BLOCK2 = row.PL_BLOCK;
-                    }
+                });
+
+                // Check if any records have non-empty PL_BLOCK2 values
+                const hasAnyPLBlock2 = initialData.some(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
+                
+                if (hasAnyPLBlock2) {
+                    // Case with PL_BLOCK2 processing
+                    processedData = initialData.map((row, index) => {
+                        // For any rows where PL_BLOCK2 is empty, fill it with PL_BLOCK
+                        if (!row.PL_BLOCK2) {
+                            row.PL_BLOCK2 = row.PL_BLOCK;
+                        }
+                        
+                        // Create the base record with original PL_USE value stored in PL_USE_O
+                        const record = {
+                            ลำดับ: index + 1,
+                            PL_BLOCK: row.PL_BLOCK,
+                            PL_USE_O: row.PL_USE,  // Store original PL_USE value in PL_USE_O
+                            PL_USE: row.PL_USE,    // Keep PL_USE as is for now
+                            AREA: row.AREA,
+                            'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2)),
+                            PL_BLOCK2: row.PL_BLOCK2
+                        };
+                        
+                        return record;
+                    });
+
+                    // Check if all items have PL_BLOCK2 values (not empty)
+                    const allHavePLBlock2 = processedData.every(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
                     
-                    // Create the base record with original PL_USE value stored in PL_USE_O
-                    const record = {
+                    // If all items have PL_BLOCK2, then process the PL_USE field for matching patterns
+                    if (allHavePLBlock2) {
+                        processedData = processedData.map(row => {
+                            // If PL_BLOCK follows the pattern (e.g., ย.1-1), update PL_USE
+                            if (checkPLBlockPattern(row.PL_BLOCK)) {
+                                row.PL_USE = `${row.PL_USE_O}-${row.PL_BLOCK2}`;
+                            }
+                            return row;
+                        });
+                    }
+                } else {
+                    // Case without PL_BLOCK2 processing (original functionality)
+                    processedData = initialData.map((row, index) => ({
                         ลำดับ: index + 1,
                         PL_BLOCK: row.PL_BLOCK,
-                        PL_USE_O: row.PL_USE,  // Store original PL_USE value in PL_USE_O
-                        PL_USE: row.PL_USE,    // Keep PL_USE as is for now
+                        PL_USE: row.PL_USE,
                         AREA: row.AREA,
                         'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2)),
                         PL_BLOCK2: row.PL_BLOCK2
-                    };
-                    
-                    return record;
-                });
-
-                // Check if all items have PL_BLOCK2 values (not empty)
-                const allHavePLBlock2 = processedData.every(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
-                
-                // If all items have PL_BLOCK2, then process the PL_USE field for matching patterns
-                if (allHavePLBlock2) {
-                    processedData = processedData.map(row => {
-                        // If PL_BLOCK follows the pattern (e.g., ย.1-1), update PL_USE
-                        if (checkPLBlockPattern(row.PL_BLOCK)) {
-                            row.PL_USE = `${row.PL_USE_O}-${row.PL_BLOCK2}`;
-                        }
-                        return row;
-                    });
+                    }));
                 }
 
                 displayTable(processedData);
@@ -493,15 +510,25 @@
             const exportData = [...processedData];
             const totalArea = processedData.reduce((sum, row) => sum + (row.AREA || 0), 0);
             const totalAreaRai = processedData.reduce((sum, row) => sum + (row['AREA(rai)'] || 0), 0);
-            exportData.push({
+            
+            // Create summary row with appropriate fields based on whether PL_USE_O exists
+            const summaryRow = {
                 ลำดับ: 'รวม',
                 PL_BLOCK: '',
-                PL_USE_O: '',
-                PL_USE: '',
                 AREA: totalArea,
                 'AREA(rai)': totalAreaRai,
                 PL_BLOCK2: ''
-            });
+            };
+            
+            // Check if we're using PL_USE_O field
+            if (processedData.length > 0 && 'PL_USE_O' in processedData[0]) {
+                summaryRow.PL_USE_O = '';
+                summaryRow.PL_USE = '';
+            } else {
+                summaryRow.PL_USE = '';
+            }
+            
+            exportData.push(summaryRow);
 
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
