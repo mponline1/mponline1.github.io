@@ -340,6 +340,16 @@
             return regex.test(plBlock);
         }
 
+        // Function to extract text up to and including period from PL_BLOCK
+        function extractTextUpToPeriod(plBlock) {
+            if (!plBlock) return '';
+            
+            const periodIndex = plBlock.indexOf('.');
+            if (periodIndex === -1) return plBlock; // No period found
+            
+            return plBlock.substring(0, periodIndex + 1); // Include the period
+        }
+
         fileInput.addEventListener('change', function(e) {
             processBtn.disabled = !e.target.files.length;
         });
@@ -393,9 +403,9 @@
                 if (hasAnyPLBlock2) {
                     // Case with PL_BLOCK2 processing
                     processedData = initialData.map((row, index) => {
-                        // For any rows where PL_BLOCK2 is empty, fill it with PL_BLOCK
-                        if (!row.PL_BLOCK2) {
-                            row.PL_BLOCK2 = row.PL_BLOCK;
+                        // For any rows where PL_BLOCK2 is empty, fill it with text from PL_BLOCK up to and including the period
+                        if (!row.PL_BLOCK2 && row.PL_BLOCK) {
+                            row.PL_BLOCK2 = extractTextUpToPeriod(row.PL_BLOCK);
                         }
                         
                         // Create the base record with original PL_USE value stored in PL_USE_O
@@ -412,19 +422,15 @@
                         return record;
                     });
 
-                    // Check if all items have PL_BLOCK2 values (not empty)
-                    const allHavePLBlock2 = processedData.every(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
-                    
-                    // If all items have PL_BLOCK2, then process the PL_USE field for matching patterns
-                    if (allHavePLBlock2) {
-                        processedData = processedData.map(row => {
-                            // If PL_BLOCK follows the pattern (e.g., ย.1-1), update PL_USE
-                            if (checkPLBlockPattern(row.PL_BLOCK)) {
-                                row.PL_USE = `${row.PL_USE_O}-${row.PL_BLOCK2}`;
-                            }
-                            return row;
-                        });
-                    }
+                    // If any items have PL_BLOCK2, then process the PL_USE field for matching patterns
+                    // Note: removed the check for allHavePLBlock2 since we now fill in missing values
+                    processedData = processedData.map(row => {
+                        // If PL_BLOCK follows the pattern (e.g., ย.1-1), update PL_USE
+                        if (checkPLBlockPattern(row.PL_BLOCK)) {
+                            row.PL_USE = `${row.PL_USE_O}-${row.PL_BLOCK2}`;
+                        }
+                        return row;
+                    });
                 } else {
                     // Case without PL_BLOCK2 processing (original functionality)
                     processedData = initialData.map((row, index) => ({
