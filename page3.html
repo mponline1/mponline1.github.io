@@ -367,8 +367,11 @@
                     <button onclick="exportToExcel()" class="action-button">
                         นำออกไฟล์ผลการใช้ประโยชน์ที่ดิน (Excel)
                     </button>
-                    <button onclick="exportGroupedTableToExcel()" class="action-button">
-                        นำออกไฟล์ผลการจัดกลุ่มใช้ประโยชน์ที่ดิน (Excel)
+                    <button onclick="exportMainActivitiesTableToExcel()" class="action-button">
+                        นำออกตารางกิจกรรมที่ทำได้ (Excel)
+                    </button>
+                    <button onclick="exportSecondaryActivitiesTableToExcel()" class="action-button">
+                        นำออกตารางกิจกรรมรอง (Excel)
                     </button>
                 </div>
 
@@ -421,7 +424,8 @@
             <!-- Tabs Section -->
             <div class="tabs">
                 <div class="tab active" onclick="switchTab('originalTable')">ตารางผลการใช้ประโยชน์ที่ดิน</div>
-                <div class="tab" onclick="switchTab('groupedTable')">ตารางจัดกลุ่มการใช้ประโยชน์ที่ดิน</div>
+                <div class="tab" onclick="switchTab('mainActivitiesTable')">ตารางกิจกรรมที่ทำได้</div>
+                <div class="tab" onclick="switchTab('secondaryActivitiesTable')">ตารางกิจกรรมรอง</div>
             </div>
 
             <!-- Tab Content -->
@@ -429,8 +433,12 @@
                 <div id="tableContainer" class="bg-white w-full"></div>
             </div>
             
-            <div id="groupedTable" class="tab-content">
-                <div id="groupedTableContainer" class="bg-white w-full"></div>
+            <div id="mainActivitiesTable" class="tab-content">
+                <div id="mainActivitiesTableContainer" class="bg-white w-full"></div>
+            </div>
+            
+            <div id="secondaryActivitiesTable" class="tab-content">
+                <div id="secondaryActivitiesTableContainer" class="bg-white w-full"></div>
             </div>
         </div>
     </div>
@@ -477,9 +485,11 @@
         document.getElementById(tabId).classList.add('active');
         document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
         
-        // ถ้าเลือกแท็บจัดกลุ่ม ให้คำนวณและแสดงตารางจัดกลุ่ม
-        if (tabId === 'groupedTable') {
-            calculateGroupedTable();
+        // ตรวจสอบแท็บที่เลือกและทำการคำนวณหากจำเป็น
+        if (tabId === 'mainActivitiesTable') {
+            calculateMainActivitiesTable();
+        } else if (tabId === 'secondaryActivitiesTable') {
+            calculateSecondaryActivitiesTable();
         }
     }
     
@@ -493,6 +503,11 @@
     function toggleSecondaryPercent() {
         const content = document.getElementById('secondaryPercentContent');
         content.classList.toggle('collapsed');
+    }
+
+    // ฟังก์ชันสำหรับปัดเศษทศนิยมสองตำแหน่ง
+    function roundToTwoDecimals(num) {
+        return Math.round((num + Number.EPSILON) * 100) / 100;
     }
 
     function processFiles() {
@@ -519,7 +534,7 @@
                 PL_BLOCK: String(item.PL_BLOCK || ''),
                 RE_BL_USE: parseFloat(item.RE_BL_USE) || 0,
                 RE_BL_AREA: parseFloat(item.RE_BL_AREA) || 0,
-                BL_AREA: parseFloat(item.BL_AREA) || 0
+                BL_AREA: roundToTwoDecimals(parseFloat(item.BL_AREA) || 0)
             }));
             
             const reader2 = new FileReader();
@@ -533,13 +548,14 @@
                     ...item,
                     PL_BLOCK: String(item.PL_BLOCK || ''),
                     PL_USE: String(item.PL_USE || ''),
-                    AREA: parseFloat(item.AREA) || 0
+                    AREA: roundToTwoDecimals(parseFloat(item.AREA) || 0)
                 }));
                 
                 setupFilters();
                 setupSecondaryPercentInputs();
                 calculateAndDisplayTable();
-                calculateGroupedTable();
+                calculateMainActivitiesTable();
+                calculateSecondaryActivitiesTable();
             };
             reader2.readAsArrayBuffer(plluFile);
         };
@@ -609,7 +625,8 @@
                 checkbox.checked = true;
                 checkbox.addEventListener('change', function() {
                     calculateAndDisplayTable();
-                    calculateGroupedTable();
+                    calculateMainActivitiesTable();
+                    calculateSecondaryActivitiesTable();
                 });
                 
                 const label = document.createElement('label');
@@ -644,7 +661,8 @@
             checkbox.checked = true;
             checkbox.addEventListener('change', function() {
                 calculateAndDisplayTable();
-                calculateGroupedTable();
+                calculateMainActivitiesTable();
+                calculateSecondaryActivitiesTable();
             });
             
             const label = document.createElement('label');
@@ -659,7 +677,8 @@
         plUseFilter.addEventListener('change', function() {
             updateVisiblePLUseFilters();
             calculateAndDisplayTable();
-            calculateGroupedTable();
+            calculateMainActivitiesTable();
+            calculateSecondaryActivitiesTable();
         });
     }
     
@@ -685,16 +704,18 @@
             input.type = 'number';
             input.min = '0';
             input.max = '100';
-            input.step = '0.1';
+            input.step = '0.01'; // เปลี่ยนเป็น 0.01 เพื่อให้รองรับการกรอกทศนิยม 2 ตำแหน่ง
             input.id = `secondary-percent-${plUse}`;
             input.classList.add('secondary-percent-input');
-            input.placeholder = '0.0';
+            input.placeholder = '0.00';
             input.value = secondaryPercentages[plUse] || '';
             
             // เมื่อมีการเปลี่ยนแปลงค่า ให้บันทึกและคำนวณใหม่
             input.addEventListener('change', function() {
-                secondaryPercentages[plUse] = parseFloat(this.value) || 0;
-                calculateGroupedTable();
+                secondaryPercentages[plUse] = roundToTwoDecimals(parseFloat(this.value) || 0);
+                this.value = secondaryPercentages[plUse]; // แสดงค่าที่ปัดเศษแล้ว
+                calculateMainActivitiesTable();
+                calculateSecondaryActivitiesTable();
             });
             
             item.appendChild(label);
@@ -807,8 +828,8 @@
                     if (buildingsInCategory.length > 0) {
                         reBLUseResults[combo] = {
                             buildingCount: buildingsInCategory.length,
-                            coveredArea: buildingsInCategory.reduce((sum, b) => sum + parseFloat(b.BL_AREA), 0),
-                            landUseArea: calculateLandUseArea(buildingsInCategory, reBLUse, area)
+                            coveredArea: roundToTwoDecimals(buildingsInCategory.reduce((sum, b) => sum + parseFloat(b.BL_AREA), 0)),
+                            landUseArea: roundToTwoDecimals(calculateLandUseArea(buildingsInCategory, reBLUse, area))
                         };
                     }
                 }
@@ -817,7 +838,7 @@
             return {
                 PL_BLOCK: plluItem.PL_BLOCK,
                 PL_USE: plluItem.PL_USE,
-                AREA: parseFloat(plluItem.AREA) || 0,
+                AREA: roundToTwoDecimals(parseFloat(plluItem.AREA) || 0),
                 ...reBLUseResults
             };
         });
@@ -827,13 +848,13 @@
         
         // Calculate totals
         totals = results.reduce((acc, result) => {
-            acc.AREA += result.AREA;
+            acc.AREA = roundToTwoDecimals(acc.AREA + result.AREA);
             
             // สร้างกลุ่มย่อยของ PL_USE ถ้ายังไม่มี
             if (!acc.byPLUse[result.PL_USE]) {
                 acc.byPLUse[result.PL_USE] = { AREA: 0 };
             }
-            acc.byPLUse[result.PL_USE].AREA += result.AREA;
+            acc.byPLUse[result.PL_USE].AREA = roundToTwoDecimals(acc.byPLUse[result.PL_USE].AREA + result.AREA);
             
             sortedReBLUseCombos.forEach(combo => {
                 if (result[combo]) {
@@ -842,16 +863,16 @@
                         acc[combo] = { buildingCount: 0, coveredArea: 0, landUseArea: 0 };
                     }
                     acc[combo].buildingCount += result[combo].buildingCount;
-                    acc[combo].coveredArea += result[combo].coveredArea;
-                    acc[combo].landUseArea += result[combo].landUseArea;
+                    acc[combo].coveredArea = roundToTwoDecimals(acc[combo].coveredArea + result[combo].coveredArea);
+                    acc[combo].landUseArea = roundToTwoDecimals(acc[combo].landUseArea + result[combo].landUseArea);
                     
                     // เพิ่มข้อมูลสำหรับกลุ่มย่อยของ PL_USE
                     if (!acc.byPLUse[result.PL_USE][combo]) {
                         acc.byPLUse[result.PL_USE][combo] = { buildingCount: 0, coveredArea: 0, landUseArea: 0 };
                     }
                     acc.byPLUse[result.PL_USE][combo].buildingCount += result[combo].buildingCount;
-                    acc.byPLUse[result.PL_USE][combo].coveredArea += result[combo].coveredArea;
-                    acc.byPLUse[result.PL_USE][combo].landUseArea += result[combo].landUseArea;
+                    acc.byPLUse[result.PL_USE][combo].coveredArea = roundToTwoDecimals(acc.byPLUse[result.PL_USE][combo].coveredArea + result[combo].coveredArea);
+                    acc.byPLUse[result.PL_USE][combo].landUseArea = roundToTwoDecimals(acc.byPLUse[result.PL_USE][combo].landUseArea + result[combo].landUseArea);
                 }
             });
             return acc;
@@ -899,14 +920,14 @@
                             <td>${formatNumber(result[combo].landUseArea)}</td>`;
                         
                         totalBuildingCount += result[combo].buildingCount;
-                        totalCoveredArea += result[combo].coveredArea;
-                        totalLandUseArea += result[combo].landUseArea;
+                        totalCoveredArea = roundToTwoDecimals(totalCoveredArea + result[combo].coveredArea);
+                        totalLandUseArea = roundToTwoDecimals(totalLandUseArea + result[combo].landUseArea);
                     } else {
                         tableHTML += '<td>0</td><td>0</td><td>0</td>';
                     }
                 });
                 
-                const landUsePercentage = (totalLandUseArea / result.AREA) * 100;
+                const landUsePercentage = roundToTwoDecimals((totalLandUseArea / result.AREA) * 100);
                 
                 tableHTML += `<td>${formatNumber(totalBuildingCount)}</td>
                     <td>${formatNumber(totalCoveredArea)}</td>
@@ -936,12 +957,12 @@
                 let plUseTotalArea = 0;
                 
                 plUseResults.forEach(result => {
-                    plUseTotalArea += result.AREA;
+                    plUseTotalArea = roundToTwoDecimals(plUseTotalArea + result.AREA);
                     activeReBLUseCombos.forEach(combo => {
                         if (result[combo]) {
                             plUseTotalBuildingCount += result[combo].buildingCount;
-                            plUseTotalCoveredArea += result[combo].coveredArea;
-                            plUseTotalLandUseArea += result[combo].landUseArea;
+                            plUseTotalCoveredArea = roundToTwoDecimals(plUseTotalCoveredArea + result[combo].coveredArea);
+                            plUseTotalLandUseArea = roundToTwoDecimals(plUseTotalLandUseArea + result[combo].landUseArea);
                         }
                     });
                 });
@@ -964,14 +985,14 @@
                                 <td>${formatNumber(result[combo].landUseArea)}</td>`;
                             
                             totalBuildingCount += result[combo].buildingCount;
-                            totalCoveredArea += result[combo].coveredArea;
-                            totalLandUseArea += result[combo].landUseArea;
+                            totalCoveredArea = roundToTwoDecimals(totalCoveredArea + result[combo].coveredArea);
+                            totalLandUseArea = roundToTwoDecimals(totalLandUseArea + result[combo].landUseArea);
                         } else {
                             tableHTML += '<td>0</td><td>0</td><td>0</td>';
                         }
                     });
                     
-                    const landUsePercentage = (totalLandUseArea / result.AREA) * 100;
+                    const landUsePercentage = roundToTwoDecimals((totalLandUseArea / result.AREA) * 100);
                     
                     tableHTML += `<td>${formatNumber(totalBuildingCount)}</td>
                         <td>${formatNumber(totalCoveredArea)}</td>
@@ -981,7 +1002,7 @@
                 });
                 
                 // แสดงแถวสรุปสำหรับแต่ละ PL_USE
-                const plUseLandUsePercentage = (plUseTotalLandUseArea / plUseTotalArea) * 100;
+                const plUseLandUsePercentage = roundToTwoDecimals((plUseTotalLandUseArea / plUseTotalArea) * 100);
                 tableHTML += `<tr class="total-row">
                     <td>ผลรวม ${plUse}</td>
                     <td></td>
@@ -1014,12 +1035,12 @@
         activeReBLUseCombos.forEach(combo => {
             if (totals[combo]) {
                 grandTotalBuildingCount += totals[combo].buildingCount;
-                grandTotalCoveredArea += totals[combo].coveredArea;
-                grandTotalLandUseArea += totals[combo].landUseArea;
+                grandTotalCoveredArea = roundToTwoDecimals(grandTotalCoveredArea + totals[combo].coveredArea);
+                grandTotalLandUseArea = roundToTwoDecimals(grandTotalLandUseArea + totals[combo].landUseArea);
             }
         });
         
-        const grandTotalLandUsePercentage = (grandTotalLandUseArea / totals.AREA) * 100;
+        const grandTotalLandUsePercentage = roundToTwoDecimals((grandTotalLandUseArea / totals.AREA) * 100);
         
         tableHTML += `<tr class="total-row">
             <td>ผลรวมทั้งหมด</td>
@@ -1046,16 +1067,16 @@
         tableContainer.innerHTML = tableHTML;
     }
     
-    // ฟังก์ชันสำหรับคำนวณและแสดงตารางจัดกลุ่มการใช้ประโยชน์ที่ดิน
-    function calculateGroupedTable() {
+    // ฟังก์ชันสำหรับคำนวณและแสดงตารางกิจกรรมที่ทำได้
+    function calculateMainActivitiesTable() {
         // ตรวจสอบว่ามีข้อมูลสำหรับการสร้างตารางหรือไม่
         if (!calculationResults || calculationResults.length === 0) {
-            document.getElementById('groupedTableContainer').innerHTML = '<p>กรุณาคำนวณข้อมูลก่อนการจัดกลุ่มการใช้ประโยชน์ที่ดิน</p>';
+            document.getElementById('mainActivitiesTableContainer').innerHTML = '<p>กรุณาคำนวณข้อมูลก่อนการจัดกลุ่มการใช้ประโยชน์ที่ดิน</p>';
             return;
         }
         
-        // สร้างตารางจัดกลุ่มการใช้ประโยชน์ที่ดิน
-        const groupedTableContainer = document.getElementById('groupedTableContainer');
+        // สร้างตารางกิจกรรมที่ทำได้
+        const mainActivitiesTableContainer = document.getElementById('mainActivitiesTableContainer');
         
         // กำหนดประเภทการใช้ประโยชน์ที่ดินหลัก
         const mainReBLUses = [10, 20, 41, 30, 33, 80, 90];
@@ -1074,14 +1095,14 @@
             tableHTML += `<th colspan="2">${useLabel}</th>`;
         });
         
-        tableHTML += '<th colspan="3">ผลรวม</th></tr>';
+        tableHTML += '<th colspan="2">ผลรวม</th></tr>';
         
         // แถวย่อยสำหรับรายละเอียดแต่ละคอลัมน์
         tableHTML += '<tr><th></th><th></th><th></th>';
         mainReBLUses.forEach(() => {
             tableHTML += '<th>จำนวนอาคาร</th><th>พื้นที่การใช้ที่ดิน</th>';
         });
-        tableHTML += '<th>พื้นที่การใช้ที่ดินรวม</th><th>ร้อยละพื้นที่</th><th>ร้อยละกิจการรอง</th></tr>';
+        tableHTML += '<th>พื้นที่การใช้ที่ดินรวม</th><th>ร้อยละพื้นที่</th></tr>';
         
         // รับค่า PL_USE ที่เลือก
         const selectedPLUse = document.getElementById('pl-use-filter').value;
@@ -1107,14 +1128,14 @@
                         const combo = `${reBLUse}_${area}`;
                         if (result[combo]) {
                             reBLUseCounts[reBLUse] += result[combo].buildingCount;
-                            reBLUseAreas[reBLUse] += result[combo].landUseArea;
-                            totalLandUseArea += result[combo].landUseArea;
+                            reBLUseAreas[reBLUse] = roundToTwoDecimals(reBLUseAreas[reBLUse] + result[combo].landUseArea);
+                            totalLandUseArea = roundToTwoDecimals(totalLandUseArea + result[combo].landUseArea);
                         }
                     }
                 });
                 
                 // คำนวณร้อยละพื้นที่
-                const landUsePercentage = (totalLandUseArea / result.AREA) * 100;
+                const landUsePercentage = roundToTwoDecimals((totalLandUseArea / result.AREA) * 100);
                 
                 // ตรวจสอบว่าเกินค่าร้อยละกิจการรองหรือไม่
                 const exceedsLimit = secondaryPercent > 0 && landUsePercentage > secondaryPercent;
@@ -1133,7 +1154,6 @@
                 
                 tableHTML += `<td>${formatNumber(totalLandUseArea)}</td>
                     <td>${formatNumber(landUsePercentage)}%</td>
-                    <td>${formatNumber(secondaryPercent)}%</td>
                 </tr>`;
             });
         } 
@@ -1163,7 +1183,7 @@
                 
                 // สำหรับแต่ละ PL_BLOCK ในกลุ่ม PL_USE นี้
                 plUseResults.forEach(result => {
-                    plUseTotalArea += result.AREA;
+                    plUseTotalArea = roundToTwoDecimals(plUseTotalArea + result.AREA);
                     
                     let totalLandUseArea = 0;
                     let reBLUseCounts = {};
@@ -1179,22 +1199,389 @@
                             const combo = `${reBLUse}_${area}`;
                             if (result[combo]) {
                                 reBLUseCounts[reBLUse] += result[combo].buildingCount;
-                                reBLUseAreas[reBLUse] += result[combo].landUseArea;
-                                totalLandUseArea += result[combo].landUseArea;
+                                reBLUseAreas[reBLUse] = roundToTwoDecimals(reBLUseAreas[reBLUse] + result[combo].landUseArea);
+                                totalLandUseArea = roundToTwoDecimals(totalLandUseArea + result[combo].landUseArea);
                                 
                                 // เพิ่มค่าในผลรวมของ PL_USE
                                 if (!plUseTotals[reBLUse]) {
                                     plUseTotals[reBLUse] = { buildingCount: 0, landUseArea: 0 };
                                 }
                                 plUseTotals[reBLUse].buildingCount += result[combo].buildingCount;
-                                plUseTotals[reBLUse].landUseArea += result[combo].landUseArea;
-                                plUseTotalLandUseArea += result[combo].landUseArea;
+                                plUseTotals[reBLUse].landUseArea = roundToTwoDecimals(plUseTotals[reBLUse].landUseArea + result[combo].landUseArea);
+                                plUseTotalLandUseArea = roundToTwoDecimals(plUseTotalLandUseArea + result[combo].landUseArea);
                             }
                         }
                     });
                     
                     // คำนวณร้อยละพื้นที่
-                    const landUsePercentage = (totalLandUseArea / result.AREA) * 100;
+                    const landUsePercentage = roundToTwoDecimals((totalLandUseArea / result.AREA) * 100);
+                    
+                    // เก็บข้อมูลสำหรับแสดงผล
+                    rowTotals.push({
+                        block: result.PL_BLOCK,
+                        area: result.AREA,
+                        reBLUseCounts,
+                        reBLUseAreas,
+                        totalLandUseArea,
+                        landUsePercentage,
+                        exceedsLimit: secondaryPercent > 0 && landUsePercentage > secondaryPercent
+                    });
+                });
+                
+                // แสดงข้อมูลแต่ละ PL_BLOCK
+                rowTotals.forEach((rowData, index) => {
+                    tableHTML += `<tr class="${rowData.exceedsLimit ? 'exceed-limit-row' : ''}">
+                        <td>${rowData.block}</td>
+                        <td>${index === 0 ? plUse : ''}</td>
+                        <td>${formatNumber(rowData.area)}</td>`;
+                    
+                    // แสดงข้อมูลแต่ละประเภทหลัก
+                    mainReBLUses.forEach(reBLUse => {
+                        tableHTML += `<td>${formatNumber(rowData.reBLUseCounts[reBLUse])}</td>
+                            <td>${formatNumber(rowData.reBLUseAreas[reBLUse])}</td>`;
+                    });
+                    
+                    tableHTML += `<td>${formatNumber(rowData.totalLandUseArea)}</td>
+                        <td>${formatNumber(rowData.landUsePercentage)}%</td>
+                    </tr>`;
+                });
+                
+                // คำนวณร้อยละพื้นที่ของ PL_USE
+                const plUseLandUsePercentage = roundToTwoDecimals((plUseTotalLandUseArea / plUseTotalArea) * 100);
+                const plUseExceedsLimit = secondaryPercent > 0 && plUseLandUsePercentage > secondaryPercent;
+                
+                // แสดงแถวสรุปสำหรับแต่ละ PL_USE
+                tableHTML += `<tr class="total-row ${plUseExceedsLimit ? 'exceed-limit-row' : ''}">
+                    <td>ผลรวม ${plUse}</td>
+                    <td></td>
+                    <td>${formatNumber(plUseTotalArea)}</td>`;
+                
+                mainReBLUses.forEach(reBLUse => {
+                    const total = plUseTotals[reBLUse] || { buildingCount: 0, landUseArea: 0 };
+                    tableHTML += `<td>${formatNumber(total.buildingCount)}</td>
+                        <td>${formatNumber(total.landUseArea)}</td>`;
+                });
+                
+                tableHTML += `<td>${formatNumber(plUseTotalLandUseArea)}</td>
+                    <td>${formatNumber(plUseLandUsePercentage)}%</td>
+                </tr>`;
+            });
+            
+            // คำนวณผลรวมทั้งหมด
+            let grandTotalArea = 0;
+            const grandTotals = {};
+            let grandTotalLandUseArea = 0;
+            
+            // รวมค่าจากทุก PL_USE
+            Object.entries(plUseGroups).forEach(([plUse, plUseResults]) => {
+                // คำนวณพื้นที่รวม
+                plUseResults.forEach(result => {
+                    grandTotalArea = roundToTwoDecimals(grandTotalArea + result.AREA);
+                    
+                    // คำนวณค่ารวมสำหรับแต่ละประเภทหลัก
+                    mainReBLUses.forEach(reBLUse => {
+                        if (!grandTotals[reBLUse]) {
+                            grandTotals[reBLUse] = { buildingCount: 0, landUseArea: 0 };
+                        }
+                        
+                        for (let area = 1; area <= 5; area++) {
+                            const combo = `${reBLUse}_${area}`;
+                            if (result[combo]) {
+                                grandTotals[reBLUse].buildingCount += result[combo].buildingCount;
+                                grandTotals[reBLUse].landUseArea = roundToTwoDecimals(grandTotals[reBLUse].landUseArea + result[combo].landUseArea);
+                                grandTotalLandUseArea = roundToTwoDecimals(grandTotalLandUseArea + result[combo].landUseArea);
+                            }
+                        }
+                    });
+                });
+            });
+            
+            // คำนวณร้อยละพื้นที่รวม
+            const grandTotalLandUsePercentage = roundToTwoDecimals((grandTotalLandUseArea / grandTotalArea) * 100);
+            
+            // แสดงแถวผลรวมทั้งหมด
+            tableHTML += `<tr class="total-row">
+                <td>ผลรวมทั้งหมด</td>
+                <td></td>
+                <td>${formatNumber(grandTotalArea)}</td>`;
+            
+            mainReBLUses.forEach(reBLUse => {
+                const total = grandTotals[reBLUse] || { buildingCount: 0, landUseArea: 0 };
+                tableHTML += `<td>${formatNumber(total.buildingCount)}</td>
+                    <td>${formatNumber(total.landUseArea)}</td>`;
+            });
+            
+            tableHTML += `<td>${formatNumber(grandTotalLandUseArea)}</td>
+                <td>${formatNumber(grandTotalLandUsePercentage)}%</td>
+            </tr>`;
+        }
+        
+        tableHTML += '</table>';
+        mainActivitiesTableContainer.innerHTML = tableHTML;
+    }
+    
+    // ฟังก์ชันสำหรับคำนวณและแสดงตารางกิจกรรมรอง
+    function calculateSecondaryActivitiesTable() {
+        // ตรวจสอบว่ามีข้อมูลสำหรับการสร้างตารางหรือไม่
+        if (!calculationResults || calculationResults.length === 0) {
+            document.getElementById('secondaryActivitiesTableContainer').innerHTML = '<p>กรุณาคำนวณข้อมูลก่อนการจัดกลุ่มการใช้ประโยชน์ที่ดิน</p>';
+            return;
+        }
+        
+        // สร้างตารางกิจกรรมรอง
+        const secondaryActivitiesTableContainer = document.getElementById('secondaryActivitiesTableContainer');
+        
+        // กำหนดประเภทการใช้ประโยชน์ที่ดินหลัก
+        const mainReBLUses = [10, 20, 41, 30, 33, 80, 90];
+        
+        // รับค่า PL_USE ที่เลือก
+        const selectedPLUse = document.getElementById('pl-use-filter').value;
+        
+        // หา RE_BL_USE ที่ไม่ได้เลือกสำหรับแต่ละ PL_USE
+        const unselectedReBLUsesByPLUse = {};
+        
+        // ถ้าเลือก 'all' ให้ใช้ checkboxes จากทุกกลุ่ม PL_USE
+        if (selectedPLUse === 'all') {
+            const plUseValues = [...new Set(plluData.map(item => String(item.PL_USE)))].sort();
+            plUseValues.forEach(plUseValue => {
+                const selectedCheckboxes = document.querySelectorAll(`input[type="checkbox"][data-pl-use="${plUseValue}"]:checked`);
+                const selectedReBLUses = Array.from(selectedCheckboxes).map(cb => String(cb.value));
+                
+                // หา RE_BL_USE ทั้งหมดสำหรับ PL_USE นี้
+                const allCheckboxes = document.querySelectorAll(`input[type="checkbox"][data-pl-use="${plUseValue}"]`);
+                const allReBLUses = Array.from(allCheckboxes).map(cb => String(cb.value));
+                
+                // หา RE_BL_USE ที่ไม่ได้เลือก
+                unselectedReBLUsesByPLUse[plUseValue] = allReBLUses.filter(value => !selectedReBLUses.includes(value));
+            });
+        } else {
+            // ถ้าเลือก PL_USE เฉพาะ
+            const selectedCheckboxes = document.querySelectorAll(`input[type="checkbox"][data-pl-use="${selectedPLUse}"]:checked`);
+            const selectedReBLUses = Array.from(selectedCheckboxes).map(cb => String(cb.value));
+            
+            // หา RE_BL_USE ทั้งหมดสำหรับ PL_USE นี้
+            const allCheckboxes = document.querySelectorAll(`input[type="checkbox"][data-pl-use="${selectedPLUse}"]`);
+            const allReBLUses = Array.from(allCheckboxes).map(cb => String(cb.value));
+            
+            // หา RE_BL_USE ที่ไม่ได้เลือก
+            unselectedReBLUsesByPLUse[selectedPLUse] = allReBLUses.filter(value => !selectedReBLUses.includes(value));
+        }
+        
+        // กรองข้อมูลอาคารที่มี RE_BL_USE ที่ไม่ได้เลือก
+        const selectedAcqyears = Array.from(document.querySelectorAll('#acqyear-filter input:checked'))
+            .map(cb => String(cb.value));
+            
+        // Filter plluData based on selected PL_USE
+        const filteredPlluData = selectedPLUse === 'all' 
+            ? plluData 
+            : plluData.filter(item => String(item.PL_USE) === selectedPLUse);
+            
+        // Filter buildingData based on selected ACQYEAR and unselected RE_BL_USE
+        const filteredBuildingData = buildingData.filter(item => {
+            // กรองตาม ACQYEAR ก่อน
+            if (!selectedAcqyears.includes(String(item.ACQYEAR))) {
+                return false;
+            }
+            
+            // กรองตาม RE_BL_USE และ PL_USE
+            const itemReBLUse = String(item.RE_BL_USE);
+            const itemPLBlock = String(item.PL_BLOCK);
+            
+            // หา PL_USE ของอาคารนี้
+            const buildingPLUse = plluData.find(plluItem => 
+                String(plluItem.PL_BLOCK) === itemPLBlock
+            )?.PL_USE;
+            
+            // ถ้าไม่พบ PL_USE หรือค่า RE_BL_USE น้อยกว่า 10 ให้ไม่รวม
+            if (!buildingPLUse || parseFloat(item.RE_BL_USE) < 10) {
+                return false;
+            }
+            
+            // ถ้าเลือก PL_USE เฉพาะ ให้กรองเฉพาะอาคารที่อยู่ใน PL_USE นั้น
+            if (selectedPLUse !== 'all' && buildingPLUse !== selectedPLUse) {
+                return false;
+            }
+            
+            // ตรวจสอบว่า RE_BL_USE ของอาคารอยู่ในรายการที่ไม่ได้เลือกไว้หรือไม่
+            // โดยต้องตรงกับ PL_USE ของอาคารนั้นด้วย
+            return unselectedReBLUsesByPLUse[buildingPLUse]?.includes(itemReBLUse);
+        });
+        
+        // สร้าง HTML สำหรับตาราง
+        let tableHTML = '<table><tr><th>บริเวณการใช้ประโยชน์ที่ดิน</th><th>ประเภทการใช้ที่ดิน</th><th>พื้นที่ block</th>';
+        
+        // สร้างหัวตารางสำหรับแต่ละประเภทหลัก
+        mainReBLUses.forEach(reBLUse => {
+            // หาชื่อสำหรับแต่ละประเภท RE_BL_USE
+            const comboKey = `${reBLUse}_1`;
+            const useLabel = reBLUseLabelMap[comboKey] ? 
+                reBLUseLabelMap[comboKey].split(' ')[0] : 
+                `ประเภท ${reBLUse}`;
+                
+            tableHTML += `<th colspan="2">${useLabel}</th>`;
+        });
+        
+        tableHTML += '<th colspan="3">ผลรวม</th></tr>';
+        
+        // แถวย่อยสำหรับรายละเอียดแต่ละคอลัมน์
+        tableHTML += '<tr><th></th><th></th><th></th>';
+        mainReBLUses.forEach(() => {
+            tableHTML += '<th>จำนวนอาคาร</th><th>พื้นที่การใช้ที่ดิน</th>';
+        });
+        tableHTML += '<th>พื้นที่การใช้ที่ดินรวม</th><th>ร้อยละพื้นที่</th><th>ร้อยละกิจการรอง</th></tr>';
+        
+        // Calculate results for unselected RE_BL_USE values
+        const results = filteredPlluData.map(plluItem => {
+            const plluPLBlock = String(plluItem.PL_BLOCK);
+            const plluPLUse = String(plluItem.PL_USE);
+            
+            // กรองอาคารที่อยู่ใน PL_BLOCK นี้และมี RE_BL_USE ที่ไม่ได้เลือก
+            const buildingsInBlock = filteredBuildingData.filter(buildingItem => 
+                String(buildingItem.PL_BLOCK) === plluPLBlock
+            );
+            
+            const reBLUseResults = {};
+            
+            // Sort RE_BL_USE and RE_BL_AREA combinations for unselected RE_BL_USE values
+            const unselectedReBLUses = unselectedReBLUsesByPLUse[plluPLUse] || [];
+            const sortedReBLUseCombos = unselectedReBLUses
+                .flatMap(reBLUse => [1, 2, 3, 4, 5].map(area => `${reBLUse}_${area}`))
+                .sort();
+            
+            sortedReBLUseCombos.forEach(combo => {
+                const [reBLUse, area] = combo.split('_').map(Number);
+                
+                const buildingsInCategory = buildingsInBlock.filter(b => 
+                    parseFloat(b.RE_BL_USE) === reBLUse && 
+                    parseFloat(b.RE_BL_AREA) === area
+                );
+                
+                if (buildingsInCategory.length > 0) {
+                    reBLUseResults[combo] = {
+                        buildingCount: buildingsInCategory.length,
+                        coveredArea: roundToTwoDecimals(buildingsInCategory.reduce((sum, b) => sum + parseFloat(b.BL_AREA), 0)),
+                        landUseArea: roundToTwoDecimals(calculateLandUseArea(buildingsInCategory, reBLUse, area))
+                    };
+                }
+            });
+            
+            return {
+                PL_BLOCK: plluItem.PL_BLOCK,
+                PL_USE: plluItem.PL_USE,
+                AREA: roundToTwoDecimals(parseFloat(plluItem.AREA) || 0),
+                ...reBLUseResults
+            };
+        });
+        
+        // กรณีเลือก PL_USE เฉพาะ
+        if (selectedPLUse !== 'all') {
+            // แสดงข้อมูลเรียงตาม PL_BLOCK
+            results.forEach(result => {
+                const plUse = result.PL_USE;
+                const secondaryPercent = secondaryPercentages[plUse] || 0;
+                
+                let totalLandUseArea = 0;
+                let reBLUseCounts = {};
+                let reBLUseAreas = {};
+                
+                // คำนวณข้อมูลสำหรับแต่ละประเภทหลัก
+                mainReBLUses.forEach(reBLUse => {
+                    reBLUseCounts[reBLUse] = 0;
+                    reBLUseAreas[reBLUse] = 0;
+                    
+                    // รวมข้อมูลจากทุก area (1-5) สำหรับแต่ละ RE_BL_USE
+                    for (let area = 1; area <= 5; area++) {
+                        const combo = `${reBLUse}_${area}`;
+                        if (result[combo]) {
+                            reBLUseCounts[reBLUse] += result[combo].buildingCount;
+                            reBLUseAreas[reBLUse] = roundToTwoDecimals(reBLUseAreas[reBLUse] + result[combo].landUseArea);
+                            totalLandUseArea = roundToTwoDecimals(totalLandUseArea + result[combo].landUseArea);
+                        }
+                    }
+                });
+                
+                // คำนวณร้อยละพื้นที่
+                const landUsePercentage = roundToTwoDecimals((totalLandUseArea / result.AREA) * 100);
+                
+                // ตรวจสอบว่าเกินค่าร้อยละกิจการรองหรือไม่
+                const exceedsLimit = secondaryPercent > 0 && landUsePercentage > secondaryPercent;
+                
+                // สร้างแถวข้อมูล
+                tableHTML += `<tr class="${exceedsLimit ? 'exceed-limit-row' : ''}">
+                    <td>${result.PL_BLOCK}</td>
+                    <td>${result.PL_USE}</td>
+                    <td>${formatNumber(result.AREA)}</td>`;
+                
+                // แสดงข้อมูลสำหรับแต่ละประเภทหลัก
+                mainReBLUses.forEach(reBLUse => {
+                    tableHTML += `<td>${formatNumber(reBLUseCounts[reBLUse])}</td>
+                        <td>${formatNumber(reBLUseAreas[reBLUse])}</td>`;
+                });
+                
+                tableHTML += `<td>${formatNumber(totalLandUseArea)}</td>
+                    <td>${formatNumber(landUsePercentage)}%</td>
+                    <td>${formatNumber(secondaryPercent)}%</td>
+                </tr>`;
+            });
+        } 
+        // กรณีเลือกทั้งหมด ('all')
+        else {
+            // จัดกลุ่มตาม PL_USE
+            const plUseGroups = {};
+            results.forEach(result => {
+                const plUse = result.PL_USE;
+                if (!plUseGroups[plUse]) {
+                    plUseGroups[plUse] = [];
+                }
+                plUseGroups[plUse].push(result);
+            });
+            
+            // แสดงข้อมูลแต่ละ PL_USE และแต่ละ PL_BLOCK ในกลุ่มนั้น
+            Object.entries(plUseGroups).sort().forEach(([plUse, plUseResults]) => {
+                const secondaryPercent = secondaryPercentages[plUse] || 0;
+                
+                // คำนวณผลรวมสำหรับแต่ละ PL_USE
+                let plUseTotalArea = 0;
+                const plUseTotals = {};
+                let plUseTotalLandUseArea = 0;
+                
+                // เก็บข้อมูลผลรวมรายแถวสำหรับแต่ละ PL_BLOCK
+                const rowTotals = [];
+                
+                // สำหรับแต่ละ PL_BLOCK ในกลุ่ม PL_USE นี้
+                plUseResults.forEach(result => {
+                    plUseTotalArea = roundToTwoDecimals(plUseTotalArea + result.AREA);
+                    
+                    let totalLandUseArea = 0;
+                    let reBLUseCounts = {};
+                    let reBLUseAreas = {};
+                    
+                    // คำนวณข้อมูลสำหรับแต่ละประเภทหลัก
+                    mainReBLUses.forEach(reBLUse => {
+                        reBLUseCounts[reBLUse] = 0;
+                        reBLUseAreas[reBLUse] = 0;
+                        
+                        // รวมข้อมูลจากทุก area (1-5) สำหรับแต่ละ RE_BL_USE
+                        for (let area = 1; area <= 5; area++) {
+                            const combo = `${reBLUse}_${area}`;
+                            if (result[combo]) {
+                                reBLUseCounts[reBLUse] += result[combo].buildingCount;
+                                reBLUseAreas[reBLUse] = roundToTwoDecimals(reBLUseAreas[reBLUse] + result[combo].landUseArea);
+                                totalLandUseArea = roundToTwoDecimals(totalLandUseArea + result[combo].landUseArea);
+                                
+                                // เพิ่มค่าในผลรวมของ PL_USE
+                                if (!plUseTotals[reBLUse]) {
+                                    plUseTotals[reBLUse] = { buildingCount: 0, landUseArea: 0 };
+                                }
+                                plUseTotals[reBLUse].buildingCount += result[combo].buildingCount;
+                                plUseTotals[reBLUse].landUseArea = roundToTwoDecimals(plUseTotals[reBLUse].landUseArea + result[combo].landUseArea);
+                                plUseTotalLandUseArea = roundToTwoDecimals(plUseTotalLandUseArea + result[combo].landUseArea);
+                            }
+                        }
+                    });
+                    
+                    // คำนวณร้อยละพื้นที่
+                    const landUsePercentage = roundToTwoDecimals((totalLandUseArea / result.AREA) * 100);
                     
                     // เก็บข้อมูลสำหรับแสดงผล
                     rowTotals.push({
@@ -1228,7 +1615,7 @@
                 });
                 
                 // คำนวณร้อยละพื้นที่ของ PL_USE
-                const plUseLandUsePercentage = (plUseTotalLandUseArea / plUseTotalArea) * 100;
+                const plUseLandUsePercentage = roundToTwoDecimals((plUseTotalLandUseArea / plUseTotalArea) * 100);
                 const plUseExceedsLimit = secondaryPercent > 0 && plUseLandUsePercentage > secondaryPercent;
                 
                 // แสดงแถวสรุปสำหรับแต่ละ PL_USE
@@ -1258,7 +1645,7 @@
             Object.entries(plUseGroups).forEach(([plUse, plUseResults]) => {
                 // คำนวณพื้นที่รวม
                 plUseResults.forEach(result => {
-                    grandTotalArea += result.AREA;
+                    grandTotalArea = roundToTwoDecimals(grandTotalArea + result.AREA);
                     
                     // คำนวณค่ารวมสำหรับแต่ละประเภทหลัก
                     mainReBLUses.forEach(reBLUse => {
@@ -1270,8 +1657,8 @@
                             const combo = `${reBLUse}_${area}`;
                             if (result[combo]) {
                                 grandTotals[reBLUse].buildingCount += result[combo].buildingCount;
-                                grandTotals[reBLUse].landUseArea += result[combo].landUseArea;
-                                grandTotalLandUseArea += result[combo].landUseArea;
+                                grandTotals[reBLUse].landUseArea = roundToTwoDecimals(grandTotals[reBLUse].landUseArea + result[combo].landUseArea);
+                                grandTotalLandUseArea = roundToTwoDecimals(grandTotalLandUseArea + result[combo].landUseArea);
                             }
                         }
                     });
@@ -1279,7 +1666,7 @@
             });
             
             // คำนวณร้อยละพื้นที่รวม
-            const grandTotalLandUsePercentage = (grandTotalLandUseArea / grandTotalArea) * 100;
+            const grandTotalLandUsePercentage = roundToTwoDecimals((grandTotalLandUseArea / grandTotalArea) * 100);
             
             // แสดงแถวผลรวมทั้งหมด
             tableHTML += `<tr class="total-row">
@@ -1300,11 +1687,11 @@
         }
         
         tableHTML += '</table>';
-        groupedTableContainer.innerHTML = tableHTML;
+        secondaryActivitiesTableContainer.innerHTML = tableHTML;
     }
 
     function calculateLandUseArea(buildings, reBLUse, area) {
-        return buildings.reduce((sum, building) => {
+        const total = buildings.reduce((sum, building) => {
             let factor;
             const buildingArea = parseFloat(building.BL_AREA) || 0;
             
@@ -1337,10 +1724,18 @@
             
             return sum + (buildingArea * 100 / (factor || 1));
         }, 0);
+        
+        // ปัดเศษผลการคำนวณเป็นทศนิยม 2 ตำแหน่ง
+        return roundToTwoDecimals(total);
     }
 
     function formatNumber(num) {
-        return Number(num).toLocaleString('en-US', {maximumFractionDigits: 2});
+        // แปลงเป็นตัวเลขและปัดเศษเป็นทศนิยม 2 ตำแหน่งก่อนแสดงผล
+        const roundedNum = roundToTwoDecimals(parseFloat(num));
+        return roundedNum.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
     }
 
     function exportToExcel() {
@@ -1353,14 +1748,25 @@
         }
     }
     
-    // ฟังก์ชันสำหรับการนำออกตารางจัดกลุ่มการใช้ประโยชน์ที่ดินเป็นไฟล์ Excel
-    function exportGroupedTableToExcel() {
-        const table = document.querySelector('#groupedTableContainer table');
+    // ฟังก์ชันสำหรับการนำออกตารางกิจกรรมที่ทำได้เป็นไฟล์ Excel
+    function exportMainActivitiesTableToExcel() {
+        const table = document.querySelector('#mainActivitiesTableContainer table');
         if (table) {
-            const wb = XLSX.utils.table_to_book(table, {sheet: "Grouped Land Use"});
-            XLSX.writeFile(wb, 'grouped_land_use_calculation.xlsx');
+            const wb = XLSX.utils.table_to_book(table, {sheet: "Main Activities"});
+            XLSX.writeFile(wb, 'main_activities_calculation.xlsx');
         } else {
-            alert('กรุณาคำนวณและเลือกดูตารางจัดกลุ่มการใช้ประโยชน์ที่ดินก่อนการนำออกไฟล์ Excel');
+            alert('กรุณาคำนวณและเลือกดูตารางกิจกรรมที่ทำได้ก่อนการนำออกไฟล์ Excel');
+        }
+    }
+    
+    // ฟังก์ชันสำหรับการนำออกตารางกิจกรรมรองเป็นไฟล์ Excel
+    function exportSecondaryActivitiesTableToExcel() {
+        const table = document.querySelector('#secondaryActivitiesTableContainer table');
+        if (table) {
+            const wb = XLSX.utils.table_to_book(table, {sheet: "Secondary Activities"});
+            XLSX.writeFile(wb, 'secondary_activities_calculation.xlsx');
+        } else {
+            alert('กรุณาคำนวณและเลือกดูตารางกิจกรรมรองก่อนการนำออกไฟล์ Excel');
         }
     }
     </script>
