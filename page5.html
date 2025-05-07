@@ -243,6 +243,92 @@
             background-color: #F3F4F6;
             font-weight: bold;
         }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            color: #5e17ab;
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .close-modal {
+            color: #aaa;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .checkbox-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #E5E7EB;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-item {
+            margin-bottom: 8px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .modal-confirm {
+            background-color: #5e17ab;
+            color: white;
+        }
+
+        .modal-cancel {
+            background-color: #E5E7EB;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -274,6 +360,7 @@
 
             <div class="action-buttons">
                 <button id="processBtn" class="process-button" disabled>Prepare</button>
+                <button id="editPLUseBtn" class="process-button" disabled>แก้ไข PL_USE แบบย่าน</button>
                 <button id="exportBtn" class="process-button" disabled>นำออกข้อมูลแผนผังการใช้ประโยชน์ที่ดิน (Excel)</button>
             </div>
         </div>
@@ -292,7 +379,74 @@
         <div id="tableContainer"></div>
     </div>
 
+    <!-- Modal for selecting PL_BLOCK2 -->
+    <div id="plBlock2Modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">เลือกรายการย่านที่ต้องการแก้ไข</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>เลือกรายการย่านที่ต้องการใช้ในการแก้ไข PL_USE</p>
+                <div class="checkbox-container" id="plBlock2List">
+                    <!-- Checkboxes will be dynamically added here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button modal-cancel">ยกเลิก</button>
+                <button class="modal-button modal-confirm">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for export options -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">ตัวเลือกการนำออกข้อมูล</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>คุณต้องการผลรวมพื้นที่ในไฟล์ Excel หรือไม่?</p>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="includeTotalRow" checked>
+                    <label for="includeTotalRow">ต้องการผลรวมพื้นที่</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button modal-cancel">ยกเลิก</button>
+                <button class="modal-button modal-confirm">นำออกข้อมูล</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Initialize everything when the window loads
+        window.onload = function() {
+            // Initialize modal elements
+            plBlock2Modal = document.getElementById('plBlock2Modal');
+            exportModal = document.getElementById('exportModal');
+            plBlock2List = document.getElementById('plBlock2List');
+            
+            // Set up modal event listeners
+            const closeModalBtns = document.querySelectorAll('.close-modal');
+            const cancelBtns = document.querySelectorAll('.modal-cancel');
+            
+            closeModalBtns.forEach(btn => {
+                btn.addEventListener('click', closeModalFunction);
+            });
+            
+            cancelBtns.forEach(btn => {
+                btn.addEventListener('click', closeModalFunction);
+            });
+            
+            // Set up the confirm button for PL_BLOCK2 modal
+            plBlock2Modal.querySelector('.modal-confirm').addEventListener('click', updatePLUseWithSelectedBlocks);
+            
+            // Set up the confirm button for export modal
+            exportModal.querySelector('.modal-confirm').addEventListener('click', exportToExcel);
+        };
+        
         const plUseOrder = {
             '1600': 1, '1110': 2, '1111': 3, '1112': 4, '1113': 5,
             '1120': 6, '1121': 7, '1122': 8, '1123': 9, '1130': 10,
@@ -308,8 +462,16 @@
         let processedData = [];
         const fileInput = document.getElementById('fileInput');
         const processBtn = document.getElementById('processBtn');
+        const editPLUseBtn = document.getElementById('editPLUseBtn');
         const exportBtn = document.getElementById('exportBtn');
         const tableContainer = document.getElementById('tableContainer');
+
+        // Modal elements
+        // Will initialize these elements in window.onload
+        let plBlock2Modal;
+        let exportModal;
+        let currentModal;
+        let plBlock2List;
 
         function checkPLBlock(plBlock) {
             if (!plBlock) return '';
@@ -355,7 +517,17 @@
         });
 
         processBtn.addEventListener('click', processFile);
-        exportBtn.addEventListener('click', exportToExcel);
+        exportBtn.addEventListener('click', openExportModal);
+        editPLUseBtn.addEventListener('click', openPLBlock2Modal);
+
+        // Close modal event listeners - need to be assigned after DOM elements exist
+        // We'll reassign these in the window.onload event
+
+        function closeModalFunction() {
+            if (currentModal) {
+                currentModal.style.display = 'none';
+            }
+        }
 
         function processFile() {
             const file = fileInput.files[0];
@@ -445,6 +617,10 @@
 
                 displayTable(processedData);
                 exportBtn.disabled = false;
+                
+                // Enable edit button only if all rows have PL_BLOCK2
+                const allHavePLBlock2 = processedData.every(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
+                editPLUseBtn.disabled = !allHavePLBlock2 || processedData.length === 0;
             };
 
             reader.readAsArrayBuffer(file);
@@ -512,34 +688,101 @@
             tableContainer.appendChild(table);
         }
 
-        function exportToExcel() {
-            const exportData = [...processedData];
-            const totalArea = processedData.reduce((sum, row) => sum + (row.AREA || 0), 0);
-            const totalAreaRai = processedData.reduce((sum, row) => sum + (row['AREA(rai)'] || 0), 0);
+        function openPLBlock2Modal() {
+            // Get unique PL_BLOCK2 values
+            const uniquePLBlock2Values = [...new Set(processedData.map(item => item.PL_BLOCK2))].filter(Boolean);
             
-            // Create summary row with appropriate fields based on whether PL_USE_O exists
-            const summaryRow = {
-                ลำดับ: 'รวม',
-                PL_BLOCK: '',
-                AREA: totalArea,
-                'AREA(rai)': totalAreaRai,
-                PL_BLOCK2: ''
-            };
+            // Generate checkboxes for each unique PL_BLOCK2 value
+            plBlock2List.innerHTML = '';
+            uniquePLBlock2Values.forEach(value => {
+                const checkboxItem = document.createElement('div');
+                checkboxItem.className = 'checkbox-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `plBlock2-${value}`;
+                checkbox.value = value;
+                
+                const label = document.createElement('label');
+                label.htmlFor = `plBlock2-${value}`;
+                label.textContent = value;
+                
+                checkboxItem.appendChild(checkbox);
+                checkboxItem.appendChild(label);
+                plBlock2List.appendChild(checkboxItem);
+            });
             
-            // Check if we're using PL_USE_O field
-            if (processedData.length > 0 && 'PL_USE_O' in processedData[0]) {
-                summaryRow.PL_USE_O = '';
-                summaryRow.PL_USE = '';
-            } else {
-                summaryRow.PL_USE = '';
+            // Show the modal
+            currentModal = plBlock2Modal;
+            plBlock2Modal.style.display = 'block';
+        }
+        
+        function openExportModal() {
+            // Show the export modal
+            currentModal = exportModal;
+            exportModal.style.display = 'block';
+        }
+
+        function updatePLUseWithSelectedBlocks() {
+            // Get all selected PL_BLOCK2 values
+            const selectedValues = Array.from(plBlock2List.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedValues.length === 0) {
+                alert('กรุณาเลือกอย่างน้อยหนึ่งรายการ');
+                return;
             }
             
-            exportData.push(summaryRow);
+            // Update PL_USE for rows with the selected PL_BLOCK2 values
+            processedData = processedData.map(row => {
+                if (selectedValues.includes(row.PL_BLOCK2)) {
+                    row.PL_USE = `${row.PL_USE_O}-${row.PL_BLOCK2}`;
+                }
+                return row;
+            });
+            
+            // Update the table with the modified data
+            displayTable(processedData);
+            
+            // Close the modal
+            closeModalFunction();
+        }
+
+        function exportToExcel() {
+            const includeTotalRow = document.getElementById('includeTotalRow').checked;
+            const exportData = [...processedData];
+            
+            if (includeTotalRow) {
+                const totalArea = processedData.reduce((sum, row) => sum + (row.AREA || 0), 0);
+                const totalAreaRai = processedData.reduce((sum, row) => sum + (row['AREA(rai)'] || 0), 0);
+                
+                // Create summary row with appropriate fields based on whether PL_USE_O exists
+                const summaryRow = {
+                    ลำดับ: 'รวม',
+                    PL_BLOCK: '',
+                    AREA: totalArea,
+                    'AREA(rai)': totalAreaRai,
+                    PL_BLOCK2: ''
+                };
+                
+                // Check if we're using PL_USE_O field
+                if (processedData.length > 0 && 'PL_USE_O' in processedData[0]) {
+                    summaryRow.PL_USE_O = '';
+                    summaryRow.PL_USE = '';
+                } else {
+                    summaryRow.PL_USE = '';
+                }
+                
+                exportData.push(summaryRow);
+            }
 
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Processed PLLU Data");
             XLSX.writeFile(wb, "PLLU_Processed.xlsx");
+            
+            // Close the modal after export
+            closeModalFunction();
         }
     </script>
 </body>
