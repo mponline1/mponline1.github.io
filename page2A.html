@@ -4,76 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RECLASS BLDG</title>
-    <!-- Preload critical resources -->
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" as="style">
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" as="style">
-    <link rel="preload" href="city.png" as="image">
-    
-    <!-- Load CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    
-    <!-- Defer non-critical scripts -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         .gradient-bg {
-            background: #f8fafc;
+            background: #f0fdfa;
             min-height: 100vh;
         }
         
         .main-container {
-            display: flex;
-            min-height: 100vh;
-            padding: 0;
-            margin: 0;
+            padding: 2rem;
+            margin: 0 auto;
+            max-width: 1200px;
         }
 
-        .left-section {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            max-width: 65%;
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
         }
 
-        .city-image {
-            width: 100%;
-            height: 100vh;
-            object-fit: cover;
-            object-position: center;
-        }
-
-        .right-section {
-            flex: 1;
-            max-width: 35%;
-            padding: 2rem 3rem;
-            display: flex;
-            flex-direction: column;
-            background-color: #ffffff;
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
         }
 
         .title-container {
             margin-bottom: 2rem;
+            text-align: center;
         }
 
         .controls-container {
             width: 100%;
-            max-width: 400px;
+            max-width: 600px;
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.5rem;
         }
 
         .section-title {
             color: #134e4a;
-            font-size: 0.9rem;
+            font-size: 1rem;
             margin-bottom: 0.5rem;
+            font-weight: 600;
         }
 
         .file-button {
             width: 100%;
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1rem;
             border: 1px solid #e2e8f0;
             color: #64748b;
             border-radius: 4px;
@@ -84,13 +68,14 @@
 
         .process-button {
             width: 100%;
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1rem;
             background-color: #134e4a;
             color: white;
             border-radius: 4px;
             transition: all 0.3s;
             border: none;
             text-align: center;
+            font-weight: 600;
         }
 
         .file-button:hover {
@@ -190,20 +175,188 @@
         .file-input-container {
             width: 100%;
         }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .column-mapping {
+            margin-bottom: 15px;
+        }
+
+        .column-mapping label {
+            display: block;
+            color: #134e4a;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .column-mapping select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background-color: white;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .modal-button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .modal-button-primary {
+            background-color: #134e4a;
+            color: white;
+        }
+
+        .modal-button-secondary {
+            background-color: #e2e8f0;
+            color: #64748b;
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fee2e2;
+            border-radius: 4px;
+        }
+
+        .steps-container {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            background-color: #134e4a;
+            color: white;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: 600;
+            color: #134e4a;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-description {
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body class="gradient-bg">
     <div class="main-container">
-        <!-- Left Section -->
-        <div class="left-section">
-            <img src="city.png" alt="City skyline" class="city-image">
-        </div>
-
-        <!-- Right Section -->
-        <div class="right-section">
+        <div class="card">
             <div class="title-container">
                 <h1 class="main-title">Reclass BLDG</h1>
                 <h2 class="subtitle">จัดประเภทข้อมูลอาคาร</h2>
+            </div>
+
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">เลือกไฟล์ Excel</div>
+                        <div class="step-description">
+                            เลือกไฟล์ข้อมูลอาคาร รูปแบบ Excel โดยไฟล์ควรมีคอลัมน์ BL_TYPE, BL_USE, BL_AREA, BL_NSTOREY, BL_NUNIT, ACQYEAR, PL_BLOCK และ PL_USE 
+                            กดปุ่ม RECLASS <br>
+                            ระบบดำเนินการให้ผู้ใช้งานจับคู่คอลัมน์ ในกรณีที่ไฟล์ผู้ใช้งานมีชื่อคอลัมน์ไม่ตรงกับที่ใช้งานในระบบ
+                        </div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">ประมวลผลข้อมูล (RECLASS)</div>
+                        <div class="step-description">
+                            หลังกดปุ่ม RECLASS ระบบดำเนินการประมวลผลข้อมูล ได้แก่ พื้นที่การใช้ประโยชน์อาคารรวม , RE_BL_USE , RE_BL_AREA <br>
+                            <a href="reclassbldg.pdf" class="manual-link">เกณฑ์การจัดประเภทอาคาร</a> <br>
+                            ในกรณีที่ผังมีชื่อบริเวณเป็นตัวอักษร ระบบดำเนินการประมวลผลข้อมูล ได้แก่ = ชื่อบริเวณการใช้ประโยชน์ที่เป็นย่าน (PL_BLOCK2) 
+                        </div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">นำออกข้อมูล (Excel)</div>
+                        <div class="step-description">
+                            หลังจากประมวลผลเสร็จ กดปุ่ม "นำออกไฟล์อาคาร (Excel)" เพื่อบันทึกผลลัพธ์เป็นไฟล์ Excel
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="controls-container">
@@ -217,7 +370,7 @@
                 <div class="mt-4">
                     <div class="section-title">ไฟล์อาคาร (Excel)</div>
                     <div class="file-input-container">
-                        <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden">
+                        <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden" onchange="updateFileName(this)">
                         <button onclick="document.getElementById('excelFile').click()" class="file-button">
                             Choose File
                         </button>
@@ -238,6 +391,8 @@
                 <button id="exportButton" class="process-button d-none">
                     นำออกไฟล์อาคาร (Excel)
                 </button>
+
+                <div id="errorMessage" class="error-message d-none"></div>
             </div>
         </div>
     </div>
@@ -254,8 +409,25 @@
         </a>
     </div>
 
+    <!-- Column Mapping Modal -->
+    <div id="columnModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>จับคู่คอลัมน์</h3>
+                <button class="modal-close" onclick="closeColumnModal()">&times;</button>
+            </div>
+            <div id="columnMappingList">
+                <!-- Column mappings will be inserted here -->
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-button modal-button-secondary" onclick="closeColumnModal()">ยกเลิก</button>
+                <button class="modal-button modal-button-primary" onclick="processWithMapping()">ประมวลผล</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-const _0x2476bf=_0x3d63;(function(_0x9c72bb,_0xc10fce){const _0x33ca1b=_0x3d63,_0x220bb3=_0x9c72bb();while(!![]){try{const _0x3f70a1=parseInt(_0x33ca1b(0xf4))/0x1+-parseInt(_0x33ca1b(0x105))/0x2+-parseInt(_0x33ca1b(0x10a))/0x3*(parseInt(_0x33ca1b(0xdd))/0x4)+parseInt(_0x33ca1b(0xcb))/0x5+parseInt(_0x33ca1b(0xcc))/0x6*(parseInt(_0x33ca1b(0xf1))/0x7)+-parseInt(_0x33ca1b(0xd0))/0x8*(parseInt(_0x33ca1b(0xda))/0x9)+parseInt(_0x33ca1b(0x108))/0xa*(parseInt(_0x33ca1b(0xd6))/0xb);if(_0x3f70a1===_0xc10fce)break;else _0x220bb3['push'](_0x220bb3['shift']());}catch(_0x795b71){_0x220bb3['push'](_0x220bb3['shift']());}}}(_0x3ebb,0x7b747));const plBlockPatterns={'อย.':_0x2476bf(0xce),'ย.1':_0x2476bf(0xe3),'ย.2':_0x2476bf(0xe0),'ย.3':'ย.3','ย.4':_0x2476bf(0xd9),'ย.5':'ย.5','ย.6':_0x2476bf(0xdf),'ย.7':'ย.7','ย.8':_0x2476bf(0xc7),'พ.1':_0x2476bf(0xcf),'พ.2':_0x2476bf(0xfa),'พ.3':_0x2476bf(0x100),'พ.4':_0x2476bf(0xc3),'ขก.':_0x2476bf(0xfc),'อ.1':_0x2476bf(0xd4),'อ.2':_0x2476bf(0x10d),'อ.3':_0x2476bf(0xf0),'อ.4':_0x2476bf(0xee),'ก.1':_0x2476bf(0xc8),'ก.2':_0x2476bf(0x10b),'ก.3':'ก.3','ก.4':_0x2476bf(0xea),'ก.5':_0x2476bf(0xf7),'อก.':'อก.','ปก.':_0x2476bf(0xc5),'อท.':'อท.','ล.':'ล.','ลล.':_0x2476bf(0xff),'สล.':'สล.','อป.':_0x2476bf(0xe4),'ศษ.':_0x2476bf(0xef),'ลช.':'ลช.','ลส.':_0x2476bf(0xd5),'อศ.':_0x2476bf(0xc6),'ศน.':_0x2476bf(0xf3),'ส.':'ส.'},reuse2Data={'1000':'10','1100':'10','1101':'10','1102':'10','1103':'10','1121':'10','1122':'10','1123':'10','1131':'10','1132':'10','1200':'10','1300':'10','1310':'10','1320':'10','1330':'10','1340':'10','1350':'10','1800':'90','2000':'20','2100':'20','2200':'20','2210':'20','2220':'20','2230':'20','2231':'20','2232':'20','2233':'20','2234':'20','2240':'20','2241':'20','2250':'20','2251':'20','2260':'20','2270':'20','2280':'20','2300':'20','2301':'20','2302':'20','2400':'20','2410':'20','2420':'20','2480':'20','2500':'20','2800':'20','3000':'30','3100':'30','3110':'30','3120':'30','3300':'33','3310':'33','3311':'33','3321':'33','3322':'33','3800':'30','4100':'41','4110':'41','4120':'41','4121':'41','4122':'41','4123':'41','4180':'41','4200':'30','4300':'30','5000':'90','5130':'90','5140':'90','5150':'90','5160':'90','5180':'90','5200':'90','5210':'90','5220':'90','5230':'90','5300':'90','5310':'90','5320':'90','5330':'90','5400':'90','5410':'90','5420':'90','5430':'90','5440':'90','5500':'90','5510':'90','5520':'90','5800':'90','6000':'90','6100':'90','6105':'90','6110':'90','6120':'90','6130':'90','6140':'90','6141':'90','6142':'90','6143':'90','6150':'90','6160':'90','6180':'90','6200':'90','6210':'90','6220':'90','6230':'90','6240':'90','6250':'90','6260':'90','6270':'90','6280':'90','6300':'90','6310':'90','6320':'90','6330':'90','6340':'90','6350':'90','6360':'90','6370':'90','6380':'90','6381':'90','6382':'90','6383':'90','6400':'90','6500':'90','6510':'90','6530':'90','6580':'90','6600':'90','6610':'90','6620':'90','6630':'90','6640':'90','6650':'90','6660':'90','6800':'90','6830':'90','6831':'90','7000':'90','7200':'90','7210':'90','7220':'90','7300':'90','7310':'90','7320':'90','7321':'90','7322':'90','7323':'90','7324':'90','7330':'90','7380':'90','8000':'80','8170':'80','8180':'80','8190':'80','8310':'80','8500':'80','9991':'90','9993':'90','9998':'90','9999':'90'};let processedData=[];const $fileInput=document[_0x2476bf(0xd7)](_0x2476bf(0xd3)),$fileName=document[_0x2476bf(0xd7)](_0x2476bf(0xe8)),$progressBar=document[_0x2476bf(0xd7)]('progressBar'),$progressContainer=document['getElementById'](_0x2476bf(0xeb)),$exportButton=document[_0x2476bf(0xd7)]('exportButton'),plBlockPatternsArray=Object['entries'](plBlockPatterns),reuse2DataCache=new Map();function checkPlBlock(_0x1838d7){if(!_0x1838d7)return'';_0x1838d7=_0x1838d7['toString']();for(const [_0x16d2bf,_0x4ab8ad]of plBlockPatternsArray){if(_0x1838d7['includes'](_0x16d2bf))return _0x4ab8ad;}return'';}function _0x3d63(_0x463dcf,_0x67b922){const _0x3ebb6d=_0x3ebb();return _0x3d63=function(_0x3d632b,_0x457be2){_0x3d632b=_0x3d632b-0xc2;let _0x40d7f5=_0x3ebb6d[_0x3d632b];return _0x40d7f5;},_0x3d63(_0x463dcf,_0x67b922);}function safeParseFloat(_0xfb4f1b){return _0xfb4f1b?+_0xfb4f1b||0x0:0x0;}let lastProgress=0x0;function updateProgress(_0x1def52,_0x154135){const _0x2bc26f=_0x2476bf,_0x4821ec=Math[_0x2bc26f(0xfb)]((_0x1def52+0x1)/_0x154135*0x64);_0x4821ec!==lastProgress&&(requestAnimationFrame(()=>{const _0x263f9f=_0x2bc26f;$progressBar[_0x263f9f(0xe1)][_0x263f9f(0x104)]=_0x4821ec+'%',$progressBar[_0x263f9f(0xe9)](_0x263f9f(0xdc),_0x4821ec),$progressBar[_0x263f9f(0xf2)]=_0x4821ec+'%';}),lastProgress=_0x4821ec);}function determineCode(_0xe59c1){const {RE_BL_USE:_0x490640,BL_TYPE:_0x4c46d1,BL_NSTOREY:_0x106661}=_0xe59c1,_0x13be75=safeParseFloat(_0xe59c1['BL_AREA']),_0x16304e=_0xe59c1['พื้นที่การใช้ประโยชน์อาคารรวม'];if(_0x16304e>=0x7d0){if(_0x490640==='10'&&_0x13be75>=0x65&&_0x13be75<=0x190)return 0x4;if(_0x490640==='10'&&_0x13be75>=0x191)return 0x5;if(_0x490640==='20'&&_0x13be75>=0x65&&_0x13be75<=0x190)return 0x2;if(_0x490640==='20'&&_0x13be75>=0x191)return 0x3;if(_0x490640==='41'&&_0x13be75>=0x65&&_0x13be75<=0x190)return 0x2;if(_0x490640==='41'&&_0x13be75>=0x191)return 0x3;}if(_0x16304e>=0x3e8&&_0x106661>=0x5){if(_0x490640==='10'&&_0x13be75>=0x65&&_0x13be75<=0x190)return 0x4;if(_0x490640==='10'&&_0x13be75>=0x191)return 0x5;if(_0x490640==='20'&&_0x13be75>=0x65&&_0x13be75<=0x190)return 0x2;if(_0x490640==='20'&&_0x13be75>=0x191)return 0x3;if(_0x490640==='41'&&_0x13be75>=0x65&&_0x13be75<=0x190)return 0x2;if(_0x490640==='41'&&_0x13be75>=0x191)return 0x3;}if(_0x106661>=0x8){if(_0x490640==='10'&&_0x13be75>=0x65&&_0x13be75<=0x190)return 0x4;if(_0x490640==='10'&&_0x13be75>=0x191)return 0x5;if(_0x490640==='20'&&_0x13be75>=0x65&&_0x13be75<=0x190)return 0x2;if(_0x490640==='20'&&_0x13be75>=0x191)return 0x3;if(_0x490640==='41'&&_0x13be75>=0x65&&_0x13be75<=0x190)return 0x2;if(_0x490640==='41'&&_0x13be75>=0x191)return 0x3;}if(_0x490640==='10'){if(_0x4c46d1==='1'||_0x4c46d1==='2')return 0x1;if(_0x4c46d1==='3'||_0x4c46d1==='4'||_0x4c46d1==='5')return 0x2;if(_0x4c46d1==='6')return 0x3;}if(_0x490640==='20'||_0x490640==='41')return 0x1;if(_0x490640==='30'){if(_0x13be75<=0xc8)return 0x1;if(_0x13be75>0xc8&&_0x13be75<=0x1f4)return 0x2;if(_0x13be75>0x1f4&&_0x13be75<=0x3e8)return 0x3;if(_0x13be75>0x3e8)return 0x4;}if(_0x490640==='33'){if(_0x13be75<=0x64)return 0x1;if(_0x13be75>0x64&&_0x13be75<=0x1f4)return 0x2;if(_0x13be75>0x1f4)return 0x3;}if(_0x490640==='80'||_0x490640==='90')return 0x1;return 0x0;}function processData(_0x37ca2e){const _0x31127c=_0x2476bf;$progressContainer['classList'][_0x31127c(0x106)](_0x31127c(0x103));const _0x128d96=_0x37ca2e[_0x31127c(0xde)];processedData=new Array(_0x128d96);for(let _0x56717e=0x0;_0x56717e<_0x128d96;_0x56717e++){const _0xc21c8=_0x37ca2e[_0x56717e];updateProgress(_0x56717e,_0x128d96);const _0x221ab7=safeParseFloat(_0xc21c8[_0x31127c(0xf8)]),_0x5dd682=safeParseFloat(_0xc21c8[_0x31127c(0x10c)]),_0x3fcfbc=_0x221ab7*_0x5dd682;let _0x59e131=reuse2DataCache['get'](_0xc21c8[_0x31127c(0x10f)]);_0x59e131===undefined&&(_0x59e131=reuse2Data[_0xc21c8[_0x31127c(0x10f)]]||'',reuse2DataCache[_0x31127c(0x101)](_0xc21c8[_0x31127c(0x10f)],_0x59e131)),processedData[_0x56717e]={..._0xc21c8,'BL_TYPE':String(_0xc21c8['BL_TYPE']||''),'BL_USE':String(_0xc21c8[_0x31127c(0x10f)]||''),'ACQYEAR':String(_0xc21c8[_0x31127c(0xec)]||''),'PL_BLOCK':String(_0xc21c8[_0x31127c(0xe6)]||''),'PL_USE':String(_0xc21c8[_0x31127c(0xe5)]||''),'PL_BLOCK2':checkPlBlock(_0xc21c8[_0x31127c(0xe6)]),'พื้นที่การใช้ประโยชน์อาคารรวม':_0x3fcfbc,'RE_BL_USE':_0x59e131,'RE_BL_AREA':determineCode({'RE_BL_USE':_0x59e131,'BL_TYPE':String(_0xc21c8[_0x31127c(0xed)]||''),'BL_NSTOREY':_0x5dd682,'BL_AREA':_0x221ab7,'พื้นที่การใช้ประโยชน์อาคารรวม':_0x3fcfbc})};}$exportButton[_0x31127c(0x102)][_0x31127c(0x106)](_0x31127c(0x103));}const excelWorker=new Worker(URL[_0x2476bf(0xe2)](new Blob([_0x2476bf(0xfd)],{'type':_0x2476bf(0x107)})));excelWorker[_0x2476bf(0xc4)]=function(_0x1aebe4){processData(_0x1aebe4['data']);};function processExcel(){const _0x3475fc=_0x2476bf,_0x351459=$fileInput[_0x3475fc(0xc2)][0x0];if(!_0x351459){alert(_0x3475fc(0xd2));return;}const _0x422c6a=new FileReader();_0x422c6a[_0x3475fc(0xdb)]=function(_0x1e7e99){const _0x4b076e=_0x3475fc;excelWorker[_0x4b076e(0xf5)](_0x1e7e99[_0x4b076e(0x10e)][_0x4b076e(0x109)]);},_0x422c6a['readAsArrayBuffer'](_0x351459);}function exportToExcel(){const _0x144edf=_0x2476bf,_0x2f014b=XLSX[_0x144edf(0xca)]['json_to_sheet'](processedData),_0x34078c=XLSX[_0x144edf(0xca)][_0x144edf(0xe7)]();XLSX[_0x144edf(0xca)]['book_append_sheet'](_0x34078c,_0x2f014b,'ProcessedData'),XLSX[_0x144edf(0xd8)](_0x34078c,'bldg_reclass.xlsx');}document[_0x2476bf(0xf9)](_0x2476bf(0xc9),function(){const _0xd82735=_0x2476bf;document[_0xd82735(0xd7)](_0xd82735(0xf6))[_0xd82735(0xf9)](_0xd82735(0xcd),processExcel),document[_0xd82735(0xd7)]('exportButton')[_0xd82735(0xf9)](_0xd82735(0xcd),exportToExcel),$fileInput[_0xd82735(0xf9)](_0xd82735(0xfe),function(){const _0x173cb6=_0xd82735;$fileName[_0x173cb6(0xf2)]=this[_0x173cb6(0xc2)][0x0]?.[_0x173cb6(0xd1)]||'';});});function _0x3ebb(){const _0x2cecff=['3914730LnoWGj','click','อย.','พ.1','5143576CWmeaO','name','กรุณาเลือกไฟล์\x20Excel','excelFile','อ.1','ลส.','88rdtyjy','getElementById','writeFile','ย.4','9qehozO','onload','aria-valuenow','12wscZFT','length','ย.6','ย.2','style','createObjectURL','ย.1','อป.','PL_USE','PL_BLOCK','book_new','fileName','setAttribute','ก.4','progressContainer','ACQYEAR','BL_TYPE','อ.4','ศษ.','อ.3','7MGZxzA','textContent','ศน.','303573ftTAzU','postMessage','processButton','ก.5','BL_AREA','addEventListener','พ.2','round','ขก.','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20importScripts(\x27https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js\x27);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20onmessage\x20=\x20function(e)\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20const\x20data\x20=\x20new\x20Uint8Array(e.data);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20const\x20workbook\x20=\x20XLSX.read(data,\x20{type:\x20\x27array\x27});\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20const\x20worksheet\x20=\x20workbook.Sheets[workbook.SheetNames[0]];\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20const\x20jsonData\x20=\x20XLSX.utils.sheet_to_json(worksheet);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20postMessage(jsonData);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20};\x0a\x20\x20\x20\x20\x20\x20\x20\x20','change','ลล.','พ.3','set','classList','d-none','width','303492Thgnyt','remove','text/javascript','697460CvuNqG','result','575103RjsLOh','ก.2','BL_NSTOREY','อ.2','target','BL_USE','files','พ.4','onmessage','ปก.','อศ.','ย.8','ก.1','DOMContentLoaded','utils','1807355qPOpPr'];_0x3ebb=function(){return _0x2cecff;};return _0x3ebb();}
+const _0x14dcb6=_0x3972;(function(_0x43d8cf,_0x2e7ba7){const _0x47b18e=_0x3972,_0x437e23=_0x43d8cf();while(!![]){try{const _0x2c37e9=-parseInt(_0x47b18e(0x109))/0x1+-parseInt(_0x47b18e(0x10a))/0x2+parseInt(_0x47b18e(0x15e))/0x3+parseInt(_0x47b18e(0x163))/0x4+-parseInt(_0x47b18e(0x12a))/0x5*(-parseInt(_0x47b18e(0x117))/0x6)+-parseInt(_0x47b18e(0x11d))/0x7+-parseInt(_0x47b18e(0x122))/0x8;if(_0x2c37e9===_0x2e7ba7)break;else _0x437e23['push'](_0x437e23['shift']());}catch(_0x5a4af2){_0x437e23['push'](_0x437e23['shift']());}}}(_0x1153,0x847ce));let fileData=null,columnMapping={},processedData=[];const requiredColumns=[_0x14dcb6(0x110),_0x14dcb6(0x10b),_0x14dcb6(0x131),_0x14dcb6(0x132),'BL_NUNIT','ACQYEAR',_0x14dcb6(0x15b),_0x14dcb6(0x14c)],plBlockPatterns={'อย.':_0x14dcb6(0x135),'ย.1':'ย.1','ย.2':_0x14dcb6(0x121),'ย.3':'ย.3','ย.4':'ย.4','ย.5':_0x14dcb6(0x105),'ย.6':_0x14dcb6(0x120),'ย.7':'ย.7','ย.8':_0x14dcb6(0x146),'พ.1':_0x14dcb6(0x126),'พ.2':_0x14dcb6(0x116),'พ.3':'พ.3','พ.4':_0x14dcb6(0x164),'ขก.':_0x14dcb6(0x12c),'อ.1':_0x14dcb6(0x16a),'อ.2':_0x14dcb6(0x107),'อ.3':'อ.3','อ.4':_0x14dcb6(0x159),'ก.1':_0x14dcb6(0x15c),'ก.2':_0x14dcb6(0x13b),'ก.3':_0x14dcb6(0x10e),'ก.4':_0x14dcb6(0x166),'ก.5':'ก.5','อก.':'อก.','ปก.':_0x14dcb6(0x115),'อท.':_0x14dcb6(0x128),'ล.':'ล.','ลล.':_0x14dcb6(0x11e),'สล.':_0x14dcb6(0x15d),'อป.':_0x14dcb6(0x123),'ศษ.':_0x14dcb6(0x13e),'ลช.':_0x14dcb6(0x150),'ลส.':_0x14dcb6(0x11f),'อศ.':_0x14dcb6(0x11b),'ศน.':_0x14dcb6(0x100),'ส.':'ส.'},reuse2Data={'1000':'10','1100':'10','1101':'10','1102':'10','1103':'10','1121':'10','1122':'10','1123':'10','1131':'10','1132':'10','1200':'10','1300':'10','1310':'10','1320':'10','1330':'10','1340':'10','1350':'10','1800':'90','2000':'20','2100':'20','2200':'20','2210':'20','2220':'20','2230':'20','2231':'20','2232':'20','2233':'20','2234':'20','2240':'20','2241':'20','2250':'20','2251':'20','2260':'20','2270':'20','2280':'20','2300':'20','2301':'20','2302':'20','2400':'20','2410':'20','2420':'20','2480':'20','2500':'20','2800':'20','3000':'30','3100':'30','3110':'30','3120':'30','3300':'33','3310':'33','3311':'33','3321':'33','3322':'33','3800':'30','4100':'41','4110':'41','4120':'41','4121':'41','4122':'41','4123':'41','4180':'41','4200':'30','4300':'30','5000':'90','5130':'90','5140':'90','5150':'90','5160':'90','5180':'90','5200':'90','5210':'90','5220':'90','5230':'90','5300':'90','5310':'90','5320':'90','5330':'90','5400':'90','5410':'90','5420':'90','5430':'90','5440':'90','5500':'90','5510':'90','5520':'90','5800':'90','6000':'90','6100':'90','6105':'90','6110':'90','6120':'90','6130':'90','6140':'90','6141':'90','6142':'90','6143':'90','6150':'90','6160':'90','6180':'90','6200':'90','6210':'90','6220':'90','6230':'90','6240':'90','6250':'90','6260':'90','6270':'90','6280':'90','6300':'90','6310':'90','6320':'90','6330':'90','6340':'90','6350':'90','6360':'90','6370':'90','6380':'90','6381':'90','6382':'90','6383':'90','6400':'90','6500':'90','6510':'90','6530':'90','6580':'90','6600':'90','6610':'90','6620':'90','6630':'90','6640':'90','6650':'90','6660':'90','6800':'90','6830':'90','6831':'90','7000':'90','7200':'90','7210':'90','7220':'90','7300':'90','7310':'90','7320':'90','7321':'90','7322':'90','7323':'90','7324':'90','7330':'90','7380':'90','8000':'80','8170':'80','8180':'80','8190':'80','8310':'80','8500':'80','9991':'90','9993':'90','9998':'90','9999':'90'};function checkPLBlock(_0xf05ce0){const _0x42496f=_0x14dcb6;if(!_0xf05ce0)return'';_0xf05ce0=_0xf05ce0[_0x42496f(0x127)]();for(const [_0x275e0,_0x262974]of Object[_0x42496f(0x153)](plBlockPatterns)){if(_0xf05ce0[_0x42496f(0x15a)](_0x275e0))return _0x262974;}return'';}function checkPLBlockPattern(_0x2c132d){if(!_0x2c132d)return![];const _0x4dbeeb=/[ก-๙a-zA-Z]+\.\d+-\d+/;return _0x4dbeeb['test'](_0x2c132d);}function extractTextUpToPeriod(_0xae856d){const _0x542403=_0x14dcb6;if(!_0xae856d)return'';const _0x189322=_0xae856d[_0x542403(0x130)]('.');if(_0x189322===-0x1)return _0xae856d;return _0xae856d[_0x542403(0x111)](0x0,_0x189322+0x1);}function _0x1153(){const _0x1ba447=['classList','ลช.','length','พื้นที่การใช้ประโยชน์อาคารรวม','entries','addEventListener','style','display','PL_USE_O','appendChild','อ.4','includes','PL_BLOCK','ก.1','สล.','2673456ivpqlA','exportButton','textContent','bldg_reclass.xlsx','utils','2987140MGilSl','พ.4','name','ก.4','array','json_to_sheet','columnModal','อ.1','forEach','files','#columnMappingList\x20select','getElementById','Sheets','ศน.','RE_BL_AREA','selected','filter','result','ย.5','sheet_to_json','อ.2','writeFile','151418jagKjj','1498608JKIbIC','BL_USE','select','progressBar','ก.3','--\x20เลือกคอลัมน์\x20--','BL_TYPE','substring','option','value','กรุณาเลือกไฟล์\x20Excel','ปก.','พ.2','318ugHNEy','target','readAsArrayBuffer','PL_BLOCK2','อศ.','fileName','5167750emUxwp','ลล.','ลส.','ย.6','ย.2','3056368idLjLi','อป.','ACQYEAR','setAttribute','พ.1','toString','อท.','some','87335wUSzap','d-none','ขก.','remove','keys','label','indexOf','BL_AREA','BL_NSTOREY','block','RE_BL_USE','อย.','round','aria-valuenow','map','width','click','ก.2','querySelectorAll','book_new','ศษ.','innerHTML','createElement','กรุณาเลือกคอลัมน์ให้ครบทุกรายการ','toUpperCase','ProcessedData','onload','progressContainer','ย.8','read','none','add','book_append_sheet','ไฟล์\x20Excel\x20ไม่มีข้อมูล','PL_USE','BL_NUNIT','processButton'];_0x1153=function(){return _0x1ba447;};return _0x1153();}function convertToText(_0x5848d0){const _0x9030bd=_0x14dcb6;if(_0x5848d0===null||_0x5848d0===undefined)return'';return _0x5848d0[_0x9030bd(0x127)]();}function showError(_0x4db64f){const _0x2a6a06=_0x14dcb6,_0x20f30c=document[_0x2a6a06(0xfe)]('errorMessage');_0x20f30c[_0x2a6a06(0x160)]=_0x4db64f,_0x20f30c[_0x2a6a06(0x14f)]['remove'](_0x2a6a06(0x12b)),setTimeout(()=>{const _0x1f7c5a=_0x2a6a06;_0x20f30c[_0x1f7c5a(0x14f)][_0x1f7c5a(0x149)](_0x1f7c5a(0x12b));},0x1388);}function updateFileName(_0x348e30){const _0x38b7bc=_0x14dcb6,_0x4f9b87=document['getElementById'](_0x38b7bc(0x11c));_0x348e30[_0x38b7bc(0x16c)]&&_0x348e30[_0x38b7bc(0x16c)][0x0]?_0x4f9b87[_0x38b7bc(0x160)]=_0x348e30[_0x38b7bc(0x16c)][0x0][_0x38b7bc(0x165)]:_0x4f9b87[_0x38b7bc(0x160)]='';}function showColumnModal(_0x4c2a89){const _0x3b5482=_0x14dcb6,_0x418a60=document[_0x3b5482(0xfe)](_0x3b5482(0x169)),_0x4fa61b=document['getElementById']('columnMappingList');_0x4fa61b[_0x3b5482(0x13f)]='',requiredColumns[_0x3b5482(0x16b)](_0x285d0e=>{const _0x2474d1=_0x3b5482,_0x5c2af4=document[_0x2474d1(0x140)]('div');_0x5c2af4['className']='column-mapping';const _0x313621=document['createElement'](_0x2474d1(0x12f));_0x313621['textContent']=_0x285d0e,_0x5c2af4[_0x2474d1(0x158)](_0x313621);const _0x33579f=document[_0x2474d1(0x140)](_0x2474d1(0x10c));_0x33579f[_0x2474d1(0x165)]=_0x285d0e;const _0x116983=document[_0x2474d1(0x140)](_0x2474d1(0x112));_0x116983['value']='',_0x116983[_0x2474d1(0x160)]=_0x2474d1(0x10f),_0x33579f[_0x2474d1(0x158)](_0x116983),_0x4c2a89[_0x2474d1(0x16b)](_0x38a186=>{const _0x429d0e=_0x2474d1,_0x4c9a72=document[_0x429d0e(0x140)](_0x429d0e(0x112));_0x4c9a72[_0x429d0e(0x113)]=_0x38a186,_0x4c9a72['textContent']=_0x38a186,_0x38a186[_0x429d0e(0x142)]()===_0x285d0e&&(_0x4c9a72[_0x429d0e(0x102)]=!![]),_0x33579f[_0x429d0e(0x158)](_0x4c9a72);}),_0x5c2af4[_0x2474d1(0x158)](_0x33579f),_0x4fa61b[_0x2474d1(0x158)](_0x5c2af4);}),_0x418a60[_0x3b5482(0x155)]['display']=_0x3b5482(0x133);}function closeColumnModal(){const _0x50f693=_0x14dcb6;document[_0x50f693(0xfe)](_0x50f693(0x169))[_0x50f693(0x155)][_0x50f693(0x156)]=_0x50f693(0x148);}function getColumnMapping(){const _0x2c1bfd=_0x14dcb6,_0x54015b={},_0x3abb49=document[_0x2c1bfd(0x13c)](_0x2c1bfd(0x16d));let _0x14f4a7=!![];return _0x3abb49[_0x2c1bfd(0x16b)](_0x35aa91=>{const _0xb96f57=_0x2c1bfd;_0x35aa91['value']?_0x54015b[_0x35aa91['name']]=_0x35aa91[_0xb96f57(0x113)]:_0x14f4a7=![];}),{'mapping':_0x54015b,'isValid':_0x14f4a7};}function processExcel(){const _0x1615ab=_0x14dcb6,_0x3236e5=document[_0x1615ab(0xfe)]('excelFile'),_0x2532ec=_0x3236e5[_0x1615ab(0x16c)][0x0];if(!_0x2532ec){showError(_0x1615ab(0x114));return;}const _0x340bc3=new FileReader();_0x340bc3[_0x1615ab(0x144)]=function(_0x816165){const _0x2a4b8a=_0x1615ab,_0x581064=new Uint8Array(_0x816165[_0x2a4b8a(0x118)][_0x2a4b8a(0x104)]),_0x122e18=XLSX[_0x2a4b8a(0x147)](_0x581064,{'type':_0x2a4b8a(0x167)}),_0x599ae8=_0x122e18['SheetNames'][0x0],_0x1e9c49=_0x122e18[_0x2a4b8a(0xff)][_0x599ae8],_0x4b6a73=XLSX[_0x2a4b8a(0x162)][_0x2a4b8a(0x106)](_0x1e9c49);if(_0x4b6a73[_0x2a4b8a(0x151)]===0x0){showError(_0x2a4b8a(0x14b));return;}fileData=_0x4b6a73;const _0x38b214=Object[_0x2a4b8a(0x12e)](_0x4b6a73[0x0]),_0x2752ae=requiredColumns[_0x2a4b8a(0x103)](_0x511d12=>!_0x38b214[_0x2a4b8a(0x129)](_0x1878df=>_0x1878df['toUpperCase']()===_0x511d12));_0x2752ae[_0x2a4b8a(0x151)]===0x0?processData(_0x4b6a73):showColumnModal(_0x38b214);},_0x340bc3[_0x1615ab(0x119)](_0x2532ec);}function processWithMapping(){const _0x22509d=_0x14dcb6,{mapping:_0x3efe1e,isValid:_0x481e1b}=getColumnMapping();if(!_0x481e1b){showError(_0x22509d(0x141));return;}columnMapping=_0x3efe1e,closeColumnModal();const _0x2d3a87=fileData['map'](_0x4a3990=>{const _0x3f3d4c=_0x22509d,_0x13b9b2={};return Object[_0x3f3d4c(0x12e)](columnMapping)[_0x3f3d4c(0x16b)](_0x5ad29e=>{_0x13b9b2[_0x5ad29e]=_0x4a3990[columnMapping[_0x5ad29e]];}),Object[_0x3f3d4c(0x12e)](_0x4a3990)[_0x3f3d4c(0x16b)](_0x381c29=>{const _0x418f6c=_0x3f3d4c;!Object['values'](columnMapping)[_0x418f6c(0x15a)](_0x381c29)&&(_0x13b9b2[_0x381c29]=_0x4a3990[_0x381c29]);}),_0x13b9b2;});processData(_0x2d3a87);}function _0x3972(_0x39b19c,_0x24147a){const _0x11531d=_0x1153();return _0x3972=function(_0x39725d,_0x1c0c75){_0x39725d=_0x39725d-0xfe;let _0x5119e5=_0x11531d[_0x39725d];return _0x5119e5;},_0x3972(_0x39b19c,_0x24147a);}function processData(_0x5c592a){const _0x933650=_0x14dcb6,_0x3e040d=document[_0x933650(0xfe)](_0x933650(0x10d)),_0x51370a=document[_0x933650(0xfe)](_0x933650(0x145));_0x51370a[_0x933650(0x14f)][_0x933650(0x12d)](_0x933650(0x12b));let _0x39dfab=_0x5c592a[_0x933650(0x138)]((_0xfbb8de,_0x5a2e9c)=>{const _0x31d997=_0x933650,_0x8c563d=Math[_0x31d997(0x136)]((_0x5a2e9c+0x1)/_0x5c592a[_0x31d997(0x151)]*0x32);_0x3e040d[_0x31d997(0x155)][_0x31d997(0x139)]=_0x8c563d+'%',_0x3e040d[_0x31d997(0x125)](_0x31d997(0x137),_0x8c563d),_0x3e040d[_0x31d997(0x160)]=_0x8c563d+'%';const _0xa41d40={..._0xfbb8de};_0xa41d40[_0x31d997(0x110)]=convertToText(_0xfbb8de[_0x31d997(0x110)]),_0xa41d40[_0x31d997(0x10b)]=convertToText(_0xfbb8de[_0x31d997(0x10b)]),_0xa41d40[_0x31d997(0x124)]=convertToText(_0xfbb8de[_0x31d997(0x124)]),_0xa41d40[_0x31d997(0x15b)]=convertToText(_0xfbb8de[_0x31d997(0x15b)]),_0xa41d40[_0x31d997(0x14c)]=convertToText(_0xfbb8de[_0x31d997(0x14c)]);const _0x5aa556=_0xfbb8de[_0x31d997(0x14d)];return _0x5aa556!==null&&_0x5aa556!==undefined?_0xa41d40['BL_NUNIT']=Math[_0x31d997(0x136)](parseFloat(_0x5aa556)):_0xa41d40['BL_NUNIT']=0x0,_0xa41d40[_0x31d997(0x11a)]=checkPLBlock(_0xfbb8de['PL_BLOCK']),_0xa41d40;});const _0x58ab5c=_0x39dfab[_0x933650(0x129)](_0x26b265=>_0x26b265[_0x933650(0x11a)]&&_0x26b265[_0x933650(0x11a)]['trim']()!=='');_0x58ab5c?processedData=_0x39dfab[_0x933650(0x138)]((_0x53bf81,_0x2d3a5a)=>{const _0x18d81b=_0x933650,_0x4c6646=Math[_0x18d81b(0x136)](0x32+(_0x2d3a5a+0x1)/_0x39dfab['length']*0x32);_0x3e040d[_0x18d81b(0x155)][_0x18d81b(0x139)]=_0x4c6646+'%',_0x3e040d[_0x18d81b(0x125)]('aria-valuenow',_0x4c6646),_0x3e040d['textContent']=_0x4c6646+'%';!_0x53bf81[_0x18d81b(0x11a)]&&_0x53bf81[_0x18d81b(0x15b)]&&(_0x53bf81[_0x18d81b(0x11a)]=extractTextUpToPeriod(_0x53bf81[_0x18d81b(0x15b)]));_0x53bf81['PL_USE_O']=_0x53bf81['PL_USE'];checkPLBlockPattern(_0x53bf81['PL_BLOCK'])&&(_0x53bf81[_0x18d81b(0x14c)]=_0x53bf81[_0x18d81b(0x157)]+'-'+_0x53bf81[_0x18d81b(0x11a)]);const _0x1aeb15=parseFloat(_0x53bf81[_0x18d81b(0x131)])||0x0,_0x44f50b=parseFloat(_0x53bf81['BL_NSTOREY'])||0x0,_0xd34579=parseInt(_0x53bf81['BL_NUNIT'])||0x0;return _0x53bf81[_0x18d81b(0x152)]=_0x1aeb15*_0x44f50b,_0x53bf81['RE_BL_USE']=reuse2Data[_0x53bf81[_0x18d81b(0x10b)]]||'',_0x53bf81[_0x18d81b(0x101)]=determineCode({..._0x53bf81,'BL_AREA':_0x1aeb15,'BL_NSTOREY':_0x44f50b,'BL_NUNIT':_0xd34579}),_0x53bf81;}):processedData=_0x39dfab[_0x933650(0x138)]((_0x339e42,_0xe0006)=>{const _0x109424=_0x933650,_0x18625a=Math['round'](0x32+(_0xe0006+0x1)/_0x39dfab[_0x109424(0x151)]*0x32);_0x3e040d[_0x109424(0x155)][_0x109424(0x139)]=_0x18625a+'%',_0x3e040d[_0x109424(0x125)](_0x109424(0x137),_0x18625a),_0x3e040d[_0x109424(0x160)]=_0x18625a+'%';const _0x2a43c5=parseFloat(_0x339e42[_0x109424(0x131)])||0x0,_0x17b9d8=parseFloat(_0x339e42[_0x109424(0x132)])||0x0,_0x2bdb98=parseInt(_0x339e42[_0x109424(0x14d)])||0x0;return _0x339e42[_0x109424(0x152)]=_0x2a43c5*_0x17b9d8,_0x339e42[_0x109424(0x134)]=reuse2Data[_0x339e42['BL_USE']]||'',_0x339e42[_0x109424(0x101)]=determineCode({..._0x339e42,'BL_AREA':_0x2a43c5,'BL_NSTOREY':_0x17b9d8,'BL_NUNIT':_0x2bdb98}),_0x339e42;}),document[_0x933650(0xfe)](_0x933650(0x15f))[_0x933650(0x14f)]['remove'](_0x933650(0x12b));}function determineCode(_0x54ff65){const _0x57a903=_0x14dcb6,{RE_BL_USE:_0x574730,BL_TYPE:_0x3597a9,BL_NSTOREY:_0x37d7cf}=_0x54ff65,_0x1fec6b=parseFloat(_0x54ff65[_0x57a903(0x131)])||0x0,_0x48c014=_0x54ff65[_0x57a903(0x152)];if(_0x48c014>=0x7d0){if(_0x574730==='10'&&_0x1fec6b>=0x65&&_0x1fec6b<=0x190)return 0x4;if(_0x574730==='10'&&_0x1fec6b>=0x191)return 0x5;if(_0x574730==='20'&&_0x1fec6b>=0x65&&_0x1fec6b<=0x190)return 0x2;if(_0x574730==='20'&&_0x1fec6b>=0x191)return 0x3;if(_0x574730==='41'&&_0x1fec6b>=0x65&&_0x1fec6b<=0x190)return 0x2;if(_0x574730==='41'&&_0x1fec6b>=0x191)return 0x3;}if(_0x48c014>=0x3e8&&_0x37d7cf>=0x5){if(_0x574730==='10'&&_0x1fec6b>=0x65&&_0x1fec6b<=0x190)return 0x4;if(_0x574730==='10'&&_0x1fec6b>=0x191)return 0x5;if(_0x574730==='20'&&_0x1fec6b>=0x65&&_0x1fec6b<=0x190)return 0x2;if(_0x574730==='20'&&_0x1fec6b>=0x191)return 0x3;if(_0x574730==='41'&&_0x1fec6b>=0x65&&_0x1fec6b<=0x190)return 0x2;if(_0x574730==='41'&&_0x1fec6b>=0x191)return 0x3;}if(_0x37d7cf>=0x8){if(_0x574730==='10'&&_0x1fec6b>=0x65&&_0x1fec6b<=0x190)return 0x4;if(_0x574730==='10'&&_0x1fec6b>=0x191)return 0x5;if(_0x574730==='20'&&_0x1fec6b>=0x65&&_0x1fec6b<=0x190)return 0x2;if(_0x574730==='20'&&_0x1fec6b>=0x191)return 0x3;if(_0x574730==='41'&&_0x1fec6b>=0x65&&_0x1fec6b<=0x190)return 0x2;if(_0x574730==='41'&&_0x1fec6b>=0x191)return 0x3;}if(_0x574730==='10'){if(_0x3597a9==='1'||_0x3597a9==='2')return 0x1;if(_0x3597a9==='3'||_0x3597a9==='4'||_0x3597a9==='5')return 0x2;if(_0x3597a9==='6')return 0x3;}if(_0x574730==='20'||_0x574730==='41')return 0x1;if(_0x574730==='30'){if(_0x1fec6b<=0xc8)return 0x1;if(_0x1fec6b>0xc8&&_0x1fec6b<=0x1f4)return 0x2;if(_0x1fec6b>0x1f4&&_0x1fec6b<=0x3e8)return 0x3;if(_0x1fec6b>0x3e8)return 0x4;}if(_0x574730==='33'){if(_0x1fec6b<=0x64)return 0x1;if(_0x1fec6b>0x64&&_0x1fec6b<=0x1f4)return 0x2;if(_0x1fec6b>0x1f4)return 0x3;}if(_0x574730==='80'||_0x574730==='90')return 0x1;return 0x0;}function exportToExcel(){const _0x4fd681=_0x14dcb6,_0x372315=XLSX[_0x4fd681(0x162)][_0x4fd681(0x168)](processedData),_0x507645=XLSX[_0x4fd681(0x162)][_0x4fd681(0x13d)]();XLSX[_0x4fd681(0x162)][_0x4fd681(0x14a)](_0x507645,_0x372315,_0x4fd681(0x143)),XLSX[_0x4fd681(0x108)](_0x507645,_0x4fd681(0x161));}document[_0x14dcb6(0xfe)](_0x14dcb6(0x14e))[_0x14dcb6(0x154)](_0x14dcb6(0x13a),processExcel),document[_0x14dcb6(0xfe)](_0x14dcb6(0x15f))[_0x14dcb6(0x154)](_0x14dcb6(0x13a),exportToExcel);
     </script>
 </body>
-</html>            
+</html>
