@@ -3,325 +3,1458 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculate AREA</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>เปรียบเทียบการใช้ประโยชน์ที่ดิน</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Prompt', 'Sarabun', sans-serif;
         }
-        
+
         body {
-            background-color: #f8f9fa;
-            color: #343a40;
-            line-height: 1.6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
-        
+
         .container {
-            max-width: 1140px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 0 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
-        
-        /* Header Section */
+
         .header {
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
         }
-        
-        .nav {
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .upload-section {
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .mode-selector {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #4facfe;
+            border-radius: 15px;
+            background: rgba(79, 172, 254, 0.05);
+        }
+
+        .mode-selector h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            padding: 15px 30px;
+            border: 2px solid #4facfe;
+            border-radius: 25px;
+            background: white;
+            color: #4facfe;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+
+        .mode-btn:hover {
+            background: #4facfe;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .file-group {
+            margin-bottom: 30px;
+            padding: 25px;
+            border: 2px dashed #4facfe;
+            border-radius: 15px;
+            background: rgba(79, 172, 254, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .file-group:hover {
+            border-color: #00f2fe;
+            background: rgba(79, 172, 254, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .file-group h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .file-input-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .file-input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .year-input {
+            width: 120px;
+        }
+
+        input[type="file"], input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="file"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .field-mapping {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #ff6b6b;
+            border-radius: 15px;
+            background: rgba(255, 107, 107, 0.05);
+            display: none;
+        }
+
+        .field-mapping.show {
+            display: block;
+        }
+
+        .field-mapping h4 {
+            color: #ff6b6b;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .field-mapping-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .field-mapping-row label {
+            font-weight: bold;
+            color: #333;
+            min-width: 150px;
+        }
+
+        .field-mapping-row select {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .region-filter {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #11998e;
+            border-radius: 15px;
+            background: rgba(17, 153, 142, 0.05);
+            display: none;
+        }
+
+        .region-filter.show {
+            display: block;
+        }
+
+        .region-filter h4 {
+            color: #11998e;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .region-step {
+            margin-bottom: 20px;
+        }
+
+        .region-step label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .search-container {
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .search-result-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s ease;
+        }
+
+        .search-result-item:hover {
+            background: rgba(79, 172, 254, 0.1);
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .selected-values {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .selected-value {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: #11998e;
+            color: white;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+
+        .remove-value {
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .process-btn {
+            display: block;
+            width: 200px;
+            margin: 30px auto;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .process-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .process-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .results-section {
+            padding: 40px;
+            background: white;
+        }
+
+        .results-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 0;
+            margin-bottom: 30px;
         }
-        
-        .home-link {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: #0066cc;
-            font-weight: 500;
-            font-size: 18px;
-            transition: all 0.3s ease;
+
+        .results-header h2 {
+            color: #333;
+            font-size: 2em;
         }
-        
-        .home-link:hover {
-            color: #004d99;
-        }
-        
-        .home-link i {
-            margin-right: 8px;
-            font-size: 20px;
-        }
-        
-        /* Main Title Section */
-        .hero-section {
-            text-align: center;
-            padding: 40px 0;
-            background: linear-gradient(135deg, #0066cc, #00aaff);
+
+        .export-btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
             color: white;
-            margin-bottom: 40px;
-            border-radius: 0 0 30px 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .hero-title {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        .hero-subtitle {
-            font-size: 16px;
-            max-width: 700px;
-            margin: 0 auto;
-            opacity: 0.9;
-        }
-        
-        /* Main Button Section */
-        .main-button-section {
-            margin-bottom: 50px;
-        }
-        
-        .section-title {
-            font-size: 24px;
-            margin-bottom: 25px;
-            color: #333;
-            text-align: center;
-            position: relative;
-            padding-bottom: 10px;
-        }
-        
-        .section-title:after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80px;
-            height: 3px;
-            background-color: #0066cc;
-        }
-        
-        .button-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .button-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .main-button {
-            background-color: #fff;
-            color: #333;
             border: none;
-            border-radius: 10px;
-            padding: 25px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            height: 100%;
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
         }
-        
-        .main-button:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(17, 153, 142, 0.6);
         }
-        
-        .main-button i {
-            font-size: 30px;
-            margin-bottom: 15px;
-            color: #0066cc;
-        }
-        
-        .button-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        /* Manual Section */
-        .manual-section {
-            background-color: #fff;
+
+        .table-container {
+            overflow-x: auto;
             border-radius: 15px;
-            padding: 40px 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
-        
-        .manual-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
         }
-        
-        @media (max-width: 768px) {
-            .manual-grid {
-                grid-template-columns: 1fr;
-            }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
-        
-        .manual-button {
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s ease;
+        }
+
+        tr:hover {
+            background-color: rgba(79, 172, 254, 0.1);
+        }
+
+        .lul-code {
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+        }
+
+        .area-value {
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .percentage {
+            text-align: right;
+            font-weight: bold;
+            color: #11998e;
+        }
+
+        .cagr-value {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        .filter-info {
+            background: rgba(17, 153, 142, 0.1);
+            border: 2px solid #11998e;
             border-radius: 10px;
             padding: 15px;
-            display: flex;
-            align-items: center;
-            text-decoration: none;
+            margin-bottom: 20px;
+        }
+
+        .filter-info h4 {
+            color: #11998e;
+            margin-bottom: 10px;
+        }
+
+        .filter-info p {
             color: #333;
-            transition: all 0.3s ease;
+            margin-bottom: 5px;
         }
-        
-        .manual-button:hover {
-            background-color: #f1f3f5;
-            transform: translateY(-3px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .manual-button i {
-            font-size: 24px;
-            margin-right: 15px;
-            width: 45px;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #e9ecef;
-            border-radius: 50%;
-            color: #0066cc;
-        }
-        
-        /* Footer Section */
-        .footer {
-            text-align: center;
-            padding: 30px 0;
-            border-top: 1px solid #e9ecef;
-            margin-top: 30px;
-        }
-        
-        .footer-text {
-            color: #6c757d;
+
+        .mapping-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
             font-size: 14px;
+            font-weight: bold;
         }
+
+        .mapping-status.complete {
+            background: rgba(17, 153, 142, 0.1);
+            color: #11998e;
+            border: 2px solid #11998e;
+        }
+
+        .mapping-status.incomplete {
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff6b6b;
+            border: 2px solid #ff6b6b;
+        }
+
+        .positive { color: #11998e; }
+        .negative { color: #ff6b6b; }
+        .zero { color: #333; }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <a href="index.html" class="home-link">
-                    <i class="fas fa-home"></i> หน้าหลัก
-                </a>
-            </nav>
+    <div class="container">
+        <div class="header">
+            <h1>🌍 เปรียบเทียบการใช้ประโยชน์ที่ดิน</h1>
+            <p>นำเข้าไฟล์ Excel 2 ไฟล์เพื่อเปรียบเทียบข้อมูลการใช้ประโยชน์ที่ดิน</p>
         </div>
-    </header>
-    
-    <!-- Main Title -->
-    <section class="hero-section">
-        <div class="container">
-            <h2 class="hero-title">Calculate AREA</h2>
-            <p class="hero-subtitle">เครื่องมือคำนวณพื้นที่สำหรับการวางแผนและออกแบบเมือง</p>
+
+        <div class="upload-section">
+            <!-- Mode Selector -->
+            <div class="mode-selector">
+                <h3>🎯 เลือกรูปแบบการประมวลผล</h3>
+                <div class="mode-buttons">
+                    <button class="mode-btn active" onclick="switchMode('all')" id="modeAll">
+                        📊 ประมวลผลทั้งหมด
+                    </button>
+                    <button class="mode-btn" onclick="switchMode('region')" id="modeRegion">
+                        🗺️ ประมวลผลตามเขตการปกครอง
+                    </button>
+                </div>
+            </div>
+
+            <div class="file-group">
+                <h3>📁 ไฟล์ที่ 1</h3>
+                <div class="file-input-group">
+                    <div class="file-input">
+                        <input type="file" id="file1" accept=".xlsx,.xls" onchange="onFileChange(1)" />
+                    </div>
+                    <div class="year-input">
+                        <input type="number" id="year1" placeholder="ปี พ.ศ." min="2500" max="2600" />
+                    </div>
+                </div>
+                
+                <!-- Field Mapping for File 1 -->
+                <div class="field-mapping" id="fieldMapping1">
+                    <h4>🔗 จับคู่ฟิลด์ไฟล์ที่ 1</h4>
+                    <div class="field-mapping-row">
+                        <label>รหัสการใช้ประโยชน์ที่ดิน (LUL1_CODE):</label>
+                        <select id="lul1Code1">
+                            <option value="">-- เลือกฟิลด์ --</option>
+                        </select>
+                    </div>
+                    <div class="field-mapping-row">
+                        <label>คำอธิบาย (LU_DES_TH):</label>
+                        <select id="luDesTh1">
+                            <option value="">-- เลือกฟิลด์ --</option>
+                        </select>
+                    </div>
+                    <div class="field-mapping-row">
+                        <label>พื้นที่ (Shape_Area):</label>
+                        <select id="shapeArea1">
+                            <option value="">-- เลือกฟิลด์ --</option>
+                        </select>
+                    </div>
+                    <div class="mapping-status" id="mappingStatus1">
+                        ❌ กรุณาจับคู่ฟิลด์ทั้งหมด
+                    </div>
+                </div>
+            </div>
+
+            <div class="file-group">
+                <h3>📁 ไฟล์ที่ 2</h3>
+                <div class="file-input-group">
+                    <div class="file-input">
+                        <input type="file" id="file2" accept=".xlsx,.xls" onchange="onFileChange(2)" />
+                    </div>
+                    <div class="year-input">
+                        <input type="number" id="year2" placeholder="ปี พ.ศ." min="2500" max="2600" />
+                    </div>
+                </div>
+                
+                <!-- Field Mapping for File 2 -->
+                <div class="field-mapping" id="fieldMapping2">
+                    <h4>🔗 จับคู่ฟิลด์ไฟล์ที่ 2</h4>
+                    <div class="field-mapping-row">
+                        <label>รหัสการใช้ประโยชน์ที่ดิน (LUL1_CODE):</label>
+                        <select id="lul1Code2">
+                            <option value="">-- เลือกฟิลด์ --</option>
+                        </select>
+                    </div>
+                    <div class="field-mapping-row">
+                        <label>คำอธิบาย (LU_DES_TH):</label>
+                        <select id="luDesTh2">
+                            <option value="">-- เลือกฟิลด์ --</option>
+                        </select>
+                    </div>
+                    <div class="field-mapping-row">
+                        <label>พื้นที่ (Shape_Area):</label>
+                        <select id="shapeArea2">
+                            <option value="">-- เลือกฟิลด์ --</option>
+                        </select>
+                    </div>
+                    <div class="mapping-status" id="mappingStatus2">
+                        ❌ กรุณาจับคู่ฟิลด์ทั้งหมด
+                    </div>
+                </div>
+            </div>
+
+            <!-- Region Filter Section -->
+            <div class="region-filter" id="regionFilter">
+                <h4>🗺️ กรองข้อมูลตามเขตการปกครอง</h4>
+                
+                <div class="region-step">
+                    <label for="fieldSelector">ขั้นตอนที่ 1: เลือกฟิลด์ (เขตการปกครอง)</label>
+                    <select id="fieldSelector" onchange="onFieldChange()">
+                        <option value="">-- เลือกฟิลด์ --</option>
+                    </select>
+                </div>
+
+                <div class="region-step">
+                    <label for="valueSelector">ขั้นตอนที่ 2: เลือกค่าในฟิลด์</label>
+                    <div class="search-container">
+                        <input type="text" id="valueSearch" class="search-input" 
+                               placeholder="ค้นหาค่าในฟิลด์..." 
+                               oninput="searchValues()" 
+                               onfocus="showSearchResults()" />
+                        <div class="search-results" id="searchResults"></div>
+                    </div>
+                    <div class="selected-values" id="selectedValues"></div>
+                </div>
+            </div>
+
+            <button class="process-btn" id="processBtn" onclick="processFiles()">
+                🚀 ประมวลผล
+            </button>
         </div>
-    </section>
-    
-    <!-- Main Buttons -->
-    <section class="main-button-section">
-        <div class="container">
-            <div class="button-grid">
-                <a href="page11A.html" class="main-button">
-                    <i class="fas fa-building"></i>
-                    <h3 class="button-title">Floor Area Ratio (FAR)</h3>
-                    <p>อัตราส่วนพื้นที่อาคารรวมกันทุกชั้น</p>
-                    <p>ของอาคารทุกหลัง</p>
-                    <p>ต่อพื้นที่แปลงที่ดินที่ใช้เป็นที่ตั้งอาคาร</p>
-                </a>
-                <a href="page11B.html" class="main-button">
-                    <i class="fas fa-tree"></i>
-                    <h3 class="button-title">Open Space Ratio (OSR)</h3>
-                    <p>อัตราส่วนพื้นที่ว่างอันปราศจากสิ่งปกคลุมดิน</p>
-                    <p>ของแปลงที่ดินที่อาคารตั้งอยู่</p>
-                    <p>ต่อพื้นที่ใช้สอยรวมของอาคาร</p>
-                </a>
-                <a href="page11C.html" class="main-button">
-                    <i class="fas fa-home"></i>
-                    <h3 class="button-title">Building Coverage Ratio (BCR)</h3>
-                    <p>อัตราส่วนพื้นที่อาคารปกคลุมดิน</p>
-                    <p>ต่อพื้นที่แปลงที่ดิน</p>
-                    <p>ที่ใช้เป็นที่ตั้งอาคาร</p>
-                </a>
-                <a href="page11D.html" class="main-button">
-                    <i class="fas fa-home"></i>
-                    <h3 class="button-title">CONVERT GIS FILE</h3>
-                    <p>แปลงไฟล์</p>
-                    <p>SHAPEFILE > GEOJSON</p>
-                    <p>GEOJSON > SHAPEFILE</p>
-                </a>
+
+        <div class="results-section" id="results" style="display: none;">
+            <div class="filter-info" id="filterInfo" style="display: none;">
+                <h4>ℹ️ ข้อมูลการกรอง</h4>
+                <p id="filterField"></p>
+                <p id="filterValues"></p>
+            </div>
+            
+            <div class="results-header">
+                <h2>📊 ผลการเปรียบเทียบ</h2>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <label style="font-weight: bold; color: #333;">หน่วยพื้นที่:</label>
+                        <select id="unitSelector" onchange="changeUnit()" style="padding: 8px 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                            <option value="sqm">ตารางเมตร (ตร.ม.)</option>
+                            <option value="sqkm">ตารางกิโลเมตร (ตร.กม.)</option>
+                            <option value="rai">ไร่</option>
+                        </select>
+                    </div>
+                    <button class="export-btn" onclick="exportToExcel()">
+                        📥 ส่งออก Excel
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>LUL1_CODE</th>
+                            <th>ประเภทพื้นที่</th>
+                            <th>LU_DES_TH</th>
+                            <th id="year1Header">พื้นที่ (ตร.ม.)</th>
+                            <th id="year1PercentHeader">สัดส่วน (%)</th>
+                            <th id="year2Header">พื้นที่ (ตร.ม.)</th>
+                            <th id="year2PercentHeader">สัดส่วน (%)</th>
+                            <th>การเปลี่ยนแปลง</th>
+                            <th>การเปลี่ยนแปลง (%)</th>
+                            <th>CAGR (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
             </div>
         </div>
-    </section>
-    
-    <!-- Manual Section -->
-    <section class="manual-section">
-        <div class="container">
-            <h2 class="section-title">คู่มือการใช้งาน</h2>
-            <div class="manual-grid">
-                <a href="https://1drv.ms/v/c/b492e72c8b6a5bca/EQickMvElNRKkZxsZngufrQBNp5a4ZR7vZUACvtCvhp7lg?e=8UGwAs" class="manual-button">
-                    <i class="fas fa-file-export"></i>
-                    <div>
-                        <h3>วิธีแปลง SHAPEFILE เป็น GEOJSON</h3>
-                    </div>
-                </a>
-                <a href="https://1drv.ms/v/c/b492e72c8b6a5bca/EfABMWBdzbpMtgCILT5ro7UBcqx8bkIN6Z3TXtb6DubzAA?e=HM3hUx" class="manual-button">
-                    <i class="fas fa-calculator"></i>
-                    <div>
-                        <h3>วิธีการคำนวณ Floor Area Ratio (FAR)</h3>
-                    </div>
-                </a>
-                <a href="https://1drv.ms/v/c/b492e72c8b6a5bca/EW4Gik92TClBqNn24Em0ZUQBCsTLLMWhO1LdN6LLClZcsg?e=T0MKpK" class="manual-button">
-                    <i class="fas fa-leaf"></i>
-                    <div>
-                        <h3>วิธีการคำนวณ Open Space Ratio (OSR)</h3>
-                    </div>
-                </a>
-                <a href="https://1drv.ms/v/c/b492e72c8b6a5bca/ERrIgtGg_clCjesX5QkldCEBUehklCC1UZ_0KmIyFQE6Dg?e=JjtwYg" class="manual-button">
-                    <i class="fas fa-percentage"></i>
-                    <div>
-                        <h3>วิธีการคำนวณ Building Coverage Ratio (BCR)</h3>
-                    </div>
-                </a>
-                <a href="https://1drv.ms/v/c/b492e72c8b6a5bca/EYrmIUiB7q1Oor7ymQABgTkBmjUVwjg-v7fFONEE5I5Hag?e=7nL8LH" class="manual-button">
-                    <i class="fas fa-file-export"></i>
-                    <div>
-                        <h3>วิธีแปลง GEOJSON เป็น SHAPEFILE</h3>
-                    </div>                    
-                </a>
-            </div>
-        </div>
-    </section>
-    
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p class="footer-text"></p>
-        </div>
-    </footer>
+    </div>
+
+    <script>
+        let processedData = [];
+        let year1Value = '';
+        let year2Value = '';
+        let currentUnit = 'sqm';
+        let currentMode = 'all';
+        let fileData1 = null;
+        let fileData2 = null;
+        let availableFields = [];
+        let fieldValues = {};
+        let selectedField = '';
+        let selectedValues = [];
+        let fieldMapping1 = { lul1Code: '', luDesTh: '', shapeArea: '' };
+        let fieldMapping2 = { lul1Code: '', luDesTh: '', shapeArea: '' };
+
+        function getAreaTypeName(code) {
+            const areaTypes = {
+                'U': 'พื้นที่ชุมชนและสิ่งปลูกสร้าง',
+                'A': 'พื้นที่เกษตรกรรม',
+                'F': 'พื้นที่ป่าไม้',
+                'W': 'พื้นที่แหล่งน้ำ',
+                'M': 'พื้นที่เบ็ดเตล็ด'
+            };
+            return areaTypes[code] || `พื้นที่ประเภท ${code}`;
+        }
+
+        function convertArea(area, unit) {
+            switch(unit) {
+                case 'sqkm': return area / 1000000;
+                case 'rai': return area / 1600;
+                default: return area;
+            }
+        }
+
+        function getUnitLabel(unit) {
+            switch(unit) {
+                case 'sqkm': return 'ตร.กม.';
+                case 'rai': return 'ไร่';
+                default: return 'ตร.ม.';
+            }
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('th-TH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(num);
+        }
+
+        function getCodeOrder(code) {
+            const order = ['U', 'A', 'F', 'M', 'W'];
+            const index = order.indexOf(code);
+            return index === -1 ? 999 : index;
+        }
+
+        function calculateCAGR(initialValue, finalValue, years) {
+            if (initialValue <= 0 || finalValue <= 0 || years <= 0) {
+                return 0;
+            }
+            return (Math.pow(finalValue / initialValue, 1 / years) - 1) * 100;
+        }
+
+        function calculatePercentageChange(initialValue, finalValue) {
+            if (initialValue === 0) {
+                return finalValue > 0 ? 100 : 0;
+            }
+            return ((finalValue - initialValue) / initialValue) * 100;
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            const modeAll = document.getElementById('modeAll');
+            const modeRegion = document.getElementById('modeRegion');
+            const regionFilter = document.getElementById('regionFilter');
+
+            if (mode === 'all') {
+                modeAll.classList.add('active');
+                modeRegion.classList.remove('active');
+                regionFilter.classList.remove('show');
+                selectedField = '';
+                selectedValues = [];
+            } else {
+                modeAll.classList.remove('active');
+                modeRegion.classList.add('active');
+                regionFilter.classList.add('show');
+            }
+        }
+
+        async function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function onFileChange(fileNum) {
+            const fileInput = document.getElementById(`file${fileNum}`);
+            const file = fileInput.files[0];
+            
+            if (file) {
+                try {
+                    const data = await readExcelFile(file);
+                    if (fileNum === 1) {
+                        fileData1 = data;
+                        populateFieldMapping(1, data);
+                    } else {
+                        fileData2 = data;
+                        populateFieldMapping(2, data);
+                    }
+                    
+                    updateAvailableFields();
+                    showFieldMapping(fileNum);
+                } catch (error) {
+                    alert(`เกิดข้อผิดพลาดในการอ่านไฟล์ที่ ${fileNum}: ${error.message}`);
+                }
+            }
+        }
+
+        function populateFieldMapping(fileNum, data) {
+            if (data.length === 0) return;
+            
+            const fields = Object.keys(data[0]);
+            const lul1CodeSelect = document.getElementById(`lul1Code${fileNum}`);
+            const luDesThSelect = document.getElementById(`luDesTh${fileNum}`);
+            const shapeAreaSelect = document.getElementById(`shapeArea${fileNum}`);
+            
+            // Clear existing options
+            [lul1CodeSelect, luDesThSelect, shapeAreaSelect].forEach(select => {
+                select.innerHTML = '<option value="">-- เลือกฟิลด์ --</option>';
+            });
+            
+            // Add field options
+            fields.forEach(field => {
+                [lul1CodeSelect, luDesThSelect, shapeAreaSelect].forEach(select => {
+                    const option = document.createElement('option');
+                    option.value = field;
+                    option.textContent = field;
+                    select.appendChild(option);
+                });
+            });
+            
+            // Auto-select matching fields
+            const autoMappings = {
+                lul1Code: ['LUL1_CODE', 'LUL_CODE', 'CODE'],
+                luDesTh: ['LU_DES_TH', 'LU_DES', 'DESCRIPTION', 'DESC'],
+                shapeArea: ['Shape_Area', 'SHAPE_AREA', 'AREA', 'Area']
+            };
+            
+            Object.keys(autoMappings).forEach(mappingKey => {
+                const possibleFields = autoMappings[mappingKey];
+                const matchedField = fields.find(field => 
+                    possibleFields.some(pattern => 
+                        field.toUpperCase().includes(pattern.toUpperCase())
+                    )
+                );
+                
+                if (matchedField) {
+                    const selectId = mappingKey + fileNum;
+                    document.getElementById(selectId).value = matchedField;
+                    if (fileNum === 1) {
+                        fieldMapping1[mappingKey] = matchedField;
+                    } else {
+                        fieldMapping2[mappingKey] = matchedField;
+                    }
+                }
+            });
+            
+            // Add event listeners for field mapping changes
+            [lul1CodeSelect, luDesThSelect, shapeAreaSelect].forEach((select, index) => {
+                const fieldKeys = ['lul1Code', 'luDesTh', 'shapeArea'];
+                select.onchange = () => {
+                    if (fileNum === 1) {
+                        fieldMapping1[fieldKeys[index]] = select.value;
+                    } else {
+                        fieldMapping2[fieldKeys[index]] = select.value;
+                    }
+                    updateMappingStatus(fileNum);
+                };
+            });
+            
+            updateMappingStatus(fileNum);
+        }
+
+        function showFieldMapping(fileNum) {
+            document.getElementById(`fieldMapping${fileNum}`).classList.add('show');
+        }
+
+        function updateMappingStatus(fileNum) {
+            const mapping = fileNum === 1 ? fieldMapping1 : fieldMapping2;
+            const statusDiv = document.getElementById(`mappingStatus${fileNum}`);
+            
+            const isComplete = mapping.lul1Code && mapping.luDesTh && mapping.shapeArea;
+            
+            if (isComplete) {
+                statusDiv.className = 'mapping-status complete';
+                statusDiv.innerHTML = '✅ จับคู่ฟิลด์เรียบร้อยแล้ว';
+            } else {
+                statusDiv.className = 'mapping-status incomplete';
+                statusDiv.innerHTML = '❌ กรุณาจับคู่ฟิลด์ทั้งหมด';
+            }
+        }
+
+        function updateAvailableFields() {
+            if (!fileData1 && !fileData2) return;
+            
+            const data = fileData1 || fileData2;
+            if (data.length === 0) return;
+
+            // Get all field names from the first row, excluding mapped fields
+            const fields = Object.keys(data[0]);
+
+            availableFields = fields;
+            
+            const fieldSelector = document.getElementById('fieldSelector');
+            fieldSelector.innerHTML = '<option value="">-- เลือกฟิลด์ --</option>';
+            
+            fields.forEach(field => {
+                const option = document.createElement('option');
+                option.value = field;
+                option.textContent = field;
+                fieldSelector.appendChild(option);
+            });
+        }
+
+        function onFieldChange() {
+            const fieldSelector = document.getElementById('fieldSelector');
+            selectedField = fieldSelector.value;
+            selectedValues = [];
+            updateSelectedValues();
+            
+            if (selectedField) {
+                updateFieldValues();
+            }
+            
+            const valueSearch = document.getElementById('valueSearch');
+            valueSearch.value = '';
+            hideSearchResults();
+        }
+
+        function updateFieldValues() {
+            if (!selectedField) return;
+            
+            const allData = [...(fileData1 || []), ...(fileData2 || [])];
+            const values = new Set();
+            
+            allData.forEach(row => {
+                const value = row[selectedField];
+                if (value !== undefined && value !== null && value !== '') {
+                    values.add(String(value));
+                }
+            });
+            
+            fieldValues[selectedField] = Array.from(values).sort((a, b) => 
+                a.localeCompare(b, 'th', { numeric: true })
+            );
+        }
+
+        function searchValues() {
+            if (!selectedField) return;
+            
+            const searchTerm = document.getElementById('valueSearch').value.toLowerCase();
+            const values = fieldValues[selectedField] || [];
+            
+            const filteredValues = values.filter(value => 
+                value.toLowerCase().includes(searchTerm)
+            );
+            
+            displaySearchResults(filteredValues);
+        }
+
+        function displaySearchResults(values) {
+            const resultsContainer = document.getElementById('searchResults');
+            resultsContainer.innerHTML = '';
+            
+            if (values.length === 0) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+            
+            values.forEach(value => {
+                const item = document.createElement('div');
+                item.className = 'search-result-item';
+                item.textContent = value;
+                item.onclick = () => selectValue(value);
+                resultsContainer.appendChild(item);
+            });
+            
+            resultsContainer.style.display = 'block';
+        }
+
+        function showSearchResults() {
+            if (selectedField && fieldValues[selectedField]) {
+                searchValues();
+            }
+        }
+
+        function hideSearchResults() {
+            document.getElementById('searchResults').style.display = 'none';
+        }
+
+        function selectValue(value) {
+            if (!selectedValues.includes(value)) {
+                selectedValues.push(value);
+                updateSelectedValues();
+            }
+            document.getElementById('valueSearch').value = '';
+            hideSearchResults();
+        }
+
+        function removeValue(value) {
+            selectedValues = selectedValues.filter(v => v !== value);
+            updateSelectedValues();
+        }
+
+        function updateSelectedValues() {
+            const container = document.getElementById('selectedValues');
+            container.innerHTML = '';
+            
+            selectedValues.forEach(value => {
+                const item = document.createElement('div');
+                item.className = 'selected-value';
+                item.innerHTML = `
+                    ${value}
+                    <span class="remove-value" onclick="removeValue('${value.replace(/'/g, '\\\'')}')">&times;</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+            const searchContainer = document.querySelector('.search-container');
+            if (!searchContainer.contains(e.target)) {
+                hideSearchResults();
+            }
+        });
+
+        function filterDataByRegion(data, field, values) {
+            if (!field || values.length === 0) return data;
+            
+            return data.filter(row => {
+                const rowValue = String(row[field] || '');
+                return values.includes(rowValue);
+            });
+        }
+
+        function processLandUseData(data1, data2, year1, year2) {
+            // Transform data using field mappings
+            const transformedData1 = data1.map(row => ({
+                LUL1_CODE: row[fieldMapping1.lul1Code] || '',
+                LU_DES_TH: row[fieldMapping1.luDesTh] || '',
+                Shape_Area: parseFloat(row[fieldMapping1.shapeArea]) || 0,
+                ...row // Keep original fields for region filtering
+            }));
+
+            const transformedData2 = data2.map(row => ({
+                LUL1_CODE: row[fieldMapping2.lul1Code] || '',
+                LU_DES_TH: row[fieldMapping2.luDesTh] || '',
+                Shape_Area: parseFloat(row[fieldMapping2.shapeArea]) || 0,
+                ...row // Keep original fields for region filtering
+            }));
+
+            // Apply region filter if in region mode
+            let filteredData1 = transformedData1;
+            let filteredData2 = transformedData2;
+            
+            if (currentMode === 'region' && selectedField && selectedValues.length > 0) {
+                filteredData1 = filterDataByRegion(transformedData1, selectedField, selectedValues);
+                filteredData2 = filterDataByRegion(transformedData2, selectedField, selectedValues);
+            }
+
+            // Group data by LUL1_CODE and LU_DES_TH
+            const groupData = (data) => {
+                const grouped = {};
+                data.forEach(row => {
+                    const code = row.LUL1_CODE || '';
+                    const desc = row.LU_DES_TH || '';
+                    const area = row.Shape_Area || 0;
+                    
+                    const key = `${code}|${desc}`;
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            LUL1_CODE: code,
+                            LU_DES_TH: desc,
+                            totalArea: 0
+                        };
+                    }
+                    grouped[key].totalArea += area;
+                });
+                return grouped;
+            };
+
+            const grouped1 = groupData(filteredData1);
+            const grouped2 = groupData(filteredData2);
+
+            // Calculate totals for percentages
+            const total1 = Object.values(grouped1).reduce((sum, item) => sum + item.totalArea, 0);
+            const total2 = Object.values(grouped2).reduce((sum, item) => sum + item.totalArea, 0);
+
+            // Calculate years difference for CAGR
+            const yearsDiff = parseInt(year2) - parseInt(year1);
+
+            // Combine all unique keys
+            const allKeys = new Set([...Object.keys(grouped1), ...Object.keys(grouped2)]);
+            
+            const result = [];
+            const codeSummary = {};
+
+            allKeys.forEach(key => {
+                const item1 = grouped1[key];
+                const item2 = grouped2[key];
+                
+                const area1 = item1 ? item1.totalArea : 0;
+                const area2 = item2 ? item2.totalArea : 0;
+                const percent1 = total1 > 0 ? (area1 / total1) * 100 : 0;
+                const percent2 = total2 > 0 ? (area2 / total2) * 100 : 0;
+                const change = area2 - area1;
+                const percentChange = calculatePercentageChange(area1, area2);
+                const cagr = calculateCAGR(area1, area2, yearsDiff);
+                
+                const code = item1?.LUL1_CODE || item2?.LUL1_CODE || '';
+                
+                // Add to code summary
+                if (!codeSummary[code]) {
+                    codeSummary[code] = {
+                        LUL1_CODE: code,
+                        area1: 0,
+                        area2: 0,
+                        count: 0
+                    };
+                }
+                codeSummary[code].area1 += area1;
+                codeSummary[code].area2 += area2;
+                codeSummary[code].count++;
+                
+                result.push({
+                    LUL1_CODE: code,
+                    areaType: getAreaTypeName(code),
+                    LU_DES_TH: item1?.LU_DES_TH || item2?.LU_DES_TH || '',
+                    area1: area1,
+                    percent1: percent1,
+                    area2: area2,
+                    percent2: percent2,
+                    change: change,
+                    percentChange: percentChange,
+                    cagr: cagr,
+                    year1: year1,
+                    year2: year2,
+                    yearsDiff: yearsDiff,
+                    isDetail: true
+                });
+            });
+
+            // Sort details by LUL1_CODE order
+            result.sort((a, b) => {
+                const orderA = getCodeOrder(a.LUL1_CODE);
+                const orderB = getCodeOrder(b.LUL1_CODE);
+                if (orderA !== orderB) {
+                    return orderA - orderB;
+                }
+                return a.LU_DES_TH.localeCompare(b.LU_DES_TH, 'th');
+            });
+
+            // Calculate grand total
+            const grandTotal1 = Object.values(codeSummary).reduce((sum, item) => sum + item.area1, 0);
+            const grandTotal2 = Object.values(codeSummary).reduce((sum, item) => sum + item.area2, 0);
+            const grandTotalChange = grandTotal2 - grandTotal1;
+            const grandTotalPercentChange = calculatePercentageChange(grandTotal1, grandTotal2);
+            const grandTotalCAGR = calculateCAGR(grandTotal1, grandTotal2, yearsDiff);
+            const totalItems = Object.values(codeSummary).reduce((sum, item) => sum + item.count, 0);
+
+            // Insert summary rows
+            const finalResult = [];
+            
+            // Add grand total row first
+            finalResult.push({
+                LUL1_CODE: 'รวมทั้งหมด',
+                areaType: 'รวมพื้นที่ทุกประเภท',
+                LU_DES_TH: `รวมพื้นที่ทั้งหมด (${totalItems} รายการ)`,
+                area1: grandTotal1,
+                percent1: 100,
+                area2: grandTotal2,
+                percent2: 100,
+                change: grandTotalChange,
+                percentChange: grandTotalPercentChange,
+                cagr: grandTotalCAGR,
+                year1: year1,
+                year2: year2,
+                yearsDiff: yearsDiff,
+                isGrandTotal: true
+            });
+
+            let currentCode = '';
+            
+            result.forEach(row => {
+                if (row.LUL1_CODE !== currentCode) {
+                    // Add summary row for this code
+                    if (codeSummary[row.LUL1_CODE]) {
+                        const summary = codeSummary[row.LUL1_CODE];
+                        const summaryPercent1 = total1 > 0 ? (summary.area1 / total1) * 100 : 0;
+                        const summaryPercent2 = total2 > 0 ? (summary.area2 / total2) * 100 : 0;
+                        const summaryChange = summary.area2 - summary.area1;
+                        const summaryPercentChange = calculatePercentageChange(summary.area1, summary.area2);
+                        const summaryCAGR = calculateCAGR(summary.area1, summary.area2, yearsDiff);
+                        
+                        finalResult.push({
+                            LUL1_CODE: row.LUL1_CODE,
+                            areaType: getAreaTypeName(row.LUL1_CODE),
+                            LU_DES_TH: `รวม ${row.LUL1_CODE} (${summary.count} รายการ)`,
+                            area1: summary.area1,
+                            percent1: summaryPercent1,
+                            area2: summary.area2,
+                            percent2: summaryPercent2,
+                            change: summaryChange,
+                            percentChange: summaryPercentChange,
+                            cagr: summaryCAGR,
+                            year1: year1,
+                            year2: year2,
+                            yearsDiff: yearsDiff,
+                            isSummary: true
+                        });
+                    }
+                    currentCode = row.LUL1_CODE;
+                }
+                finalResult.push(row);
+            });
+
+            return finalResult;
+        }
+
+        async function processFiles() {
+            const file1 = document.getElementById('file1').files[0];
+            const file2 = document.getElementById('file2').files[0];
+            const year1 = document.getElementById('year1').value;
+            const year2 = document.getElementById('year2').value;
+
+            if (!file1 || !file2) {
+                alert('กรุณาเลือกไฟล์ทั้ง 2 ไฟล์');
+                return;
+            }
+
+            if (!year1 || !year2) {
+                alert('กรุณาระบุปีสำหรับทั้ง 2 ไฟล์');
+                return;
+            }
+
+            // Check field mappings
+            const mapping1Complete = fieldMapping1.lul1Code && fieldMapping1.luDesTh && fieldMapping1.shapeArea;
+            const mapping2Complete = fieldMapping2.lul1Code && fieldMapping2.luDesTh && fieldMapping2.shapeArea;
+            
+            if (!mapping1Complete || !mapping2Complete) {
+                alert('กรุณาจับคู่ฟิลด์ให้ครบถ้วนสำหรับทั้ง 2 ไฟล์');
+                return;
+            }
+
+            if (currentMode === 'region' && (!selectedField || selectedValues.length === 0)) {
+                alert('กรุณาเลือกฟิลด์และค่าสำหรับการกรองตามเขตการปกครอง');
+                return;
+            }
+
+            const processBtn = document.getElementById('processBtn');
+            const resultsSection = document.getElementById('results');
+            
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<div class="spinner"></div>กำลังประมวลผล...';
+            resultsSection.style.display = 'none';
+
+            try {
+                const data1 = fileData1 || await readExcelFile(file1);
+                const data2 = fileData2 || await readExcelFile(file2);
+
+                processedData = processLandUseData(data1, data2, year1, year2);
+                year1Value = year1;
+                year2Value = year2;
+
+                displayResults(processedData, year1, year2);
+                showFilterInfo();
+                
+                resultsSection.style.display = 'block';
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                alert(`เกิดข้อผิดพลาด: ${error.message}`);
+            } finally {
+                processBtn.disabled = false;
+                processBtn.innerHTML = '🚀 ประมวลผล';
+            }
+        }
+
+        function showFilterInfo() {
+            const filterInfo = document.getElementById('filterInfo');
+            const filterField = document.getElementById('filterField');
+            const filterValues = document.getElementById('filterValues');
+
+            if (currentMode === 'region' && selectedField && selectedValues.length > 0) {
+                filterField.textContent = `ฟิลด์ที่เลือก: ${selectedField}`;
+                filterValues.textContent = `ค่าที่เลือก: ${selectedValues.join(', ')}`;
+                filterInfo.style.display = 'block';
+            } else {
+                filterInfo.style.display = 'none';
+            }
+        }
+
+        function displayResults(data, year1, year2) {
+            const tbody = document.getElementById('resultsBody');
+            const year1Header = document.getElementById('year1Header');
+            const year1PercentHeader = document.getElementById('year1PercentHeader');
+            const year2Header = document.getElementById('year2Header');
+            const year2PercentHeader = document.getElementById('year2PercentHeader');
+
+            const unitLabel = getUnitLabel(currentUnit);
+            year1Header.textContent = `พื้นที่ ${year1} (${unitLabel})`;
+            year1PercentHeader.textContent = `สัดส่วน ${year1} (%)`;
+            year2Header.textContent = `พื้นที่ ${year2} (${unitLabel})`;
+            year2PercentHeader.textContent = `สัดส่วน ${year2} (%)`;
+
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                const convertedArea1 = convertArea(row.area1, currentUnit);
+                const convertedArea2 = convertArea(row.area2, currentUnit);
+                const convertedChange = convertedArea2 - convertedArea1;
+                
+                const changeText = convertedChange > 0 ? 
+                    `+${formatNumber(convertedChange)}` : 
+                    formatNumber(convertedChange);
+                const changeColor = convertedChange > 0 ? '#11998e' : 
+                                  convertedChange < 0 ? '#ff6b6b' : '#333';
+
+                const percentChangeText = row.percentChange > 0 ? 
+                    `+${formatNumber(row.percentChange)}%` : 
+                    `${formatNumber(row.percentChange)}%`;
+                const percentChangeColor = row.percentChange > 0 ? '#11998e' : 
+                                         row.percentChange < 0 ? '#ff6b6b' : '#333';
+
+                const cagrText = `${formatNumber(row.cagr)}%`;
+                const cagrColor = row.cagr > 0 ? '#11998e' : 
+                                 row.cagr < 0 ? '#ff6b6b' : '#333';
+
+                // Style for summary rows
+                if (row.isSummary) {
+                    tr.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+                    tr.style.fontWeight = 'bold';
+                    tr.style.borderTop = '2px solid #667eea';
+                    tr.style.borderBottom = '2px solid #667eea';
+                }
+
+                // Style for grand total row
+                if (row.isGrandTotal) {
+                    tr.style.backgroundColor = 'rgba(17, 153, 142, 0.15)';
+                    tr.style.fontWeight = 'bold';
+                    tr.style.borderTop = '3px solid #11998e';
+                    tr.style.borderBottom = '3px solid #11998e';
+                    tr.style.fontSize = '1.1em';
+                }
+
+                tr.innerHTML = `
+                    <td class="lul-code" style="${row.isSummary ? 'font-size: 1.1em;' : ''} ${row.isGrandTotal ? 'font-size: 1.2em; color: #11998e;' : ''}">${row.LUL1_CODE}</td>
+                    <td style="${row.isSummary ? 'color: #667eea; font-weight: bold;' : ''} ${row.isGrandTotal ? 'color: #11998e; font-weight: bold;' : ''}">${row.areaType || ''}</td>
+                    <td style="${row.isSummary ? 'color: #667eea; font-weight: bold;' : ''} ${row.isGrandTotal ? 'color: #11998e; font-weight: bold; font-size: 1.1em;' : ''}">${row.LU_DES_TH}</td>
+                    <td class="area-value">${formatNumber(convertedArea1)}</td>
+                    <td class="percentage">${formatNumber(row.percent1)}%</td>
+                    <td class="area-value">${formatNumber(convertedArea2)}</td>
+                    <td class="percentage">${formatNumber(row.percent2)}%</td>
+                    <td class="area-value" style="color: ${changeColor}; font-weight: bold;">
+                        ${changeText}
+                    </td>
+                    <td class="percentage" style="color: ${percentChangeColor}; font-weight: bold;">
+                        ${percentChangeText}
+                    </td>
+                    <td class="cagr-value" style="color: ${cagrColor}; font-weight: bold;">
+                        ${cagrText}
+                    </td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        function changeUnit() {
+            const unitSelector = document.getElementById('unitSelector');
+            currentUnit = unitSelector.value;
+            
+            if (processedData.length > 0) {
+                displayResults(processedData, year1Value, year2Value);
+            }
+        }
+
+        function exportToExcel() {
+            if (processedData.length === 0) {
+                alert('ไม่มีข้อมูลสำหรับส่งออก');
+                return;
+            }
+
+            const unitLabel = getUnitLabel(currentUnit);
+            
+            const exportData = processedData.map(row => {
+                const convertedArea1 = convertArea(row.area1, currentUnit);
+                const convertedArea2 = convertArea(row.area2, currentUnit);
+                const convertedChange = convertedArea2 - convertedArea1;
+                
+                return {
+                    'LUL1_CODE': row.LUL1_CODE,
+                    'ประเภทพื้นที่': row.areaType || '',
+                    'LU_DES_TH': row.LU_DES_TH,
+                    'ประเภท': row.isGrandTotal ? 'รวมทั้งหมด' : (row.isSummary ? 'รวม' : 'รายละเอียด'),
+                    [`พื้นที่_${year1Value}_${unitLabel}`]: convertedArea1,
+                    [`สัดส่วน_${year1Value}_%`]: row.percent1,
+                    [`พื้นที่_${year2Value}_${unitLabel}`]: convertedArea2,
+                    [`สัดส่วน_${year2Value}_%`]: row.percent2,
+                    [`การเปลี่ยนแปลง_${unitLabel}`]: convertedChange,
+                    'การเปลี่ยนแปลง_%': row.percentChange,
+                    'CAGR_%': row.cagr,
+                    'จำนวนปี': row.yearsDiff,
+                    'ฟิลด์กรอง': currentMode === 'region' ? selectedField : '',
+                    'ค่าที่เลือก': currentMode === 'region' ? selectedValues.join(', ') : '',
+                    'ฟิลด์_LUL1_CODE_ไฟล์1': fieldMapping1.lul1Code,
+                    'ฟิลด์_LU_DES_TH_ไฟล์1': fieldMapping1.luDesTh,
+                    'ฟิลด์_Shape_Area_ไฟล์1': fieldMapping1.shapeArea,
+                    'ฟิลด์_LUL1_CODE_ไฟล์2': fieldMapping2.lul1Code,
+                    'ฟิลด์_LU_DES_TH_ไฟล์2': fieldMapping2.luDesTh,
+                    'ฟิลด์_Shape_Area_ไฟล์2': fieldMapping2.shapeArea
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            
+            // Set column widths
+            const colWidths = [
+                { wch: 12 }, // LUL1_CODE
+                { wch: 25 }, // ประเภทพื้นที่
+                { wch: 40 }, // LU_DES_TH
+                { wch: 12 }, // ประเภท
+                { wch: 20 }, // พื้นที่ 1
+                { wch: 15 }, // สัดส่วน 1
+                { wch: 20 }, // พื้นที่ 2
+                { wch: 15 }, // สัดส่วน 2
+                { wch: 20 }, // การเปลี่ยนแปลง
+                { wch: 15 }, // การเปลี่ยนแปลง %
+                { wch: 12 }, // CAGR %
+                { wch: 10 }, // จำนวนปี
+                { wch: 15 }, // ฟิลด์กรอง
+                { wch: 30 }, // ค่าที่เลือก
+                { wch: 20 }, // ฟิลด์ mapping
+                { wch: 20 }, // ฟิลด์ mapping
+                { wch: 20 }, // ฟิลด์ mapping
+                { wch: 20 }, // ฟิลด์ mapping
+                { wch: 20 }, // ฟิลด์ mapping
+                { wch: 20 }  // ฟิลด์ mapping
+            ];
+            ws['!cols'] = colWidths;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'เปรียบเทียบการใช้ประโยชน์ที่ดิน');
+
+            const modeText = currentMode === 'region' ? 'กรองตามเขต' : 'ทั้งหมด';
+            const fileName = `เปรียบเทียบการใช้ประโยชน์ที่ดิน_${year1Value}_${year2Value}_${modeText}_${unitLabel}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        // Enable drag and drop
+        ['file1', 'file2'].forEach(id => {
+            const input = document.getElementById(id);
+            const fileGroup = input.closest('.file-group');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileGroup.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                fileGroup.addEventListener(eventName, () => {
+                    fileGroup.style.borderColor = '#00f2fe';
+                    fileGroup.style.background = 'rgba(79, 172, 254, 0.2)';
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                fileGroup.addEventListener(eventName, () => {
+                    fileGroup.style.borderColor = '#4facfe';
+                    fileGroup.style.background = 'rgba(79, 172, 254, 0.05)';
+                });
+            });
+
+            fileGroup.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    input.files = files;
+                    onFileChange(parseInt(id.replace('file', '')));
+                }
+            });
+        });
+    </script>
 </body>
 </html>
