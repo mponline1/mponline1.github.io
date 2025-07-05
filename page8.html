@@ -249,11 +249,18 @@
         let gridApi;
         let columnDefs = [];
         let rowData = [];
+        let originalFileName = '';
 
         // Update file input display
         document.getElementById('fileInput').addEventListener('change', function(e) {
-            const fileName = e.target.files[0] ? e.target.files[0].name : 'เลือกไฟล์';
-            document.getElementById('fileDisplay').value = fileName;
+            const file = e.target.files[0];
+            if (file) {
+                originalFileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+                document.getElementById('fileDisplay').value = file.name;
+            } else {
+                document.getElementById('fileDisplay').value = 'เลือกไฟล์';
+                originalFileName = '';
+            }
         });
 
         async function processShapefile() {
@@ -278,7 +285,7 @@
                 if (rowData.length > 0) {
                     columnDefs = Object.keys(rowData[0]).map(key => ({
                         field: key,
-                        filter: true,
+                        filter: 'agSetColumnFilter',
                         floatingFilter: true,
                         sortable: true,
                         minWidth: 200,
@@ -286,7 +293,9 @@
                             buttons: ['apply', 'clear', 'reset'],
                             closeOnApply: false,
                             suppressAndOrCondition: false,
-                            values: getUniqueValues(rowData, key)
+                            values: getUniqueValues(rowData, key),
+                            suppressSelectAll: false,
+                            suppressMiniFilter: false
                         },
                         valueFormatter: params => {
                             if (typeof params.value === 'number') {
@@ -318,7 +327,10 @@
                             sortable: true,
                             filterParams: {
                                 buttons: ['apply', 'clear', 'reset'],
-                                closeOnApply: false
+                                closeOnApply: false,
+                                suppressAndOrCondition: false,
+                                suppressSelectAll: false,
+                                suppressMiniFilter: false
                             }
                         }
                     };
@@ -336,7 +348,8 @@
         }
 
         function getUniqueValues(data, field) {
-            return [...new Set(data.map(item => item[field]))].filter(value => value !== null && value !== undefined);
+            const uniqueValues = [...new Set(data.map(item => item[field]))];
+            return uniqueValues.filter(value => value !== null && value !== undefined);
         }
 
         function clearAllFilters() {
@@ -370,7 +383,10 @@
             const ws = XLSX.utils.json_to_sheet(filteredData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "ShapefileData");
-            XLSX.writeFile(wb, "shapefile_data.xlsx");
+            
+            // Use original filename for export
+            const exportFileName = originalFileName ? `${originalFileName}.xlsx` : 'shapefile_data.xlsx';
+            XLSX.writeFile(wb, exportFileName);
         }
     </script>
 </body>
