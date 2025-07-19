@@ -36,6 +36,190 @@
             overflow-y: auto;
         }
         
+        #searchPanel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 350px;
+            max-width: 400px;
+        }
+        
+        .search-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .search-title {
+            color: #007ac2;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: #007ac2;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .toggle-btn:hover {
+            background: #005a87;
+        }
+        
+        .search-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .search-tab {
+            flex: 1;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .search-tab.active {
+            background: white;
+            border-bottom-color: #007ac2;
+            color: #007ac2;
+            font-weight: bold;
+        }
+        
+        .search-tab:hover {
+            background: #e9ecef;
+        }
+        
+        .search-content {
+            display: none;
+        }
+        
+        .search-content.active {
+            display: block;
+        }
+        
+        .search-group {
+            margin-bottom: 12px;
+        }
+        
+        .search-label {
+            display: block;
+            font-size: 13px;
+            color: #495057;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        
+        .search-input, .search-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .search-input:focus, .search-select:focus {
+            outline: none;
+            border-color: #007ac2;
+            box-shadow: 0 0 0 2px rgba(0, 122, 194, 0.2);
+        }
+        
+        .search-input:disabled, .search-select:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+        }
+        
+        .coordinate-input {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .coordinate-input input {
+            flex: 1;
+        }
+        
+        .search-btn {
+            width: 100%;
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .search-btn:hover {
+            background: #218838;
+        }
+        
+        .search-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .gps-btn {
+            background: #17a2b8;
+            margin-bottom: 10px;
+        }
+        
+        .gps-btn:hover {
+            background: #138496;
+        }
+        
+        .search-results {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .result-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s;
+        }
+        
+        .result-item:hover {
+            background: #e3f2fd;
+            border-color: #007ac2;
+        }
+        
+        .result-parcel {
+            font-weight: bold;
+            color: #007ac2;
+        }
+        
+        .result-location {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
         #fileInput {
             margin-bottom: 10px;
             padding: 8px;
@@ -207,14 +391,100 @@
             margin-bottom: 8px;
             font-size: 14px;
         }
+        
+        .basemap-selector {
+            margin-bottom: 15px;
+        }
+        
+        .basemap-options {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .basemap-btn {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 12px;
+            margin: 0;
+        }
+        
+        .basemap-btn.active {
+            background: #28a745;
+        }
+        
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 
 <body>
     <div id="mapDiv"></div>
     
+    <!-- Search Panel -->
+    <div id="searchPanel">
+        <div class="search-header">
+            <div class="search-title">🔍 ค้นหา Parcel</div>
+            <button class="toggle-btn" onclick="toggleSearchPanel()">ซ่อน</button>
+        </div>
+        
+        <div class="search-tabs">
+            <button class="search-tab active" onclick="switchTab('parcel')">เลขโฉนด</button>
+            <button class="search-tab" onclick="switchTab('coordinate')">พิกัด</button>
+            <button class="search-tab" onclick="switchTab('gps')">GPS</button>
+        </div>
+        
+        <!-- Parcel Search -->
+        <div id="parcelSearch" class="search-content active">
+            <div class="search-group">
+                <label class="search-label">จังหวัด</label>
+                <select id="provinceSelect" class="search-select" onchange="updateAmphurOptions()">
+                    <option value="">เลือกจังหวัด</option>
+                </select>
+            </div>
+            <div class="search-group">
+                <label class="search-label">อำเภอ</label>
+                <select id="amphurSelect" class="search-select">
+                    <option value="">เลือกอำเภอ</option>
+                </select>
+            </div>
+            <div class="search-group">
+                <label class="search-label">เลขโฉนด (คั่นด้วย , สำหรับหลายเลข)</label>
+                <input type="text" id="parcelInput" class="search-input" placeholder="เช่น 1234, 5678, 9012">
+            </div>
+            <button class="search-btn" onclick="searchByParcel()">🔍 ค้นหา</button>
+        </div>
+        
+        <!-- Coordinate Search -->
+        <div id="coordinateSearch" class="search-content">
+            <div class="search-group">
+                <label class="search-label">พิกัด (ละติจูด, ลองจิจูด)</label>
+                <input type="text" id="coordinateInput" class="search-input" placeholder="เช่น 13.7563, 100.5018">
+            </div>
+            <button class="search-btn" onclick="searchByCoordinate()">🔍 ค้นหาตำแหน่ง</button>
+        </div>
+        
+        <!-- GPS Search -->
+        <div id="gpsSearch" class="search-content">
+            <button class="search-btn gps-btn" onclick="getCurrentLocation()">📍 ใช้ตำแหน่งปัจจุบัน</button>
+            <div id="gpsStatus" style="font-size: 12px; color: #666; text-align: center;"></div>
+        </div>
+        
+        <!-- Search Results -->
+        <div id="searchResults" class="search-results"></div>
+    </div>
+    
+    <!-- Controls Panel -->
     <div id="controls">
         <h3 style="margin-top: 0; color: #007ac2;">🗺️ ตรวจสอบข้อมูล Parcel</h3>
+        
+        <div class="controls-section basemap-selector">
+            <div class="section-title">🗺️ แผนที่ฐาน</div>
+            <div class="basemap-options">
+                <button id="osmBtn" class="basemap-btn active" onclick="switchBasemap('osm')">OSM</button>
+                <button id="satBtn" class="basemap-btn" onclick="switchBasemap('satellite')">ดาวเทียม</button>
+            </div>
+        </div>
         
         <div class="controls-section">
             <div class="section-title">📁 จัดการไฟล์ GeoJSON</div>
@@ -246,26 +516,327 @@
     
     <script>
         let map;
-        let loadedFiles = new Map(); // เก็บข้อมูลไฟล์ที่โหลดแล้ว
+        let loadedFiles = new Map();
         let highlightLayer;
         let selectedFeature = null;
+        let currentBasemap = 'osm';
+        let basemapLayers = {};
+        let searchMarkersLayer;
         
         // สร้างแผนที่
         function initializeMap() {
             map = L.map('mapDiv').setView([13.75, 100.5], 10);
             
-            // เพิ่ม basemap
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // สร้าง basemap layers
+            basemapLayers.osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+            });
             
-            // สร้าง layer สำหรับ highlight
+            basemapLayers.satellite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                attribution: '© Google Satellite'
+            });
+            
+            // เพิ่ม default basemap
+            basemapLayers.osm.addTo(map);
+            
+            // สร้าง layers
             highlightLayer = L.layerGroup().addTo(map);
+            searchMarkersLayer = L.layerGroup().addTo(map);
             
             // Event listener สำหรับการคลิก
             map.on('click', function(e) {
                 findParcelAtPoint(e.latlng);
             });
+        }
+        
+        // ฟังก์ชันเปลี่ยน basemap
+        function switchBasemap(type) {
+            // ลบ basemap ปัจจุบัน
+            if (basemapLayers[currentBasemap]) {
+                map.removeLayer(basemapLayers[currentBasemap]);
+            }
+            
+            // เพิ่ม basemap ใหม่
+            if (basemapLayers[type]) {
+                basemapLayers[type].addTo(map);
+                currentBasemap = type;
+            }
+            
+            // อัพเดต UI
+            document.querySelectorAll('.basemap-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(type === 'osm' ? 'osmBtn' : 'satBtn').classList.add('active');
+        }
+        
+        // ฟังก์ชันสลับแท็บค้นหา
+        function switchTab(tabName) {
+            // ซ่อนเนื้อหาทั้งหมด
+            document.querySelectorAll('.search-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // ซ่อนแท็บทั้งหมด
+            document.querySelectorAll('.search-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // แสดงเนื้อหาที่เลือก
+            document.getElementById(tabName + 'Search').classList.add('active');
+            event.target.classList.add('active');
+            
+            // ซ่อนผลการค้นหา
+            document.getElementById('searchResults').style.display = 'none';
+        }
+        
+        // ฟังก์ชันซ่อน/แสดง search panel
+        function toggleSearchPanel() {
+            const panel = document.getElementById('searchPanel');
+            const toggleBtn = panel.querySelector('.toggle-btn');
+            
+            if (panel.style.left === '-380px') {
+                panel.style.left = '15px';
+                toggleBtn.textContent = 'ซ่อน';
+            } else {
+                panel.style.left = '-380px';
+                toggleBtn.textContent = 'แสดง';
+            }
+        }
+        
+        // ฟังก์ชันโหลดข้อมูลจังหวัดและอำเภอ
+        function loadLocationData() {
+            const provinces = new Set();
+            const amphurs = new Map(); // province -> Set of amphurs
+            
+            for (let [fileName, fileData] of loadedFiles) {
+                if (fileName.match(/^parcel\d+\.geojson$/)) {
+                    for (let feature of fileData.geojson.features) {
+                        const props = feature.properties;
+                        if (props.provname && props.amphurname) {
+                            provinces.add(props.provname);
+                            
+                            if (!amphurs.has(props.provname)) {
+                                amphurs.set(props.provname, new Set());
+                            }
+                            amphurs.get(props.provname).add(props.amphurname);
+                        }
+                    }
+                }
+            }
+            
+            // อัพเดต dropdown จังหวัด
+            const provinceSelect = document.getElementById('provinceSelect');
+            provinceSelect.innerHTML = '<option value="">เลือกจังหวัด</option>';
+            
+            Array.from(provinces).sort().forEach(province => {
+                const option = document.createElement('option');
+                option.value = province;
+                option.textContent = province;
+                provinceSelect.appendChild(option);
+            });
+            
+            // เก็บข้อมูลอำเภอไว้ใช้
+            window.amphurData = amphurs;
+        }
+        
+        // ฟังก์ชันอัพเดตตัวเลือกอำเภอ
+        function updateAmphurOptions() {
+            const provinceSelect = document.getElementById('provinceSelect');
+            const amphurSelect = document.getElementById('amphurSelect');
+            const selectedProvince = provinceSelect.value;
+            
+            amphurSelect.innerHTML = '<option value="">เลือกอำเภอ</option>';
+            
+            if (selectedProvince && window.amphurData && window.amphurData.has(selectedProvince)) {
+                const amphurs = Array.from(window.amphurData.get(selectedProvince)).sort();
+                amphurs.forEach(amphur => {
+                    const option = document.createElement('option');
+                    option.value = amphur;
+                    option.textContent = amphur;
+                    amphurSelect.appendChild(option);
+                });
+            }
+        }
+        
+        // ฟังก์ชันค้นหาตามเลขโฉนด
+        function searchByParcel() {
+            const province = document.getElementById('provinceSelect').value;
+            const amphur = document.getElementById('amphurSelect').value;
+            const parcelInput = document.getElementById('parcelInput').value.trim();
+            
+            if (!parcelInput) {
+                alert('กรุณาใส่เลขโฉนด');
+                return;
+            }
+            
+            // แยกเลขโฉนดหลายเลข
+            const parcelNumbers = parcelInput.split(',').map(p => p.trim()).filter(p => p);
+            const results = [];
+            
+            // ค้นหาในทุกไฟล์ที่แสดงอยู่
+            for (let [fileName, fileData] of loadedFiles) {
+                if (!fileData.visible) continue;
+                
+                for (let feature of fileData.geojson.features) {
+                    const props = feature.properties;
+                    
+                    // ตรวจสอบเงื่อนไขจังหวัด
+                    if (province && props.provname !== province) continue;
+                    
+                    // ตรวจสอบเงื่อนไขอำเภอ
+                    if (amphur && props.amphurname !== amphur) continue;
+                    
+                    // ตรวจสอบเลขโฉนด
+                    const featureParcelNo = props.parcelno || '';
+                    for (let searchParcel of parcelNumbers) {
+                        if (featureParcelNo.toString().includes(searchParcel)) {
+                            results.push({
+                                feature: feature,
+                                fileName: fileName,
+                                parcelNo: featureParcelNo,
+                                province: props.provname || '',
+                                amphur: props.amphurname || ''
+                            });
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            displaySearchResults(results);
+            
+            // ล็อกช่องจังหวัดและอำเภอหากค้นหาหลายเลขโฉนด
+            if (parcelNumbers.length > 1) {
+                document.getElementById('provinceSelect').disabled = true;
+                document.getElementById('amphurSelect').disabled = true;
+            }
+        }
+        
+        // ฟังก์ชันค้นหาตามพิกัด
+        function searchByCoordinate() {
+            const coordinateInput = document.getElementById('coordinateInput').value.trim();
+            
+            if (!coordinateInput) {
+                alert('กรุณาใส่พิกัด');
+                return;
+            }
+            
+            // แยกละติจูดและลองจิจูด
+            const coords = coordinateInput.split(',').map(c => parseFloat(c.trim()));
+            
+            if (coords.length !== 2 || isNaN(coords[0]) || isNaN(coords[1])) {
+                alert('รูปแบบพิกัดไม่ถูกต้อง กรุณาใส่ในรูปแบบ: ละติจูด, ลองจิจูด');
+                return;
+            }
+            
+            const latlng = L.latLng(coords[0], coords[1]);
+            
+            // เพิ่ม marker และซูมไปยังตำแหน่ง
+            searchMarkersLayer.clearLayers();
+            L.marker(latlng).addTo(searchMarkersLayer)
+                .bindPopup(`พิกัด: ${coords[0]}, ${coords[1]}`)
+                .openPopup();
+            
+            map.setView(latlng, 16);
+            
+            // ค้นหา parcel ในตำแหน่งนั้น
+            findParcelAtPoint(latlng);
+        }
+        
+        // ฟังก์ชันใช้ GPS
+        function getCurrentLocation() {
+            const statusDiv = document.getElementById('gpsStatus');
+            
+            if (!navigator.geolocation) {
+                statusDiv.textContent = 'เบราว์เซอร์ไม่รองรับ GPS';
+                return;
+            }
+            
+            statusDiv.textContent = 'กำลังขอตำแหน่ง GPS...';
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const latlng = L.latLng(lat, lng);
+                    
+                    statusDiv.textContent = `ตำแหน่ง: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    
+                    // เพิ่ม marker และซูมไปยังตำแหน่ง
+                    searchMarkersLayer.clearLayers();
+                    L.marker(latlng).addTo(searchMarkersLayer)
+                        .bindPopup(`ตำแหน่งปัจจุบัน<br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`)
+                        .openPopup();
+                    
+                    map.setView(latlng, 16);
+                    
+                    // ค้นหา parcel ในตำแหน่งนั้น
+                    findParcelAtPoint(latlng);
+                },
+                function(error) {
+                    let errorMsg = 'ไม่สามารถขอตำแหน่ง GPS ได้';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg = 'ผู้ใช้ปฏิเสธการขอตำแหน่ง';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg = 'ตำแหน่งไม่พร้อมใช้งาน';
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg = 'หมดเวลาขอตำแหน่ง';
+                            break;
+                    }
+                    statusDiv.textContent = errorMsg;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
+                }
+            );
+        }
+        
+        // ฟังก์ชันแสดงผลการค้นหา
+        function displaySearchResults(results) {
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div style="text-align: center; color: #666;">ไม่พบข้อมูลที่ค้นหา</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+            
+            let html = `<div style="font-weight: bold; color: #007ac2; margin-bottom: 8px;">
+                พบ ${results.length} รายการ
+            </div>`;
+            
+            results.forEach((result, index) => {
+                html += `
+                    <div class="result-item" onclick="selectSearchResult(${index})">
+                        <div class="result-parcel">โฉนด: ${result.parcelNo}</div>
+                        <div class="result-location">${result.province} - ${result.amphur}</div>
+                        <div style="font-size: 11px; color: #999;">📁 ${result.fileName}</div>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+            
+            // เก็บผลการค้นหาไว้ใช้
+            window.searchResults = results;
+        }
+        
+        // ฟังก์ชันเลือกผลการค้นหา
+        function selectSearchResult(index) {
+            const result = window.searchResults[index];
+            if (result) {
+                highlightParcel(result.feature);
+                displayParcelInfo(result.feature, result.fileName);
+                
+                // ซ่อน search panel หลังค้นหา
+                setTimeout(() => {
+                    toggleSearchPanel();
+                }, 500);
+            }
         }
         
         // ฟังก์ชันตรวจสอบจุดอยู่ในรูปหลายเหลี่ยมหรือไม่
@@ -288,7 +859,7 @@
         // ฟังก์ชันตรวจสอบจุดอยู่ใน MultiPolygon หรือไม่
         function pointInMultiPolygon(point, multiPolygon) {
             for (let polygon of multiPolygon) {
-                if (pointInPolygon(point, polygon[0])) { // ตรวจสอบเฉพาะ outer ring
+                if (pointInPolygon(point, polygon[0])) {
                     return true;
                 }
             }
@@ -300,7 +871,6 @@
             let foundFeature = null;
             let foundFileName = null;
             
-            // ค้นหาในทุกไฟล์ที่โหลดแล้ว
             for (let [fileName, fileData] of loadedFiles) {
                 if (!fileData.visible) continue;
                 
@@ -341,12 +911,30 @@
             });
         });
         
+        // Event listener สำหรับ parcel input
+        document.getElementById('parcelInput').addEventListener('input', function() {
+            const value = this.value.trim();
+            const hasComma = value.includes(',');
+            
+            const provinceSelect = document.getElementById('provinceSelect');
+            const amphurSelect = document.getElementById('amphurSelect');
+            
+            if (hasComma) {
+                // ล็อกช่องจังหวัดและอำเภอ
+                provinceSelect.disabled = true;
+                amphurSelect.disabled = true;
+            } else {
+                // ปลดล็อกช่องจังหวัดและอำเภอ
+                provinceSelect.disabled = false;
+                amphurSelect.disabled = false;
+            }
+        });
+        
         // ฟังก์ชันโหลดไฟล์ GeoJSON อัตโนมัติ
         async function loadAutoGeoJSON() {
             try {
                 updateStatus('กำลังโหลดไฟล์ GeoJSON อัตโนมัติ...', 'info');
                 
-                // รายการไฟล์ที่จะลองโหลด
                 const commonNames = [
                     'parcels.geojson',
                     'parcel.geojson', 
@@ -357,15 +945,13 @@
                     'data.geojson'
                 ];
                 
-                // เพิ่มไฟล์ parcel1.geojson ถึง parcel20.geojson
                 for (let i = 1; i <= 20; i++) {
                     commonNames.push(`parcel${i}.geojson`);
                 }
                 
                 let loadedCount = 0;
-                let loadedFiles = [];
+                let loadedFilesList = [];
                 
-                // ใช้ Promise.allSettled เพื่อโหลดไฟล์พร้อมกัน
                 const results = await Promise.allSettled(
                     commonNames.map(async (fileName) => {
                         const response = await fetch(`./${fileName}`);
@@ -383,26 +969,24 @@
                     })
                 );
                 
-                // ประมวลผลผลลัพธ์
                 for (let result of results) {
                     if (result.status === 'fulfilled') {
                         const { fileName, geojsonData } = result.value;
                         addFileToMap(fileName, geojsonData);
-                        loadedFiles.push(fileName);
+                        loadedFilesList.push(fileName);
                         loadedCount++;
                     } else {
-                        // ไฟล์ไม่พบหรือเกิดข้อผิดพลาด (ไม่แสดง log เพื่อลด noise)
                         console.debug(result.reason.message);
                     }
                 }
                 
                 if (loadedCount > 0) {
-                    updateStatus(`โหลดไฟล์สำเร็จ ${loadedCount} ไฟล์: ${loadedFiles.join(', ')}`, 'success');
+                    updateStatus(`โหลดไฟล์สำเร็จ ${loadedCount} ไฟล์: ${loadedFilesList.join(', ')}`, 'success');
                     updateFileList();
                     fitMapToAllLayers();
+                    loadLocationData(); // โหลดข้อมูลจังหวัดและอำเภอ
                     
-                    // แสดงรายชื่อไฟล์ที่โหลดสำเร็จในคอนโซล
-                    console.log('ไฟล์ที่โหลดสำเร็จ:', loadedFiles);
+                    console.log('ไฟล์ที่โหลดสำเร็จ:', loadedFilesList);
                 } else {
                     updateStatus('ไม่พบไฟล์ GeoJSON ในโฟลเดอร์ กรุณาเลือกไฟล์ด้วยตนเอง', 'info');
                 }
@@ -429,6 +1013,7 @@
                     updateStatus(`โหลดไฟล์ ${file.name} สำเร็จ!`, 'success');
                     updateFileList();
                     fitMapToAllLayers();
+                    loadLocationData(); // โหลดข้อมูลจังหวัดและอำเภอ
                     
                 } catch (error) {
                     console.error('Error parsing GeoJSON:', error);
@@ -440,15 +1025,12 @@
         
         // ฟังก์ชันเพิ่มไฟล์ลงแผนที่
         function addFileToMap(fileName, geojsonData) {
-            // ลบไฟล์เก่าถ้ามี
             if (loadedFiles.has(fileName)) {
                 removeFileFromMap(fileName);
             }
             
-            // ตรวจสอบว่าเป็นไฟล์ที่ต้อง lock หรือไม่
             const isAutoLoaded = isAutoLoadedFile(fileName);
             
-            // สร้าง layer ใหม่
             const layer = L.geoJSON(geojsonData, {
                 style: function(feature) {
                     return {
@@ -463,12 +1045,11 @@
             
             layer.addTo(map);
             
-            // เก็บข้อมูลไฟล์
             loadedFiles.set(fileName, {
                 geojson: geojsonData,
                 layer: layer,
                 visible: true,
-                locked: isAutoLoaded // ไฟล์ที่โหลดอัตโนมัติจะถูก lock
+                locked: isAutoLoaded
             });
         }
         
@@ -484,7 +1065,6 @@
                 'data.geojson'
             ];
             
-            // เพิ่มไฟล์ parcel1.geojson ถึง parcel20.geojson
             for (let i = 1; i <= 20; i++) {
                 autoLoadFiles.push(`parcel${i}.geojson`);
             }
@@ -504,7 +1084,7 @@
         // ฟังก์ชันแสดง/ซ่อนไฟล์
         function toggleFileVisibility(fileName) {
             const fileData = loadedFiles.get(fileName);
-            if (fileData && !fileData.locked) { // ตรวจสอบว่าไฟล์ไม่ถูก lock
+            if (fileData && !fileData.locked) {
                 if (fileData.visible) {
                     map.removeLayer(fileData.layer);
                     fileData.visible = false;
@@ -579,14 +1159,15 @@
         // ฟังก์ชันลบไฟล์
         function removeFile(fileName) {
             const fileData = loadedFiles.get(fileName);
-            if (fileData && !fileData.locked) { // ตรวจสอบว่าไฟล์ไม่ถูก lock
+            if (fileData && !fileData.locked) {
                 removeFileFromMap(fileName);
                 updateFileList();
                 clearSelection();
+                loadLocationData(); // อัพเดตข้อมูลจังหวัดและอำเภอ
             }
         }
         
-        // ฟังก์ชันล้างไฟล์ทั้งหมด (เฉพาะไฟล์ที่ไม่ถูก lock)
+        // ฟังก์ชันล้างไฟล์ทั้งหมด
         function clearAllFiles() {
             const filesToRemove = [];
             
@@ -602,6 +1183,7 @@
             
             updateFileList();
             clearSelection();
+            loadLocationData(); // อัพเดตข้อมูลจังหวัดและอำเภอ
             
             if (filesToRemove.length > 0) {
                 updateStatus(`ล้างไฟล์ ${filesToRemove.length} ไฟล์แล้ว (ไฟล์ที่ล็อคจะยังคงอยู่)`, 'info');
@@ -632,10 +1214,8 @@
         
         // ฟังก์ชัน highlight parcel ที่เลือก
         function highlightParcel(feature) {
-            // ล้าง highlight เก่า
             highlightLayer.clearLayers();
             
-            // สร้าง highlight layer
             const highlightStyle = {
                 color: '#ff0000',
                 weight: 3,
@@ -649,10 +1229,7 @@
             });
             
             highlightLayer.addLayer(highlightFeature);
-            
-            // ซูมไปที่ feature
             map.fitBounds(highlightFeature.getBounds().pad(0.1));
-            
             selectedFeature = feature;
         }
         
@@ -668,7 +1245,6 @@
             
             const props = feature.properties || {};
             
-            // แสดง parcelno ก่อน (ถ้ามี)
             const parcelFields = ['parcelno', 'PARCELNO', 'parcel_no', 'PARCEL_NO', 'parcel_id', 'PARCEL_ID', 'id', 'ID'];
             let parcelNo = null;
             
@@ -686,13 +1262,10 @@
                 </div>`;
             }
             
-            // แสดงข้อมูลอื่นๆ
             for (let key in props) {
                 if (props[key] !== null && props[key] !== undefined && props[key] !== '') {
-                    // ข้าม parcelno ที่แสดงแล้ว
                     if (!parcelFields.includes(key)) {
                         let value = props[key];
-                        // ตัดข้อความยาวๆ
                         if (typeof value === 'string' && value.length > 100) {
                             value = value.substring(0, 100) + '...';
                         }
@@ -714,16 +1287,21 @@
             
             contentDiv.innerHTML = content;
             infoDiv.style.display = 'block';
-            
             updateStatus('พบข้อมูล Parcel แล้ว!', 'success');
         }
         
         // ฟังก์ชันล้างการเลือก
         function clearSelection() {
             highlightLayer.clearLayers();
+            searchMarkersLayer.clearLayers();
             document.getElementById('info').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'none';
             selectedFeature = null;
             updateStatus('คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel', 'info');
+            
+            // ปลดล็อกช่องจังหวัดและอำเภอ
+            document.getElementById('provinceSelect').disabled = false;
+            document.getElementById('amphurSelect').disabled = false;
         }
         
         // ฟังก์ชันแสดงข้อมูลวิธีแก้ปัญหา CORS
@@ -806,15 +1384,12 @@
             const isLocalFile = protocol === 'file:';
             
             if (isHTTPS || isHTTP) {
-                // อยู่บน HTTP/HTTPS server - สามารถโหลดไฟล์อัตโนมัติได้
                 console.log('🌐 รันบน HTTP/HTTPS Server - รองรับการโหลดไฟล์อัตโนมัติ');
                 loadAutoGeoJSON();
             } else if (isLocalFile) {
-                // เปิดจาก file:// - มีข้อจำกัด CORS
                 console.log('📁 เปิดจาก file:// - มีข้อจำกัด CORS');
                 updateStatus('🔧 เปิดจาก file:// กรุณาดู "วิธีแก้ CORS" หรือเลือกไฟล์ด้วยตนเอง', 'info');
             } else {
-                // protocol อื่นๆ
                 console.log('🔗 Protocol ไม่รู้จัก:', protocol);
                 updateStatus('กรุณาเลือกไฟล์ GeoJSON ด้วยตนเอง', 'info');
             }
