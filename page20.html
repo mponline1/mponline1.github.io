@@ -219,7 +219,7 @@
         <div class="controls-section">
             <div class="section-title">📁 จัดการไฟล์ GeoJSON</div>
             <input type="file" id="fileInput" accept=".geojson,.json" multiple />
-            <button onclick="tryAutoLoad()">ลองโหลดอัตโนมัติ</button>
+            <button onclick="loadAutoGeoJSON()">โหลดไฟล์อัตโนมัติ</button>
             <button onclick="clearAllFiles()">ล้างไฟล์ทั้งหมด</button>
             <button onclick="showHttpServerInfo()">วิธีแก้ CORS</button>
         </div>
@@ -343,26 +343,74 @@
         
         // ฟังก์ชันโหลดไฟล์ GeoJSON อัตโนมัติ
         async function loadAutoGeoJSON() {
-            updateStatus('เนื่องจากข้อจำกัดของ CORS ในเบราว์เซอร์ กรุณาเลือกไฟล์ GeoJSON ด้วยตนเอง หรือเรียกใช้จาก HTTP Server', 'info');
-            
-            // แสดงข้อมูลวิธีแก้ปัญหา
-            console.log(`
-=== วิธีแก้ปัญหา CORS ===
-1. ใช้ HTTP Server:
-   - Python: python -m http.server 8000
-   - Node.js: npx serve .
-   - PHP: php -S localhost:8000
-   
-2. หรือเลือกไฟล์ผ่าน File Input ด้านบน
-
-3. สำหรับ Chrome: เปิดด้วย --allow-file-access-from-files
-   chrome.exe --allow-file-access-from-files
-
-4. ไฟล์ที่รองรับการโหลดอัตโนมัติ:
-   - parcels.geojson, parcel.geojson, land.geojson
-   - landuse.geojson, boundary.geojson, cadastral.geojson
-   - data.geojson, parcel1.geojson ถึง parcel20.geojson
-            `);
+            try {
+                updateStatus('กำลังโหลดไฟล์ GeoJSON อัตโนมัติ...', 'info');
+                
+                // รายการไฟล์ที่จะลองโหลด
+                const commonNames = [
+                    'parcels.geojson',
+                    'parcel.geojson', 
+                    'land.geojson',
+                    'landuse.geojson',
+                    'boundary.geojson',
+                    'cadastral.geojson',
+                    'data.geojson'
+                ];
+                
+                // เพิ่มไฟล์ parcel1.geojson ถึง parcel20.geojson
+                for (let i = 1; i <= 20; i++) {
+                    commonNames.push(`parcel${i}.geojson`);
+                }
+                
+                let loadedCount = 0;
+                let loadedFiles = [];
+                
+                // ใช้ Promise.allSettled เพื่อโหลดไฟล์พร้อมกัน
+                const results = await Promise.allSettled(
+                    commonNames.map(async (fileName) => {
+                        const response = await fetch(`./${fileName}`);
+                        if (!response.ok) {
+                            throw new Error(`ไม่พบไฟล์: ${fileName}`);
+                        }
+                        const text = await response.text();
+                        const geojsonData = JSON.parse(text);
+                        
+                        if (!geojsonData.features || geojsonData.features.length === 0) {
+                            throw new Error(`ไฟล์ ${fileName} ไม่มีข้อมูล features`);
+                        }
+                        
+                        return { fileName, geojsonData };
+                    })
+                );
+                
+                // ประมวลผลผลลัพธ์
+                for (let result of results) {
+                    if (result.status === 'fulfilled') {
+                        const { fileName, geojsonData } = result.value;
+                        addFileToMap(fileName, geojsonData);
+                        loadedFiles.push(fileName);
+                        loadedCount++;
+                    } else {
+                        // ไฟล์ไม่พบหรือเกิดข้อผิดพลาด (ไม่แสดง log เพื่อลด noise)
+                        console.debug(result.reason.message);
+                    }
+                }
+                
+                if (loadedCount > 0) {
+                    updateStatus(`โหลดไฟล์สำเร็จ ${loadedCount} ไฟล์: ${loadedFiles.join(', ')}`, 'success');
+                    updateFileList();
+                    fitMapToAllLayers();
+                    
+                    // แสดงรายชื่อไฟล์ที่โหลดสำเร็จในคอนโซล
+                    console.log('ไฟล์ที่โหลดสำเร็จ:', loadedFiles);
+                } else {
+                    updateStatus('ไม่พบไฟล์ GeoJSON ในโฟลเดอร์ กรุณาเลือกไฟล์ด้วยตนเอง', 'info');
+                }
+                
+            } catch (error) {
+                console.error('Error loading auto GeoJSON:', error);
+                updateStatus('เกิดข้อผิดพลาดในการโหลดไฟล์อัตโนมัติ กรุณาเลือกไฟล์ด้วยตนเอง', 'info');
+            }
         }
         
         // ฟังก์ชันโหลดไฟล์ GeoJSON จากไฟล์
@@ -695,8 +743,13 @@
                     
                     <h4>🔧 วิธีแก้ไข (เลือก 1 วิธี):</h4>
                     
+                    <div style="background: #d1ecf1; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                        <h5>✅ สำหรับ HTTPS/HTTP</h5>
+                        <p>ถ้าเว็บไซต์อยู่บน HTTPS หรือ HTTP Server แล้ว การโหลดไฟล์อัตโนมัติจะทำงานได้ปกติ</p>
+                        <p><strong>เพียงคลิก "โหลดไฟล์อัตโนมัติ"</strong> หรือรีเฟรชหน้า</p>
+                    </div>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
-                        <h5>1. ใช้ HTTP Server (แนะนำ)</h5>
+                        <h5>1. ใช้ HTTP Server (สำหรับ file://)</h5>
                         <code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">
                         # Python<br>
                         python -m http.server 8000<br><br>
@@ -745,63 +798,25 @@
             document.body.insertAdjacentHTML('beforeend', infoModal);
         }
         
-        // ฟังก์ชันลองโหลดไฟล์อัตโนมัติ (ปรับปรุง)
-        async function tryAutoLoad() {
-            try {
-                updateStatus('กำลังลองโหลดไฟล์ GeoJSON อัตโนมัติ...', 'info');
-                
-                // รายการไฟล์ที่จะลองโหลด
-                const commonNames = [
-                    'parcels.geojson',
-                    'parcel.geojson', 
-                    'land.geojson',
-                    'landuse.geojson',
-                    'boundary.geojson',
-                    'cadastral.geojson',
-                    'data.geojson'
-                ];
-                
-                // เพิ่มไฟล์ parcel1.geojson ถึง parcel20.geojson
-                for (let i = 1; i <= 20; i++) {
-                    commonNames.push(`parcel${i}.geojson`);
-                }
-                
-                let loadedCount = 0;
-                let loadedFiles = [];
-                
-                // ลองโหลดไฟล์ทีละไฟล์
-                for (let fileName of commonNames) {
-                    try {
-                        const response = await fetch(`./${fileName}`);
-                        if (response.ok) {
-                            const text = await response.text();
-                            const geojsonData = JSON.parse(text);
-                            
-                            if (geojsonData.features && geojsonData.features.length > 0) {
-                                addFileToMap(fileName, geojsonData);
-                                loadedFiles.push(fileName);
-                                loadedCount++;
-                                
-                                // หยุดหลังจากโหลดได้ 1 ไฟล์ เพื่อไม่ให้เกิด error มากเกินไป
-                                if (loadedCount >= 3) break;
-                            }
-                        }
-                    } catch (error) {
-                        // ข้ามไฟล์ที่โหลดไม่ได้
-                        continue;
-                    }
-                }
-                
-                if (loadedCount > 0) {
-                    updateStatus(`โหลดไฟล์สำเร็จ ${loadedCount} ไฟล์: ${loadedFiles.join(', ')}`, 'success');
-                    updateFileList();
-                    fitMapToAllLayers();
-                } else {
-                    updateStatus('ไม่สามารถโหลดไฟล์อัตโนมัติได้ เนื่องจาก CORS policy', 'error');
-                }
-                
-            } catch (error) {
-                updateStatus('ไม่สามารถโหลดไฟล์อัตโนมัติได้ กรุณาเลือกไฟล์ด้วยตนเอง', 'error');
+        // ฟังก์ชันตรวจสอบสภาพแวดล้อมและโหลดไฟล์
+        function initializeAutoLoad() {
+            const protocol = window.location.protocol;
+            const isHTTPS = protocol === 'https:';
+            const isHTTP = protocol === 'http:';
+            const isLocalFile = protocol === 'file:';
+            
+            if (isHTTPS || isHTTP) {
+                // อยู่บน HTTP/HTTPS server - สามารถโหลดไฟล์อัตโนมัติได้
+                console.log('🌐 รันบน HTTP/HTTPS Server - รองรับการโหลดไฟล์อัตโนมัติ');
+                loadAutoGeoJSON();
+            } else if (isLocalFile) {
+                // เปิดจาก file:// - มีข้อจำกัด CORS
+                console.log('📁 เปิดจาก file:// - มีข้อจำกัด CORS');
+                updateStatus('🔧 เปิดจาก file:// กรุณาดู "วิธีแก้ CORS" หรือเลือกไฟล์ด้วยตนเอง', 'info');
+            } else {
+                // protocol อื่นๆ
+                console.log('🔗 Protocol ไม่รู้จัก:', protocol);
+                updateStatus('กรุณาเลือกไฟล์ GeoJSON ด้วยตนเอง', 'info');
             }
         }
         
@@ -815,13 +830,7 @@
         // เริ่มต้น
         document.addEventListener('DOMContentLoaded', function() {
             initializeMap();
-            
-            // ตรวจสอบว่าเป็น HTTP หรือ HTTPS
-            if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-                loadAutoGeoJSON();
-            } else {
-                updateStatus('🔧 เปิดจาก file:// กรุณาดู "วิธีแก้ CORS" หรือเลือกไฟล์ด้วยตนเอง', 'info');
-            }
+            initializeAutoLoad();
         });
     </script>
 </body>
