@@ -430,12 +430,12 @@
         }
         
         .basemap-options {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 5px;
         }
         
         .basemap-btn {
-            flex: 1;
             padding: 6px 8px;
             font-size: 12px;
             margin: 2px;
@@ -459,6 +459,26 @@
         
         .hidden {
             display: none;
+        }
+
+        /* Coordinate display styles */
+        .coordinate-display {
+            background: #e8f4f8;
+            border: 1px solid #b8d4da;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+        
+        .coordinate-label {
+            font-weight: bold;
+            color: #007ac2;
+        }
+        
+        .coordinate-value {
+            color: #495057;
+            font-family: monospace;
         }
     </style>
 </head>
@@ -554,6 +574,7 @@
                     <div class="basemap-options">
                         <button id="osmBtn" class="basemap-btn active" onclick="switchBasemap('osm')">OSM</button>
                         <button id="satBtn" class="basemap-btn" onclick="switchBasemap('satellite')">ดาวเทียม</button>
+                        <button id="hybridBtn" class="basemap-btn" onclick="switchBasemap('hybrid')">Hybrid</button>
                     </div>
                 </div>
                 
@@ -567,6 +588,12 @@
                 
                 <div id="status" class="status-info">
                     คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel
+                </div>
+
+                <!-- Coordinate Display -->
+                <div id="coordinateDisplay" class="coordinate-display" style="display: none;">
+                    <div class="coordinate-label">📍 ตำแหน่งที่คลิก:</div>
+                    <div class="coordinate-value" id="coordinateValue"></div>
                 </div>
                 
                 <div id="info" style="display: none;">
@@ -589,6 +616,7 @@
         let basemapLayers = {};
         let searchMarkersLayer;
         let isPanelMinimized = false;
+        let searchHighlightLayers = L.layerGroup(); // สำหรับ highlight การค้นหา
         
         // ฟังก์ชันสลับ Main Tab
         function switchMainTab(tabName) {
@@ -665,6 +693,10 @@
             basemapLayers.satellite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
                 attribution: '© Google Satellite'
             });
+
+            basemapLayers.hybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                attribution: '© Google Hybrid'
+            });
             
             // เพิ่ม default basemap
             basemapLayers.osm.addTo(map);
@@ -672,11 +704,27 @@
             // สร้าง layers
             highlightLayer = L.layerGroup().addTo(map);
             searchMarkersLayer = L.layerGroup().addTo(map);
+            searchHighlightLayers.addTo(map);
             
             // Event listener สำหรับการคลิก
             map.on('click', function(e) {
+                // แสดงพิกัด
+                displayClickedCoordinate(e.latlng);
+                // ค้นหา parcel
                 findParcelAtPoint(e.latlng);
             });
+        }
+
+        // ฟังก์ชันแสดงพิกัดที่คลิก
+        function displayClickedCoordinate(latlng) {
+            const coordinateDisplay = document.getElementById('coordinateDisplay');
+            const coordinateValue = document.getElementById('coordinateValue');
+            
+            const lat = latlng.lat.toFixed(6);
+            const lng = latlng.lng.toFixed(6);
+            
+            coordinateValue.textContent = `Lat: ${lat}, Lng: ${lng}`;
+            coordinateDisplay.style.display = 'block';
         }
         
         // ฟังก์ชันเปลี่ยน basemap
@@ -694,7 +742,12 @@
             
             // อัพเดต UI
             document.querySelectorAll('.basemap-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(type === 'osm' ? 'osmBtn' : 'satBtn').classList.add('active');
+            const buttonMap = {
+                'osm': 'osmBtn',
+                'satellite': 'satBtn',
+                'hybrid': 'hybridBtn'
+            };
+            document.getElementById(buttonMap[type]).classList.add('active');
         }
         
         // ฟังก์ชันโหลดข้อมูลจังหวัดและอำเภอ
@@ -763,6 +816,9 @@
                 return;
             }
             
+            // ล้าง highlight เก่า
+            searchHighlightLayers.clearLayers();
+            
             // แยกเลขโฉนดหลายเลข
             const parcelNumbers = parcelInput.split(',').map(p => p.trim()).filter(p => p);
             const results = [];
@@ -781,7 +837,7 @@
                     if (amphur && props.amphurname !== amphur) continue;
                     
                     // ตรวจสอบเลขโฉนด
-                    const featureParcelNo = props.parcelno || '';
+                    const featureParcelNo = props.parcelno || props.PARCELNO || '';
                     for (let searchParcel of parcelNumbers) {
                         if (featureParcelNo.toString().includes(searchParcel)) {
                             results.push({
@@ -791,6 +847,18 @@
                                 province: props.provname || '',
                                 amphur: props.amphurname || ''
                             });
+                            
+                            // เพิ่ม highlight สำหรับ parcel ที่ค้นหาได้
+                            const searchHighlight = L.geoJSON(feature, {
+                                style: {
+                                    color: '#ff6b35',
+                                    weight: 3,
+                                    opacity: 1,
+                                    fillColor: '#ff6b35',
+                                    fillOpacity: 0.4
+                                }
+                            });
+                            searchHighlightLayers.addLayer(searchHighlight);
                             break;
                         }
                     }
@@ -1327,7 +1395,7 @@
             selectedFeature = feature;
         }
         
-        // ฟังก์ชันแสดงข้อมูล parcel
+        // ฟังก์ชันแสดงข้อมูล parcel (แสดงเฉพาะฟิลด์ที่กำหนด)
         function displayParcelInfo(feature, fileName) {
             const infoDiv = document.getElementById('info');
             const contentDiv = document.getElementById('infoContent');
@@ -1339,39 +1407,47 @@
             
             const props = feature.properties || {};
             
-            const parcelFields = ['parcelno', 'PARCELNO', 'parcel_no', 'PARCEL_NO', 'parcel_id', 'PARCEL_ID', 'id', 'ID'];
-            let parcelNo = null;
+            // กำหนดฟิลด์ที่ต้องการแสดง
+            const displayFields = [
+                { keys: ['parcelno', 'PARCELNO', 'parcel_no', 'PARCEL_NO'], label: '🏷️ Parcel No' },
+                { keys: ['parcel_type', 'PARCEL_TYPE'], label: '📋 ประเภท' },
+                { keys: ['rai', 'RAI'], label: '🌾 ไร่' },
+                { keys: ['ngan', 'NGAN'], label: '🌾 งาน' },
+                { keys: ['wa', 'WA'], label: '🌾 ตารางวา' },
+                { keys: ['subway', 'SUBWAY'], label: '🚇 subway' },
+                { keys: ['provname', 'PROVNAME'], label: '🏛️ จังหวัด' },
+                { keys: ['amphurname', 'AMPHURNAME'], label: '🏘️ อำเภอ' },
+                { keys: ['tumbolname', 'TUMBOLNAME'], label: '🏡 ตำบล' }
+            ];
             
-            for (let field of parcelFields) {
-                if (props[field] !== undefined && props[field] !== null && props[field] !== '') {
-                    parcelNo = props[field];
-                    break;
+            // แสดงข้อมูลตามฟิลด์ที่กำหนด
+            displayFields.forEach(fieldInfo => {
+                let value = null;
+                // หาค่าจากฟิลด์ที่เป็นไปได้
+                for (let key of fieldInfo.keys) {
+                    if (props[key] !== undefined && props[key] !== null && props[key] !== '') {
+                        value = props[key];
+                        break;
+                    }
                 }
-            }
-            
-            if (parcelNo) {
-                content += `<div class="info-item">
-                    <span class="info-label">🏷️ Parcel No:</span>
-                    <span class="info-value" style="font-weight: bold; color: #007ac2;">${parcelNo}</span>
-                </div>`;
-            }
-            
-            for (let key in props) {
-                if (props[key] !== null && props[key] !== undefined && props[key] !== '') {
-                    if (!parcelFields.includes(key)) {
-                        let value = props[key];
-                        if (typeof value === 'string' && value.length > 100) {
-                            value = value.substring(0, 100) + '...';
-                        }
-                        
+                
+                if (value !== null) {
+                    // ตกแต่งค่าพิเศษสำหรับ Parcel No
+                    if (fieldInfo.label.includes('Parcel No')) {
                         content += `<div class="info-item">
-                            <span class="info-label">${key}:</span>
+                            <span class="info-label">${fieldInfo.label}:</span>
+                            <span class="info-value" style="font-weight: bold; color: #007ac2;">${value}</span>
+                        </div>`;
+                    } else {
+                        content += `<div class="info-item">
+                            <span class="info-label">${fieldInfo.label}:</span>
                             <span class="info-value">${value}</span>
                         </div>`;
                     }
                 }
-            }
+            });
             
+            // ถ้าไม่มีข้อมูลเพิ่มเติม
             if (content === `<div class="info-item">
                 <span class="info-label">📁 ไฟล์:</span>
                 <span class="info-value">${fileName}</span>
@@ -1388,8 +1464,10 @@
         function clearSelection() {
             highlightLayer.clearLayers();
             searchMarkersLayer.clearLayers();
+            searchHighlightLayers.clearLayers(); // ล้าง highlight การค้นหา
             document.getElementById('info').style.display = 'none';
             document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('coordinateDisplay').style.display = 'none';
             selectedFeature = null;
             updateStatus('คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel', 'info');
             
