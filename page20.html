@@ -22,48 +22,46 @@
             width: 100%;
         }
         
-        #controls {
+        #controlPanel {
             position: absolute;
             top: 15px;
             right: 15px;
             background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            z-index: 1000;
-            min-width: 320px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        #searchPanel {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             z-index: 1000;
             min-width: 350px;
             max-width: 400px;
+            max-height: 85vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
         }
         
-        .search-header {
+        #controlPanel.minimized {
+            width: 200px;
+            height: auto;
+            max-height: none;
+            overflow: hidden;
+        }
+        
+        .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            padding: 15px;
+            background: #007ac2;
+            color: white;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
         }
         
-        .search-title {
-            color: #007ac2;
+        .panel-title {
             font-weight: bold;
             font-size: 16px;
         }
         
-        .toggle-btn {
-            background: #007ac2;
+        .minimize-btn {
+            background: rgba(255,255,255,0.2);
             color: white;
             border: none;
             padding: 5px 10px;
@@ -72,10 +70,56 @@
             font-size: 12px;
         }
         
-        .toggle-btn:hover {
-            background: #005a87;
+        .minimize-btn:hover {
+            background: rgba(255,255,255,0.3);
         }
         
+        .panel-content {
+            padding: 15px;
+            display: block;
+        }
+        
+        .panel-content.hidden {
+            display: none;
+        }
+        
+        .main-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .main-tab {
+            flex: 1;
+            padding: 10px 8px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .main-tab.active {
+            background: white;
+            border-bottom-color: #007ac2;
+            color: #007ac2;
+            font-weight: bold;
+        }
+        
+        .main-tab:hover {
+            background: #e9ecef;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Search Styles */
         .search-tabs {
             display: flex;
             margin-bottom: 15px;
@@ -94,8 +138,8 @@
         
         .search-tab.active {
             background: white;
-            border-bottom-color: #007ac2;
-            color: #007ac2;
+            border-bottom-color: #28a745;
+            color: #28a745;
             font-weight: bold;
         }
         
@@ -134,22 +178,13 @@
         
         .search-input:focus, .search-select:focus {
             outline: none;
-            border-color: #007ac2;
-            box-shadow: 0 0 0 2px rgba(0, 122, 194, 0.2);
+            border-color: #28a745;
+            box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
         }
         
         .search-input:disabled, .search-select:disabled {
             background-color: #e9ecef;
             color: #6c757d;
-        }
-        
-        .coordinate-input {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .coordinate-input input {
-            flex: 1;
         }
         
         .search-btn {
@@ -220,6 +255,7 @@
             margin-top: 2px;
         }
         
+        /* File Management Styles */
         #fileInput {
             margin-bottom: 10px;
             padding: 8px;
@@ -297,6 +333,7 @@
             font-size: 12px;
         }
         
+        /* Info Panel */
         #info {
             margin-top: 15px;
             padding: 10px;
@@ -392,10 +429,6 @@
             font-size: 14px;
         }
         
-        .basemap-selector {
-            margin-bottom: 15px;
-        }
-        
         .basemap-options {
             display: flex;
             gap: 5px;
@@ -405,11 +438,23 @@
             flex: 1;
             padding: 6px 8px;
             font-size: 12px;
-            margin: 0;
+            margin: 2px;
         }
         
         .basemap-btn.active {
             background: #28a745;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .button-group button {
+            flex: 1;
+            margin: 2px;
+            min-width: calc(50% - 4px);
         }
         
         .hidden {
@@ -421,93 +466,114 @@
 <body>
     <div id="mapDiv"></div>
     
-    <!-- Search Panel -->
-    <div id="searchPanel">
-        <div class="search-header">
-            <div class="search-title">🔍 ค้นหา Parcel</div>
-            <button class="toggle-btn" onclick="toggleSearchPanel()">ซ่อน</button>
+    <!-- Unified Control Panel -->
+    <div id="controlPanel">
+        <div class="panel-header" onclick="togglePanel()">
+            <div class="panel-title">🗺️ ระบบจัดการ Parcel</div>
+            <button class="minimize-btn" id="minimizeBtn">ย่อ</button>
         </div>
         
-        <div class="search-tabs">
-            <button class="search-tab active" onclick="switchTab('parcel')">เลขโฉนด</button>
-            <button class="search-tab" onclick="switchTab('coordinate')">พิกัด</button>
-            <button class="search-tab" onclick="switchTab('gps')">GPS</button>
-        </div>
-        
-        <!-- Parcel Search -->
-        <div id="parcelSearch" class="search-content active">
-            <div class="search-group">
-                <label class="search-label">จังหวัด</label>
-                <select id="provinceSelect" class="search-select" onchange="updateAmphurOptions()">
-                    <option value="">เลือกจังหวัด</option>
-                </select>
+        <div class="panel-content" id="panelContent">
+            <!-- Main Tabs -->
+            <div class="main-tabs">
+                <button class="main-tab active" onclick="switchMainTab('search')">🔍 ค้นหา</button>
+                <button class="main-tab" onclick="switchMainTab('files')">📁 ไฟล์</button>
+                <button class="main-tab" onclick="switchMainTab('settings')">⚙️ ตั้งค่า</button>
             </div>
-            <div class="search-group">
-                <label class="search-label">อำเภอ</label>
-                <select id="amphurSelect" class="search-select">
-                    <option value="">เลือกอำเภอ</option>
-                </select>
+            
+            <!-- Search Tab -->
+            <div id="searchTab" class="tab-content active">
+                <div class="search-tabs">
+                    <button class="search-tab active" onclick="switchSearchTab('parcel')">โฉนด</button>
+                    <button class="search-tab" onclick="switchSearchTab('coordinate')">พิกัด</button>
+                    <button class="search-tab" onclick="switchSearchTab('gps')">GPS</button>
+                </div>
+                
+                <!-- Parcel Search -->
+                <div id="parcelSearch" class="search-content active">
+                    <div class="search-group">
+                        <label class="search-label">จังหวัด</label>
+                        <select id="provinceSelect" class="search-select" onchange="updateAmphurOptions()">
+                            <option value="">เลือกจังหวัด</option>
+                        </select>
+                    </div>
+                    <div class="search-group">
+                        <label class="search-label">อำเภอ</label>
+                        <select id="amphurSelect" class="search-select">
+                            <option value="">เลือกอำเภอ</option>
+                        </select>
+                    </div>
+                    <div class="search-group">
+                        <label class="search-label">เลขโฉนด (คั่นด้วย , สำหรับหลายเลข)</label>
+                        <input type="text" id="parcelInput" class="search-input" placeholder="เช่น 1234, 5678, 9012">
+                    </div>
+                    <button class="search-btn" onclick="searchByParcel()">🔍 ค้นหา</button>
+                </div>
+                
+                <!-- Coordinate Search -->
+                <div id="coordinateSearch" class="search-content">
+                    <div class="search-group">
+                        <label class="search-label">พิกัด (ละติจูด, ลองจิจูด)</label>
+                        <input type="text" id="coordinateInput" class="search-input" placeholder="เช่น 13.7563, 100.5018">
+                    </div>
+                    <button class="search-btn" onclick="searchByCoordinate()">🔍 ค้นหาตำแหน่ง</button>
+                </div>
+                
+                <!-- GPS Search -->
+                <div id="gpsSearch" class="search-content">
+                    <button class="search-btn gps-btn" onclick="getCurrentLocation()">📍 ใช้ตำแหน่งปัจจุบัน</button>
+                    <div id="gpsStatus" style="font-size: 12px; color: #666; text-align: center;"></div>
+                </div>
+                
+                <!-- Search Results -->
+                <div id="searchResults" class="search-results"></div>
             </div>
-            <div class="search-group">
-                <label class="search-label">เลขโฉนด (คั่นด้วย , สำหรับหลายเลข)</label>
-                <input type="text" id="parcelInput" class="search-input" placeholder="เช่น 1234, 5678, 9012">
+            
+            <!-- Files Tab -->
+            <div id="filesTab" class="tab-content">
+                <div class="controls-section">
+                    <div class="section-title">📁 จัดการไฟล์ GeoJSON</div>
+                    <input type="file" id="fileInput" accept=".geojson,.json" multiple />
+                    <div class="button-group">
+                        <button onclick="loadAutoGeoJSON()">โหลดอัตโนมัติ</button>
+                        <button onclick="clearAllFiles()">ล้างไฟล์ทั้งหมด</button>
+                        <button onclick="showHttpServerInfo()">วิธีแก้ CORS</button>
+                    </div>
+                </div>
+                
+                <div id="fileList" class="controls-section" style="display: none;">
+                    <div class="section-title">📋 ไฟล์ที่โหลดแล้ว</div>
+                    <div id="fileListContent"></div>
+                </div>
             </div>
-            <button class="search-btn" onclick="searchByParcel()">🔍 ค้นหา</button>
-        </div>
-        
-        <!-- Coordinate Search -->
-        <div id="coordinateSearch" class="search-content">
-            <div class="search-group">
-                <label class="search-label">พิกัด (ละติจูด, ลองจิจูด)</label>
-                <input type="text" id="coordinateInput" class="search-input" placeholder="เช่น 13.7563, 100.5018">
+            
+            <!-- Settings Tab -->
+            <div id="settingsTab" class="tab-content">
+                <div class="controls-section">
+                    <div class="section-title">🗺️ แผนที่ฐาน</div>
+                    <div class="basemap-options">
+                        <button id="osmBtn" class="basemap-btn active" onclick="switchBasemap('osm')">OSM</button>
+                        <button id="satBtn" class="basemap-btn" onclick="switchBasemap('satellite')">ดาวเทียม</button>
+                    </div>
+                </div>
+                
+                <div class="controls-section">
+                    <div class="section-title">🎯 การควบคุม</div>
+                    <div class="button-group">
+                        <button id="clearBtn" onclick="clearSelection()">ล้างการเลือก</button>
+                        <button onclick="fitMapToAllLayers()">ซูมดูทั้งหมด</button>
+                    </div>
+                </div>
+                
+                <div id="status" class="status-info">
+                    คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel
+                </div>
+                
+                <div id="info" style="display: none;">
+                    <div class="info-title">📍 ข้อมูล Parcel ที่เลือก</div>
+                    <div id="infoContent"></div>
+                </div>
             </div>
-            <button class="search-btn" onclick="searchByCoordinate()">🔍 ค้นหาตำแหน่ง</button>
-        </div>
-        
-        <!-- GPS Search -->
-        <div id="gpsSearch" class="search-content">
-            <button class="search-btn gps-btn" onclick="getCurrentLocation()">📍 ใช้ตำแหน่งปัจจุบัน</button>
-            <div id="gpsStatus" style="font-size: 12px; color: #666; text-align: center;"></div>
-        </div>
-        
-        <!-- Search Results -->
-        <div id="searchResults" class="search-results"></div>
-    </div>
-    
-    <!-- Controls Panel -->
-    <div id="controls">
-        <h3 style="margin-top: 0; color: #007ac2;">🗺️ ตรวจสอบข้อมูล Parcel</h3>
-        
-        <div class="controls-section basemap-selector">
-            <div class="section-title">🗺️ แผนที่ฐาน</div>
-            <div class="basemap-options">
-                <button id="osmBtn" class="basemap-btn active" onclick="switchBasemap('osm')">OSM</button>
-                <button id="satBtn" class="basemap-btn" onclick="switchBasemap('satellite')">ดาวเทียม</button>
-            </div>
-        </div>
-        
-        <div class="controls-section">
-            <div class="section-title">📁 จัดการไฟล์ GeoJSON</div>
-            <input type="file" id="fileInput" accept=".geojson,.json" multiple />
-            <button onclick="loadAutoGeoJSON()">โหลดไฟล์อัตโนมัติ</button>
-            <button onclick="clearAllFiles()">ล้างไฟล์ทั้งหมด</button>
-            <button onclick="showHttpServerInfo()">วิธีแก้ CORS</button>
-        </div>
-        
-        <div id="fileList" class="controls-section" style="display: none;">
-            <div class="section-title">📋 ไฟล์ที่โหลดแล้ว</div>
-            <div id="fileListContent"></div>
-        </div>
-        
-        <div id="status" class="status-info">
-            คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel
-        </div>
-        
-        <button id="clearBtn" onclick="clearSelection()">ล้างการเลือก</button>
-        
-        <div id="info" style="display: none;">
-            <div class="info-title">📍 ข้อมูล Parcel ที่เลือก</div>
-            <div id="infoContent"></div>
         </div>
     </div>
 
@@ -522,6 +588,70 @@
         let currentBasemap = 'osm';
         let basemapLayers = {};
         let searchMarkersLayer;
+        let isPanelMinimized = false;
+        
+        // ฟังก์ชันสลับ Main Tab
+        function switchMainTab(tabName) {
+            // ซ่อนเนื้อหาทั้งหมด
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // ซ่อนแท็บทั้งหมด
+            document.querySelectorAll('.main-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // แสดงเนื้อหาที่เลือก
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+            
+            // ซ่อนผลการค้นหาเมื่อเปลี่ยนแท็บ
+            if (tabName !== 'search') {
+                document.getElementById('searchResults').style.display = 'none';
+            }
+        }
+        
+        // ฟังก์ชันสลับ Search Tab
+        function switchSearchTab(tabName) {
+            // ซ่อนเนื้อหาทั้งหมด
+            document.querySelectorAll('.search-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // ซ่อนแท็บทั้งหมด
+            document.querySelectorAll('.search-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // แสดงเนื้อหาที่เลือก
+            document.getElementById(tabName + 'Search').classList.add('active');
+            event.target.classList.add('active');
+            
+            // ซ่อนผลการค้นหา
+            document.getElementById('searchResults').style.display = 'none';
+        }
+        
+        // ฟังก์ชันย่อ/ขยายแผง
+        function togglePanel() {
+            const panel = document.getElementById('controlPanel');
+            const content = document.getElementById('panelContent');
+            const btn = document.getElementById('minimizeBtn');
+            
+            if (isPanelMinimized) {
+                // ขยาย
+                panel.classList.remove('minimized');
+                content.classList.remove('hidden');
+                btn.textContent = 'ย่อ';
+                isPanelMinimized = false;
+            } else {
+                // ย่อ
+                panel.classList.add('minimized');
+                content.classList.add('hidden');
+                btn.textContent = 'ขยาย';
+                isPanelMinimized = true;
+            }
+        }
         
         // สร้างแผนที่
         function initializeMap() {
@@ -567,44 +697,10 @@
             document.getElementById(type === 'osm' ? 'osmBtn' : 'satBtn').classList.add('active');
         }
         
-        // ฟังก์ชันสลับแท็บค้นหา
-        function switchTab(tabName) {
-            // ซ่อนเนื้อหาทั้งหมด
-            document.querySelectorAll('.search-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // ซ่อนแท็บทั้งหมด
-            document.querySelectorAll('.search-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // แสดงเนื้อหาที่เลือก
-            document.getElementById(tabName + 'Search').classList.add('active');
-            event.target.classList.add('active');
-            
-            // ซ่อนผลการค้นหา
-            document.getElementById('searchResults').style.display = 'none';
-        }
-        
-        // ฟังก์ชันซ่อน/แสดง search panel
-        function toggleSearchPanel() {
-            const panel = document.getElementById('searchPanel');
-            const toggleBtn = panel.querySelector('.toggle-btn');
-            
-            if (panel.style.left === '-380px') {
-                panel.style.left = '15px';
-                toggleBtn.textContent = 'ซ่อน';
-            } else {
-                panel.style.left = '-380px';
-                toggleBtn.textContent = 'แสดง';
-            }
-        }
-        
         // ฟังก์ชันโหลดข้อมูลจังหวัดและอำเภอ
         function loadLocationData() {
             const provinces = new Set();
-            const amphurs = new Map(); // province -> Set of amphurs
+            const amphurs = new Map();
             
             for (let [fileName, fileData] of loadedFiles) {
                 if (fileName.match(/^parcel\d+\.geojson$/)) {
@@ -832,10 +928,8 @@
                 highlightParcel(result.feature);
                 displayParcelInfo(result.feature, result.fileName);
                 
-                // ซ่อน search panel หลังค้นหา
-                setTimeout(() => {
-                    toggleSearchPanel();
-                }, 500);
+                // เปลี่ยนไปแท็บ Settings เพื่อดูข้อมูล
+                switchMainTab('settings');
             }
         }
         
@@ -897,13 +991,16 @@
             if (foundFeature) {
                 highlightParcel(foundFeature);
                 displayParcelInfo(foundFeature, foundFileName);
+                
+                // เปลี่ยนไปแท็บ Settings เพื่อดูข้อมูล
+                switchMainTab('settings');
             } else {
                 updateStatus('ไม่พบข้อมูล Parcel ในตำแหน่งที่คลิก', 'info');
                 clearSelection();
             }
         }
         
-        // Event listener สำหรับการเลือกไฟล์
+        // Event listeners
         document.getElementById('fileInput').addEventListener('change', function(event) {
             const files = Array.from(event.target.files);
             files.forEach(file => {
@@ -911,7 +1008,6 @@
             });
         });
         
-        // Event listener สำหรับ parcel input
         document.getElementById('parcelInput').addEventListener('input', function() {
             const value = this.value.trim();
             const hasComma = value.includes(',');
@@ -920,11 +1016,9 @@
             const amphurSelect = document.getElementById('amphurSelect');
             
             if (hasComma) {
-                // ล็อกช่องจังหวัดและอำเภอ
                 provinceSelect.disabled = true;
                 amphurSelect.disabled = true;
             } else {
-                // ปลดล็อกช่องจังหวัดและอำเภอ
                 provinceSelect.disabled = false;
                 amphurSelect.disabled = false;
             }
@@ -984,7 +1078,7 @@
                     updateStatus(`โหลดไฟล์สำเร็จ ${loadedCount} ไฟล์: ${loadedFilesList.join(', ')}`, 'success');
                     updateFileList();
                     fitMapToAllLayers();
-                    loadLocationData(); // โหลดข้อมูลจังหวัดและอำเภอ
+                    loadLocationData();
                     
                     console.log('ไฟล์ที่โหลดสำเร็จ:', loadedFilesList);
                 } else {
@@ -1013,7 +1107,7 @@
                     updateStatus(`โหลดไฟล์ ${file.name} สำเร็จ!`, 'success');
                     updateFileList();
                     fitMapToAllLayers();
-                    loadLocationData(); // โหลดข้อมูลจังหวัดและอำเภอ
+                    loadLocationData();
                     
                 } catch (error) {
                     console.error('Error parsing GeoJSON:', error);
@@ -1163,7 +1257,7 @@
                 removeFileFromMap(fileName);
                 updateFileList();
                 clearSelection();
-                loadLocationData(); // อัพเดตข้อมูลจังหวัดและอำเภอ
+                loadLocationData();
             }
         }
         
@@ -1183,7 +1277,7 @@
             
             updateFileList();
             clearSelection();
-            loadLocationData(); // อัพเดตข้อมูลจังหวัดและอำเภอ
+            loadLocationData();
             
             if (filesToRemove.length > 0) {
                 updateStatus(`ล้างไฟล์ ${filesToRemove.length} ไฟล์แล้ว (ไฟล์ที่ล็อคจะยังคงอยู่)`, 'info');
