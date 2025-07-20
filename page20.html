@@ -237,6 +237,7 @@
             cursor: pointer;
             border: 1px solid #e9ecef;
             transition: all 0.2s;
+            position: relative;
         }
         
         .result-item:hover {
@@ -253,6 +254,24 @@
             font-size: 12px;
             color: #666;
             margin-top: 2px;
+        }
+
+        .download-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.2s;
+        }
+
+        .download-btn:hover {
+            background: #218838;
         }
         
         /* Back to Results Button */
@@ -642,6 +661,8 @@
         let searchHighlightLayers = L.layerGroup(); // สำหรับ highlight การค้นหา
         let lastSearchResults = null; // เก็บผลการค้นหาล่าสุด
         let currentlyViewingResult = false; // ตรวจสอบว่ากำลังดูข้อมูลจากการค้นหาหรือไม่
+        let parcelLayers = L.layerGroup(); // สำหรับเก็บ parcel layers ที่ควบคุมการแสดงผล
+        let currentZoom = 10; // เก็บระดับ zoom ปัจจุบัน
         
         // ฟังก์ชันสลับ Main Tab
         function switchMainTab(tabName) {
@@ -731,6 +752,7 @@
         // สร้างแผนที่
         function initializeMap() {
             map = L.map('mapDiv').setView([13.75, 100.5], 10);
+            currentZoom = 10;
             
             // สร้าง basemap layers
             basemapLayers.osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -752,6 +774,7 @@
             highlightLayer = L.layerGroup().addTo(map);
             searchMarkersLayer = L.layerGroup().addTo(map);
             searchHighlightLayers.addTo(map);
+            parcelLayers.addTo(map);
             
             // Event listener สำหรับการคลิก
             map.on('click', function(e) {
@@ -760,6 +783,34 @@
                 // ค้นหา parcel
                 findParcelAtPoint(e.latlng);
             });
+
+            // Event listener สำหรับการเปลี่ยน zoom หรือ pan
+            map.on('zoomend moveend', function() {
+                const newZoom = map.getZoom();
+                if (newZoom !== currentZoom) {
+                    currentZoom = newZoom;
+                    updateParcelLayersVisibility();
+                }
+            });
+        }
+
+        // ฟังก์ชันควบคุมการแสดงผล parcel layers ตาม zoom level
+        function updateParcelLayersVisibility() {
+            const minZoomForParcels = 14; // แสดง parcels เมื่อ zoom >= 14
+            
+            for (let [fileName, fileData] of loadedFiles) {
+                if (fileData.visible) {
+                    if (currentZoom >= minZoomForParcels) {
+                        if (!map.hasLayer(fileData.layer)) {
+                            fileData.layer.addTo(map);
+                        }
+                    } else {
+                        if (map.hasLayer(fileData.layer)) {
+                            map.removeLayer(fileData.layer);
+                        }
+                    }
+                }
+            }
         }
 
         // ฟังก์ชันแสดงพิกัดที่คลิก
@@ -850,7 +901,7 @@
             }
         }
         
-        // ฟังก์ชันค้นหาตามเลขโฉนด
+        // ฟังก์ชันค้นหาตามเลขโฉนด - ปรับปรุงให้ตรงกัน 100%
         function searchByParcel() {
             const province = document.getElementById('provinceSelect').value;
             const amphur = document.getElementById('amphurSelect').value;
@@ -881,10 +932,11 @@
                     // ตรวจสอบเงื่อนไขอำเภอ
                     if (amphur && props.amphurname !== amphur) continue;
                     
-                    // ตรวจสอบเลขโฉนด
+                    // ตรวจสอบเลขโฉนด - เปลี่ยนเป็นการเปรียบเทียบแบบ 100%
                     const featureParcelNo = props.parcelno || props.PARCELNO || '';
                     for (let searchParcel of parcelNumbers) {
-                        if (featureParcelNo.toString().includes(searchParcel)) {
+                        // เปรียบเทียบแบบตรงกันทุกตัวอักษร
+                        if (featureParcelNo.toString() === searchParcel) {
                             results.push({
                                 feature: feature,
                                 fileName: fileName,
@@ -893,13 +945,13 @@
                                 amphur: props.amphurname || ''
                             });
                             
-                            // เพิ่ม highlight สำหรับ parcel ที่ค้นหาได้
+                            // เพิ่ม highlight สำหรับ parcel ที่ค้นหาได้ - เปลี่ยนเป็นสีเขียว
                             const searchHighlight = L.geoJSON(feature, {
                                 style: {
-                                    color: '#ff6b35',
+                                    color: '#28a745',
                                     weight: 3,
                                     opacity: 1,
-                                    fillColor: '#ff6b35',
+                                    fillColor: '#28a745',
                                     fillOpacity: 0.4
                                 }
                             });
@@ -1035,7 +1087,81 @@
             );
         }
         
-        // ฟังก์ชันแสดงผลการค้นหา
+        // ฟังก์ชันสร้าง KMZ ไฟล์
+        function createKMZ(feature, parcelNo) {
+            const kmlContent = featureToKML(feature, parcelNo);
+            const zip = new JSZip();
+            zip.file("doc.kml", kmlContent);
+            
+            zip.generateAsync({type: "blob"}).then(function(content) {
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `parcel_${parcelNo}.kmz`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+        
+        // ฟังก์ชันแปลง GeoJSON Feature เป็น KML
+        function featureToKML(feature, parcelNo) {
+            const props = feature.properties || {};
+            const geometry = feature.geometry;
+            
+            let coordinates = '';
+            if (geometry.type === 'Polygon') {
+                coordinates = geometry.coordinates[0].map(coord => `${coord[0]},${coord[1]},0`).join(' ');
+            } else if (geometry.type === 'MultiPolygon') {
+                // สำหรับ MultiPolygon ใช้เฉพาะ polygon แรก
+                coordinates = geometry.coordinates[0][0].map(coord => `${coord[0]},${coord[1]},0`).join(' ');
+            }
+            
+            const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+    <Document>
+        <name>Parcel ${parcelNo}</name>
+        <description>ข้อมูลแปลงที่ดิน</description>
+        <Style id="parcelStyle">
+            <LineStyle>
+                <color>ff00ff00</color>
+                <width>2</width>
+            </LineStyle>
+            <PolyStyle>
+                <color>4000ff00</color>
+            </PolyStyle>
+        </Style>
+        <Placemark>
+            <name>โฉนด ${parcelNo}</name>
+            <description><![CDATA[
+                <table>
+                    <tr><td><b>เลขโฉนด:</b></td><td>${parcelNo}</td></tr>
+                    <tr><td><b>จังหวัด:</b></td><td>${props.provname || 'ไม่ระบุ'}</td></tr>
+                    <tr><td><b>อำเภอ:</b></td><td>${props.amphurname || 'ไม่ระบุ'}</td></tr>
+                    <tr><td><b>ตำบล:</b></td><td>${props.tumbolname || 'ไม่ระบุ'}</td></tr>
+                    <tr><td><b>ไร่:</b></td><td>${props.rai || 'ไม่ระบุ'}</td></tr>
+                    <tr><td><b>งาน:</b></td><td>${props.ngan || 'ไม่ระบุ'}</td></tr>
+                    <tr><td><b>ตารางวา:</b></td><td>${props.wa || 'ไม่ระบุ'}</td></tr>
+                </table>
+            ]]></description>
+            <styleUrl>#parcelStyle</styleUrl>
+            <Polygon>
+                <extrude>1</extrude>
+                <altitudeMode>relativeToGround</altitudeMode>
+                <outerBoundaryIs>
+                    <LinearRing>
+                        <coordinates>${coordinates}</coordinates>
+                    </LinearRing>
+                </outerBoundaryIs>
+            </Polygon>
+        </Placemark>
+    </Document>
+</kml>`;
+            return kml;
+        }
+        
+        // ฟังก์ชันแสดงผลการค้นหา - เพิ่มปุ่ม download
         function displaySearchResults(results) {
             const resultsDiv = document.getElementById('searchResults');
             
@@ -1052,6 +1178,7 @@
             results.forEach((result, index) => {
                 html += `
                     <div class="result-item" onclick="selectSearchResult(${index})">
+                        <button class="download-btn" onclick="event.stopPropagation(); downloadParcelKMZ(${index})" title="ดาวน์โหลด KMZ">📁 KMZ</button>
                         <div class="result-parcel">โฉนด: ${result.parcelNo}</div>
                         <div class="result-location">${result.province} - ${result.amphur}</div>
                         <div style="font-size: 11px; color: #999;">📁 ${result.fileName}</div>
@@ -1064,6 +1191,20 @@
             
             // เก็บผลการค้นหาไว้ใช้
             window.searchResults = results;
+        }
+        
+        // ฟังก์ชันดาวน์โหลด KMZ
+        function downloadParcelKMZ(index) {
+            const result = window.searchResults[index];
+            if (result) {
+                // ใช้ JSZip library ที่โหลดมาจาก CDN
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                script.onload = function() {
+                    createKMZ(result.feature, result.parcelNo);
+                };
+                document.head.appendChild(script);
+            }
         }
         
         // ฟังก์ชันเลือกผลการค้นหา
@@ -1283,7 +1424,7 @@
             reader.readAsText(file);
         }
         
-        // ฟังก์ชันเพิ่มไฟล์ลงแผนที่
+        // ฟังก์ชันเพิ่มไฟล์ลงแผนที่ - ปรับปรุงให้ไม่แสดงทันที
         function addFileToMap(fileName, geojsonData) {
             if (loadedFiles.has(fileName)) {
                 removeFileFromMap(fileName);
@@ -1303,7 +1444,8 @@
                 }
             });
             
-            layer.addTo(map);
+            // ไม่เพิ่มลงแผนที่ทันที ให้รอจนกว่าจะซูมใกล้
+            // layer.addTo(map);
             
             loadedFiles.set(fileName, {
                 geojson: geojsonData,
@@ -1311,6 +1453,9 @@
                 visible: true,
                 locked: isAutoLoaded
             });
+            
+            // อัพเดตการแสดงผลตาม zoom level ปัจจุบัน
+            updateParcelLayersVisibility();
         }
         
         // ฟังก์ชันตรวจสอบว่าเป็นไฟล์ที่โหลดอัตโนมัติหรือไม่
@@ -1349,8 +1494,9 @@
                     map.removeLayer(fileData.layer);
                     fileData.visible = false;
                 } else {
-                    fileData.layer.addTo(map);
+                    // ตรวจสอบ zoom level ก่อนแสดง
                     fileData.visible = true;
+                    updateParcelLayersVisibility();
                 }
                 updateFileList();
             }
