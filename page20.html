@@ -255,6 +255,24 @@
             margin-top: 2px;
         }
         
+        /* Back to Results Button */
+        .back-to-results {
+            width: 100%;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        
+        .back-to-results:hover {
+            background: #545b62;
+        }
+        
         /* File Management Styles */
         #fileInput {
             margin-bottom: 10px;
@@ -587,14 +605,19 @@
                 </div>
                 
                 <div id="status" class="status-info">
-                    คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel
+                    คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel หรือดูพิกัด
                 </div>
 
                 <!-- Coordinate Display -->
-                <div id="coordinateDisplay" class="coordinate-display" style="display: none;">
+                <div id="coordinateDisplay" class="coordinate-display">
                     <div class="coordinate-label">📍 ตำแหน่งที่คลิก:</div>
-                    <div class="coordinate-value" id="coordinateValue"></div>
+                    <div class="coordinate-value" id="coordinateValue">คลิกบนแผนที่เพื่อดูพิกัด</div>
                 </div>
+                
+                <!-- Back to Results Button -->
+                <button id="backToResultsBtn" class="back-to-results" onclick="showSearchResults()" style="display: none;">
+                    ← กลับไปรายการค้นหา
+                </button>
                 
                 <div id="info" style="display: none;">
                     <div class="info-title">📍 ข้อมูล Parcel ที่เลือก</div>
@@ -617,6 +640,8 @@
         let searchMarkersLayer;
         let isPanelMinimized = false;
         let searchHighlightLayers = L.layerGroup(); // สำหรับ highlight การค้นหา
+        let lastSearchResults = null; // เก็บผลการค้นหาล่าสุด
+        let currentlyViewingResult = false; // ตรวจสอบว่ากำลังดูข้อมูลจากการค้นหาหรือไม่
         
         // ฟังก์ชันสลับ Main Tab
         function switchMainTab(tabName) {
@@ -634,9 +659,29 @@
             document.getElementById(tabName + 'Tab').classList.add('active');
             event.target.classList.add('active');
             
-            // ซ่อนผลการค้นหาเมื่อเปลี่ยนแท็บ
-            if (tabName !== 'search') {
-                document.getElementById('searchResults').style.display = 'none';
+            // ซ่อนผลการค้นหาเมื่อเปลี่ยนแท็บ (ยกเว้นเมื่อดูข้อมูลแปลง)
+            if (tabName !== 'search' && !currentlyViewingResult) {
+                hideSearchResults();
+            }
+        }
+        
+        // ฟังก์ชันซ่อนผลการค้นหา
+        function hideSearchResults() {
+            document.getElementById('searchResults').style.display = 'none';
+        }
+        
+        // ฟังก์ชันแสดงผลการค้นหาอีกครั้ง
+        function showSearchResults() {
+            if (lastSearchResults && lastSearchResults.length > 0) {
+                displaySearchResults(lastSearchResults);
+                currentlyViewingResult = false;
+                document.getElementById('backToResultsBtn').style.display = 'none';
+                
+                // เปลี่ยนไปแท็บค้นหา
+                switchMainTab('search');
+                
+                // ซูมไปยังผลการค้นหาทั้งหมด
+                zoomToSearchResults(lastSearchResults);
             }
         }
         
@@ -657,7 +702,9 @@
             event.target.classList.add('active');
             
             // ซ่อนผลการค้นหา
-            document.getElementById('searchResults').style.display = 'none';
+            if (!currentlyViewingResult) {
+                hideSearchResults();
+            }
         }
         
         // ฟังก์ชันย่อ/ขยายแผง
@@ -708,7 +755,7 @@
             
             // Event listener สำหรับการคลิก
             map.on('click', function(e) {
-                // แสดงพิกัด
+                // แสดงพิกัดเสมอ
                 displayClickedCoordinate(e.latlng);
                 // ค้นหา parcel
                 findParcelAtPoint(e.latlng);
@@ -717,14 +764,12 @@
 
         // ฟังก์ชันแสดงพิกัดที่คลิก
         function displayClickedCoordinate(latlng) {
-            const coordinateDisplay = document.getElementById('coordinateDisplay');
             const coordinateValue = document.getElementById('coordinateValue');
             
             const lat = latlng.lat.toFixed(6);
             const lng = latlng.lng.toFixed(6);
             
             coordinateValue.textContent = `Lat: ${lat}, Lng: ${lng}`;
-            coordinateDisplay.style.display = 'block';
         }
         
         // ฟังก์ชันเปลี่ยน basemap
@@ -865,12 +910,44 @@
                 }
             }
             
+            lastSearchResults = results; // เก็บผลการค้นหา
             displaySearchResults(results);
+            
+            // ซูมไปยังผลการค้นหา
+            if (results.length > 0) {
+                zoomToSearchResults(results);
+            }
             
             // ล็อกช่องจังหวัดและอำเภอหากค้นหาหลายเลขโฉนด
             if (parcelNumbers.length > 1) {
                 document.getElementById('provinceSelect').disabled = true;
                 document.getElementById('amphurSelect').disabled = true;
+            }
+        }
+        
+        // ฟังก์ชันซูมไปยังผลการค้นหา
+        function zoomToSearchResults(results) {
+            if (results.length === 0) return;
+            
+            const bounds = L.latLngBounds();
+            
+            results.forEach(result => {
+                const feature = result.feature;
+                if (feature.geometry.type === 'Polygon') {
+                    feature.geometry.coordinates[0].forEach(coord => {
+                        bounds.extend([coord[1], coord[0]]);
+                    });
+                } else if (feature.geometry.type === 'MultiPolygon') {
+                    feature.geometry.coordinates.forEach(polygon => {
+                        polygon[0].forEach(coord => {
+                            bounds.extend([coord[1], coord[0]]);
+                        });
+                    });
+                }
+            });
+            
+            if (bounds.isValid()) {
+                map.fitBounds(bounds.pad(0.1));
             }
         }
         
@@ -996,8 +1073,15 @@
                 highlightParcel(result.feature);
                 displayParcelInfo(result.feature, result.fileName);
                 
+                currentlyViewingResult = true;
+                document.getElementById('backToResultsBtn').style.display = 'block';
+                
                 // เปลี่ยนไปแท็บ Settings เพื่อดูข้อมูล
                 switchMainTab('settings');
+                
+                // ซูมไปยังแปลงที่เลือก
+                const bounds = L.geoJSON(result.feature).getBounds();
+                map.fitBounds(bounds.pad(0.1));
             }
         }
         
@@ -1060,12 +1144,26 @@
                 highlightParcel(foundFeature);
                 displayParcelInfo(foundFeature, foundFileName);
                 
+                // ไม่ใช่การเลือกจากผลการค้นหา ให้ซ่อนปุ่มกลับ
+                currentlyViewingResult = false;
+                document.getElementById('backToResultsBtn').style.display = 'none';
+                
                 // เปลี่ยนไปแท็บ Settings เพื่อดูข้อมูล
                 switchMainTab('settings');
             } else {
                 updateStatus('ไม่พบข้อมูล Parcel ในตำแหน่งที่คลิก', 'info');
-                clearSelection();
+                // ไม่ล้างการเลือกเพื่อให้ยังแสดงพิกัดได้
+                clearParcelSelection();
             }
+        }
+        
+        // ฟังก์ชันล้างการเลือก parcel เท่านั้น (ไม่ล้างพิกัด)
+        function clearParcelSelection() {
+            highlightLayer.clearLayers();
+            document.getElementById('info').style.display = 'none';
+            selectedFeature = null;
+            currentlyViewingResult = false;
+            document.getElementById('backToResultsBtn').style.display = 'none';
         }
         
         // Event listeners
@@ -1391,7 +1489,6 @@
             });
             
             highlightLayer.addLayer(highlightFeature);
-            map.fitBounds(highlightFeature.getBounds().pad(0.1));
             selectedFeature = feature;
         }
         
@@ -1467,9 +1564,11 @@
             searchHighlightLayers.clearLayers(); // ล้าง highlight การค้นหา
             document.getElementById('info').style.display = 'none';
             document.getElementById('searchResults').style.display = 'none';
-            document.getElementById('coordinateDisplay').style.display = 'none';
             selectedFeature = null;
-            updateStatus('คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel', 'info');
+            lastSearchResults = null;
+            currentlyViewingResult = false;
+            document.getElementById('backToResultsBtn').style.display = 'none';
+            updateStatus('คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel หรือดูพิกัด', 'info');
             
             // ปลดล็อกช่องจังหวัดและอำเภอ
             document.getElementById('provinceSelect').disabled = false;
