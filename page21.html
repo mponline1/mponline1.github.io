@@ -879,8 +879,8 @@
             
             // แสดงปุ่ม Google Earth และตั้งค่า URL ใหม่
             coordinateActions.style.display = 'flex';
-            // ใช้ Google Earth Web URL ที่ถูกต้อง พร้อมปักหมุด
-            googleEarthBtn.href = `https://earth.google.com/web/search/${lat},${lng}/@${lat},${lng},500a,35y,0h,0t,0r/data=!3m1!1e3!4m2!3m1!1s0x0:0x0`;
+            // ใช้ Google Earth Web URL พร้อมการปักหมุดและซูมระดับ 1:1000 (20-30 เมตร)
+            googleEarthBtn.href = `https://earth.google.com/web/@${lat},${lng},25a,35y,0h,0t,0r/data=!3m1!1e3!4m6!3m5!1s0x0:0x0!7e2!8m2!3d${lat}!4d${lng}`;
         }
         
         // ฟังก์ชันเปลี่ยน basemap
