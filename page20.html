@@ -751,20 +751,23 @@
         
         // สร้างแผนที่
         function initializeMap() {
-            map = L.map('mapDiv').setView([13.75, 100.5], 10);
-            currentZoom = 10;
+            map = L.map('mapDiv').setView([13.75, 100.5], 20); // เปลี่ยน zoom เริ่มต้นเป็น 20 สำหรับมาตราส่วน 1:1000
+            currentZoom = 20;
             
             // สร้าง basemap layers
             basemapLayers.osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 22 // เพิ่ม maxZoom เพื่อให้ซูมได้ใกล้มากขึ้น
             });
             
             basemapLayers.satellite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                attribution: '© Google Satellite'
+                attribution: '© Google Satellite',
+                maxZoom: 22
             });
 
             basemapLayers.hybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                attribution: '© Google Hybrid'
+                attribution: '© Google Hybrid',
+                maxZoom: 22
             });
             
             // เพิ่ม default basemap
@@ -813,14 +816,15 @@
             }
         }
 
-        // ฟังก์ชันแสดงพิกัดที่คลิก
+        // ฟังก์ชันแสดงพิกัดที่คลิก - เปลี่ยนรูปแบบการแสดง
         function displayClickedCoordinate(latlng) {
             const coordinateValue = document.getElementById('coordinateValue');
             
             const lat = latlng.lat.toFixed(6);
             const lng = latlng.lng.toFixed(6);
             
-            coordinateValue.textContent = `Lat: ${lat}, Lng: ${lng}`;
+            // เปลี่ยนรูปแบบจาก "Lat: XX, Lng: YY" เป็น "LA&TLONG = XX, YY"
+            coordinateValue.textContent = `LA&TLONG = ${lat}, ${lng}`;
         }
         
         // ฟังก์ชันเปลี่ยน basemap
@@ -1028,7 +1032,7 @@
                 .bindPopup(`พิกัด: ${coords[0]}, ${coords[1]}`)
                 .openPopup();
             
-            map.setView(latlng, 16);
+            map.setView(latlng, 20); // เปลี่ยนจาก 16 เป็น 20 สำหรับมาตราส่วน 1:1000
             
             // ค้นหา parcel ในตำแหน่งนั้น
             findParcelAtPoint(latlng);
@@ -1056,10 +1060,10 @@
                     // เพิ่ม marker และซูมไปยังตำแหน่ง
                     searchMarkersLayer.clearLayers();
                     L.marker(latlng).addTo(searchMarkersLayer)
-                        .bindPopup(`ตำแหน่งปัจจุบัน<br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`)
+                        .bindPopup(`ตำแหน่งปัจจุบัน<br>LA&TLONG = ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
                         .openPopup();
                     
-                    map.setView(latlng, 16);
+                    map.setView(latlng, 20); // เปลี่ยนจาก 16 เป็น 20 สำหรับมาตราส่วน 1:1000
                     
                     // ค้นหา parcel ในตำแหน่งนั้น
                     findParcelAtPoint(latlng);
