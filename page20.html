@@ -517,6 +517,45 @@
             color: #495057;
             font-family: monospace;
         }
+
+        /* Google Earth Button Styles */
+        .coordinate-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+            align-items: center;
+        }
+
+        .google-earth-btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.3s;
+            text-decoration: none;
+        }
+
+        .google-earth-btn:hover {
+            background: #3367d6;
+            color: white;
+            text-decoration: none;
+        }
+
+        .google-earth-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .earth-icon {
+            font-size: 14px;
+        }
     </style>
 </head>
 
@@ -627,10 +666,16 @@
                     คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel หรือดูพิกัด
                 </div>
 
-                <!-- Coordinate Display -->
+                <!-- Coordinate Display with Google Earth Integration -->
                 <div id="coordinateDisplay" class="coordinate-display">
                     <div class="coordinate-label">📍 ตำแหน่งที่คลิก:</div>
                     <div class="coordinate-value" id="coordinateValue">คลิกบนแผนที่เพื่อดูพิกัด</div>
+                    <div class="coordinate-actions" id="coordinateActions" style="display: none;">
+                        <a id="googleEarthBtn" class="google-earth-btn" href="#" target="_blank" title="เปิดใน Google Earth Web">
+                            <span class="earth-icon">🌍</span>
+                            Google Earth
+                        </a>
+                    </div>
                 </div>
                 
                 <!-- Back to Results Button -->
@@ -663,6 +708,7 @@
         let currentlyViewingResult = false; // ตรวจสอบว่ากำลังดูข้อมูลจากการค้นหาหรือไม่
         let parcelLayers = L.layerGroup(); // สำหรับเก็บ parcel layers ที่ควบคุมการแสดงผล
         let currentZoom = 10; // เก็บระดับ zoom ปัจจุบัน
+        let lastClickedCoordinate = null; // เก็บพิกัดล่าสุดที่คลิก
         
         // ฟังก์ชันสลับ Main Tab
         function switchMainTab(tabName) {
@@ -816,15 +862,24 @@
             }
         }
 
-        // ฟังก์ชันแสดงพิกัดที่คลิก - เปลี่ยนรูปแบบการแสดง
+        // ฟังก์ชันแสดงพิกัดที่คลิก และเพิ่มปุ่ม Google Earth
         function displayClickedCoordinate(latlng) {
             const coordinateValue = document.getElementById('coordinateValue');
+            const coordinateActions = document.getElementById('coordinateActions');
+            const googleEarthBtn = document.getElementById('googleEarthBtn');
             
             const lat = latlng.lat.toFixed(6);
             const lng = latlng.lng.toFixed(6);
             
+            // เก็บพิกัดล่าสุด
+            lastClickedCoordinate = { lat: parseFloat(lat), lng: parseFloat(lng) };
+            
             // เปลี่ยนรูปแบบจาก "Lat: XX, Lng: YY" เป็น "LA&TLONG = XX, YY"
             coordinateValue.textContent = `LA&TLONG = ${lat}, ${lng}`;
+            
+            // แสดงปุ่ม Google Earth และตั้งค่า URL
+            coordinateActions.style.display = 'flex';
+            googleEarthBtn.href = `https://earth.google.com/web/@${lat},${lng},100a,1000d,35y,0h,0t,0r`;
         }
         
         // ฟังก์ชันเปลี่ยน basemap
@@ -1714,10 +1769,13 @@
             searchHighlightLayers.clearLayers(); // ล้าง highlight การค้นหา
             document.getElementById('info').style.display = 'none';
             document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('coordinateActions').style.display = 'none'; // ซ่อนปุ่ม Google Earth
             selectedFeature = null;
             lastSearchResults = null;
             currentlyViewingResult = false;
+            lastClickedCoordinate = null; // ล้างพิกัดที่เก็บไว้
             document.getElementById('backToResultsBtn').style.display = 'none';
+            document.getElementById('coordinateValue').textContent = 'คลิกบนแผนที่เพื่อดูพิกัด';
             updateStatus('คลิกบนแผนที่เพื่อตรวจสอบข้อมูล Parcel หรือดูพิกัด', 'info');
             
             // ปลดล็อกช่องจังหวัดและอำเภอ
