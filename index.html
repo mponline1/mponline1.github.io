@@ -179,10 +179,89 @@
             </div>
         </div>
     </div>
-    <script data-goatcounter="https://mponline.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+   
+<script>
+(function() {
+    // ระบบนับผู้เข้าชม
+    const COUNTER_URL = window.location.hostname; // URL ปัจจุบัน
+    
+    // ส่งข้อมูลการเข้าชม
+    function sendVisit() {
+        const visitData = {
+            url: COUNTER_URL,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            referrer: document.referrer || 'direct'
+        };
+        
+        // บันทึกลงใน localStorage (ในการใช้งานจริงส่งไปที่ server)
+        const visits = JSON.parse(localStorage.getItem('siteVisits') || '{}');
+        if (!visits[COUNTER_URL]) {
+            visits[COUNTER_URL] = [];
+        }
+        
+        // เช็คว่าเคยนับ IP นี้ในวันนี้แล้วหรือยัง
+        const today = new Date().toDateString();
+        const todayVisits = visits[COUNTER_URL].filter(visit => 
+            new Date(visit.timestamp).toDateString() === today
+        );
+        
+        if (todayVisits.length === 0) {
+            visits[COUNTER_URL].push(visitData);
+            localStorage.setItem('siteVisits', JSON.stringify(visits));
+            
+            // อัพเดท counter display
+            updateCounter();
+        }
+    }
+    
+    // อัพเดทการแสดงผล counter
+    function updateCounter() {
+        const visits = JSON.parse(localStorage.getItem('siteVisits') || '{}');
+        const siteVisits = visits[COUNTER_URL] || [];
+        
+        // สร้าง counter display
+        let counter = document.getElementById('visitor-counter');
+        if (!counter) {
+            counter = document.createElement('div');
+            counter.id = 'visitor-counter';
+            counter.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: linear-gradient(45deg, #667eea, #764ba2);
+                color: white;
+                padding: 10px 15px;
+                border-radius: 25px;
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                z-index: 9999;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.1);
+            `;
+            document.body.appendChild(counter);
+        }
+        
+        const today = new Date().toDateString();
+        const todayCount = siteVisits.filter(visit => 
+            new Date(visit.timestamp).toDateString() === today
+        ).length;
+        
+        counter.innerHTML = `👥 เข้าชมวันนี้: ${todayCount} | รวม: ${siteVisits.length}`;
+    }
+    
+    // เรียกใช้งานเมื่อหน้าเว็บโหลดเสร็จ
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', sendVisit);
+    } else {
+        sendVisit();
+    }
+})();
+</script>
 </body>
 </html>
+
 
 
 
