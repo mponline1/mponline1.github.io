@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดประเภทโรงงาน (Factory Reclassification)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', 'Tahoma', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .step-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+
+        .step-title {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            background: white;
+        }
+
+        input[type="file"]:hover {
+            background: #f0f0ff;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            background: white;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .summary-item h4 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .summary-item .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .export-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .progress {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .scroll-table {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏭 ระบบจัดประเภทโรงงาน</h1>
+        <p class="subtitle">Factory Reclassification System</p>
+
+        <!-- ขั้นตอนที่ 1: นำเข้าไฟล์ -->
+        <div class="step-section">
+            <div class="step-title">📁 ขั้นตอนที่ 1: นำเข้าไฟล์ Excel</div>
+            <input type="file" id="fileInput" accept=".xlsx, .xls" />
+            <div id="fileInfo" class="info-box hidden"></div>
+        </div>
+
+        <!-- ขั้นตอนที่ 2: เลือก Field -->
+        <div class="step-section hidden" id="fieldSection">
+            <div class="step-title">🔍 ขั้นตอนที่ 2: เลือก Field ที่จะประมวลผล</div>
+            <select id="factoryTypeField" multiple size="5">
+                <option value="">-- เลือก Field ประเภทโรงงาน --</option>
+            </select>
+            <button onclick="processData()" id="processBtn">▶️ เริ่มประมวลผล</button>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress" id="progress">
+            <div class="spinner"></div>
+            <p>กำลังประมวลผลข้อมูล...</p>
+        </div>
+
+        <!-- ผลลัพธ์ -->
+        <div class="results hidden" id="resultsSection">
+            <!-- สรุปยอดรวม -->
+            <div class="summary-card">
+                <h2 style="color: #667eea; margin-bottom: 15px;">📊 สรุปผลการจัดประเภท</h2>
+                <div class="summary-grid" id="summaryGrid"></div>
+            </div>
+
+            <!-- เลือก Field สำหรับแบ่งเขตปกครอง -->
+            <div class="step-section">
+                <div class="step-title">🗺️ สรุปรายเขตปกครอง</div>
+                <select id="adminField">
+                    <option value="">-- เลือก Field เขตปกครอง --</option>
+                </select>
+                <button onclick="generateAdminSummary()">สร้างสรุปรายเขตปกครอง</button>
+            </div>
+
+            <!-- ตารางสรุปรายเขตปกครอง -->
+            <div id="adminSummarySection" class="hidden">
+                <div class="summary-card">
+                    <h3 style="color: #667eea;">สรุปรายเขตปกครอง</h3>
+                    <div class="scroll-table" id="adminSummaryTable"></div>
+                </div>
+            </div>
+
+            <!-- ปุ่ม Export -->
+            <div class="export-buttons">
+                <button onclick="exportSummary()">📥 Export สรุปยอดรวม</button>
+                <button onclick="exportAdminSummary()" id="exportAdminBtn" disabled>📥 Export สรุปรายเขตปกครอง</button>
+                <button onclick="exportRawData()">📥 Export ข้อมูลดิบ</button>
+            </div>
+
+            <!-- ตัวอย่างข้อมูล -->
+            <div class="summary-card">
+                <h3 style="color: #667eea;">📋 ตัวอย่างข้อมูลที่ประมวลผล (10 แถวแรก)</h3>
+                <div class="scroll-table" id="previewTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let workbook = null;
+        let worksheet = null;
+        let rawData = [];
+        let processedData = [];
+        let headers = [];
+        let adminSummaryData = null;
+
+        // รายการประเภทโรงงานตามข้อกำหนด
+        const factoryCategories = {
+            'โรงงาน 12 ความเสี่ยงสูง': ['7(1)', '7(4)', '42(1)', '42(2)', '43(1)', '43(2)', '44', '45(1)', '45(2)', '45(3)', '48(4)', '48(6)', '49', '50(4)', '89', '91(2)', '92', '99'],
+            'โรงงานที่ต้องมีมาตรการความปลอดภัยการจัดการสารเคมี 2565': ['7(1)', '7(4)', '16', '17', '22(1)', '22(2)', '22(3)', '22(4)', '27(2)', '29', '30', '38(1)', '38(2)', '42(1)', '42(2)', '43(1)', '43(2)', '44', '45(1)', '45(2)', '45(3)', '47(3)', '48(1)', '48(2)', '48(3)', '48(4)', '48(6)', '49', '50(4)', '53(6)', '59', '60', '89', '91(2)', '92', '99', '100(1)', '100(2)', '100(5)'],
+            'โรงงานที่ต้องทำ EIA 2552': ['16', '17', '22(1)', '22(2)', '22(3)', '22(4)', '24', '27(2)', '29', '30', '31', '32(2)', '38(1)', '38(2)', '53(6)', '59', '60', '75(1)', '75(2)', '75(3)', '76(1)', '76(2)', '78(1)', '78(2)', '88(1)', '88(2)', '88(3)', '98', '102', '105', '106'],
+            'โรงงานที่ต้องทำรายงานปริมาณสารพิษที่ระบายออกจากโรงงาน 2553': ['11(3)', '11(4)', '11(6)', '38(1)', '38(2)', '42(1)', '43(1)', '44', '49', '57(1)', '59', '60', '88(1)', '88(2)', '88(3)', '89', '101', '105', '106']
+        };
+
+        // อ่านไฟล์ Excel
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    workbook = XLSX.read(data, {type: 'array'});
+                    worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    
+                    // แปลงเป็น JSON
+                    rawData = XLSX.utils.sheet_to_json(worksheet, {defval: ''});
+                    
+                    if (rawData.length === 0) {
+                        alert('ไม่พบข้อมูลในไฟล์');
+                        return;
+                    }
+
+                    headers = Object.keys(rawData[0]);
+                    
+                    // แสดงข้อมูลไฟล์
+                    document.getElementById('fileInfo').innerHTML = `
+                        <strong>✅ อ่านไฟล์สำเร็จ</strong><br>
+                        ชื่อไฟล์: ${file.name}<br>
+                        จำนวนแถว: ${rawData.length.toLocaleString()}<br>
+                        จำนวนคอลัมน์: ${headers.length}
+                    `;
+                    document.getElementById('fileInfo').classList.remove('hidden');
+                    
+                    // แสดงรายการ Fields
+                    populateFieldSelects();
+                    document.getElementById('fieldSection').classList.remove('hidden');
+                    
+                } catch (error) {
+                    alert('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // เติมข้อมูลใน Select Fields
+        function populateFieldSelects() {
+            const factoryTypeField = document.getElementById('factoryTypeField');
+            const adminField = document.getElementById('adminField');
+            
+            factoryTypeField.innerHTML = '<option value="">-- เลือก Field ประเภทโรงงาน --</option>';
+            adminField.innerHTML = '<option value="">-- เลือก Field เขตปกครอง --</option>';
+            
+            headers.forEach(header => {
+                const option1 = new createElement('option', header, header);
+                const option2 = new createElement('option', header, header);
+                factoryTypeField.appendChild(option1);
+                adminField.appendChild(option2);
+            });
+        }
+
+        function createElement(tag, value, text) {
+            const element = document.createElement(tag);
+            element.value = value;
+            element.textContent = text;
+            return element;
+        }
+
+        // ประมวลผลข้อมูล
+        function processData() {
+            const selectedFields = Array.from(document.getElementById('factoryTypeField').selectedOptions)
+                .map(opt => opt.value)
+                .filter(val => val !== '');
+
+            if (selectedFields.length === 0) {
+                alert('กรุณาเลือก Field ประเภทโรงงานอย่างน้อย 1 Field');
+                return;
+            }
+
+            document.getElementById('progress').style.display = 'block';
+            document.getElementById('processBtn').disabled = true;
+
+            setTimeout(() => {
+                processedData = rawData.map(row => {
+                    const newRow = {...row};
+                    
+                    // เพิ่ม fields ใหม่
+                    Object.keys(factoryCategories).forEach(categoryName => {
+                        newRow[categoryName] = '';
+                    });
+
+                    // ตรวจสอบและใส่ค่า 'y'
+                    selectedFields.forEach(field => {
+                        const factoryType = String(row[field] || '').trim();
+                        
+                        Object.keys(factoryCategories).forEach(categoryName => {
+                            const types = factoryCategories[categoryName];
+                            if (types.includes(factoryType)) {
+                                newRow[categoryName] = 'y';
+                            }
+                        });
+                    });
+
+                    return newRow;
+                });
+
+                displayResults();
+                document.getElementById('progress').style.display = 'none';
+                document.getElementById('resultsSection').classList.remove('hidden');
+            }, 500);
+        }
+
+        // แสดงผลลัพธ์
+        function displayResults() {
+            // สรุปยอดรวม
+            const summary = {};
+            let totalCount = processedData.length;
+
+            Object.keys(factoryCategories).forEach(categoryName => {
+                summary[categoryName] = processedData.filter(row => row[categoryName] === 'y').length;
+            });
+
+            // แสดง Summary Cards
+            const summaryGrid = document.getElementById('summaryGrid');
+            summaryGrid.innerHTML = `
+                <div class="summary-item">
+                    <h4>จำนวนโรงงานทั้งหมด</h4>
+                    <div class="number">${totalCount.toLocaleString()}</div>
+                </div>
+            `;
+
+            Object.keys(factoryCategories).forEach(categoryName => {
+                summaryGrid.innerHTML += `
+                    <div class="summary-item">
+                        <h4>${categoryName}</h4>
+                        <div class="number">${summary[categoryName].toLocaleString()}</div>
+                    </div>
+                `;
+            });
+
+            // แสดงตัวอย่างข้อมูล 10 แถวแรก
+            displayPreviewTable();
+        }
+
+        // แสดงตาราง Preview
+        function displayPreviewTable() {
+            const previewTable = document.getElementById('previewTable');
+            const previewData = processedData.slice(0, 10);
+            
+            if (previewData.length === 0) return;
+
+            const allHeaders = Object.keys(previewData[0]);
+            
+            let tableHTML = '<table><thead><tr>';
+            allHeaders.forEach(header => {
+                tableHTML += `<th>${header}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+
+            previewData.forEach(row => {
+                tableHTML += '<tr>';
+                allHeaders.forEach(header => {
+                    let value = row[header] || '';
+                    if (value === 'y') {
+                        value = '<span style="color: green; font-weight: bold;">✓ y</span>';
+                    }
+                    tableHTML += `<td>${value}</td>`;
+                });
+                tableHTML += '</tr>';
+            });
+
+            tableHTML += '</tbody></table>';
+            previewTable.innerHTML = tableHTML;
+        }
+
+        // สร้างสรุปรายเขตปกครอง
+        function generateAdminSummary() {
+            const adminField = document.getElementById('adminField').value;
+            
+            if (!adminField) {
+                alert('กรุณาเลือก Field เขตปกครอง');
+                return;
+            }
+
+            // จัดกลุ่มข้อมูลตาม Field เขตปกครอง
+            const grouped = {};
+            
+            processedData.forEach(row => {
+                const adminValue = String(row[adminField] || 'ไม่ระบุ');
+                
+                if (!grouped[adminValue]) {
+                    grouped[adminValue] = {
+                        total: 0
+                    };
+                    Object.keys(factoryCategories).forEach(cat => {
+                        grouped[adminValue][cat] = 0;
+                    });
+                }
+
+                grouped[adminValue].total++;
+                
+                Object.keys(factoryCategories).forEach(categoryName => {
+                    if (row[categoryName] === 'y') {
+                        grouped[adminValue][categoryName]++;
+                    }
+                });
+            });
+
+            adminSummaryData = grouped;
+
+            // แสดงตาราง
+            displayAdminSummaryTable(adminField);
+            document.getElementById('exportAdminBtn').disabled = false;
+        }
+
+        // แสดงตารางสรุปรายเขตปกครอง
+        function displayAdminSummaryTable(adminField) {
+            const section = document.getElementById('adminSummarySection');
+            const tableDiv = document.getElementById('adminSummaryTable');
+            
+            let tableHTML = '<table><thead><tr>';
+            tableHTML += `<th>${adminField}</th>`;
+            tableHTML += '<th>จำนวนทั้งหมด</th>';
+            
+            Object.keys(factoryCategories).forEach(categoryName => {
+                tableHTML += `<th>${categoryName}</th>`;
+            });
+            
+            tableHTML += '</tr></thead><tbody>';
+
+            // เรียงตามชื่อเขตปกครอง
+            const sortedKeys = Object.keys(adminSummaryData).sort();
+            
+            sortedKeys.forEach(admin => {
+                const data = adminSummaryData[admin];
+                tableHTML += '<tr>';
+                tableHTML += `<td><strong>${admin}</strong></td>`;
+                tableHTML += `<td>${data.total.toLocaleString()}</td>`;
+                
+                Object.keys(factoryCategories).forEach(categoryName => {
+                    tableHTML += `<td>${data[categoryName].toLocaleString()}</td>`;
+                });
+                
+                tableHTML += '</tr>';
+            });
+
+            tableHTML += '</tbody></table>';
+            tableDiv.innerHTML = tableHTML;
+            section.classList.remove('hidden');
+        }
+
+        // Export สรุปยอดรวม
+        function exportSummary() {
+            const summary = [['ประเภท', 'จำนวน']];
+            summary.push(['จำนวนโรงงานทั้งหมด', processedData.length]);
+            
+            Object.keys(factoryCategories).forEach(categoryName => {
+                const count = processedData.filter(row => row[categoryName] === 'y').length;
+                summary.push([categoryName, count]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(summary);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'สรุปยอดรวม');
+            XLSX.writeFile(wb, 'สรุปยอดรวมโรงงาน.xlsx');
+        }
+
+        // Export สรุปรายเขตปกครอง
+        function exportAdminSummary() {
+            if (!adminSummaryData) {
+                alert('กรุณาสร้างสรุปรายเขตปกครองก่อน');
+                return;
+            }
+
+            const adminField = document.getElementById('adminField').value;
+            const data = [[adminField, 'จำนวนทั้งหมด']];
+            
+            Object.keys(factoryCategories).forEach(categoryName => {
+                data[0].push(categoryName);
+            });
+
+            const sortedKeys = Object.keys(adminSummaryData).sort();
+            
+            sortedKeys.forEach(admin => {
+                const row = [admin, adminSummaryData[admin].total];
+                Object.keys(factoryCategories).forEach(categoryName => {
+                    row.push(adminSummaryData[admin][categoryName]);
+                });
+                data.push(row);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'สรุปรายเขตปกครอง');
+            XLSX.writeFile(wb, 'สรุปรายเขตปกครองโรงงาน.xlsx');
+        }
+
+        // Export ข้อมูลดิบ
+        function exportRawData() {
+            const ws = XLSX.utils.json_to_sheet(processedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'ข้อมูลดิบ');
+            XLSX.writeFile(wb, 'ข้อมูลดิบโรงงาน.xlsx');
+        }
+    </script>
+</body>
+</html>
