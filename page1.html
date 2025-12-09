@@ -104,7 +104,7 @@
             <button id="drawBtn" class="btn btn-toolbar-custom" title="Draw"><i class="fas fa-pen"></i></button>
             <button id="layerListBtn" class="btn btn-toolbar-custom" title="Layer List"><i class="fas fa-list"></i></button>
             <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location"><i class="fas fa-location-dot"></i></button> 
-            <button id="exportPanelBtn" class="btn btn-toolbar-custom" title="Export to KML"><i class="fas fa-download"></i></button> 
+            <button id="exportPanelBtn" class="btn btn-toolbar-custom" title="Export Data"><i class="fas fa-download"></i></button> 
             <button id="excelImportBtn" class="btn btn-toolbar-custom" title="Import Excel"><i class="fas fa-file-excel"></i></button>
         </div>
         <button id="toolbarToggleBtn" class="toolbar-toggle-btn" title="Show/Hide Toolbar">
@@ -161,9 +161,24 @@
 
     <div id="exportPanel" class="panel">
         <span class="close-btn" onclick="closePanel('exportPanel')">×</span>
-        <h5>Export KML/KMZ</h5>
+        <h5>Export Data</h5>
+        
+        <div class="mb-3 border-bottom pb-2">
+            <label class="form-label small fw-bold">Select Format:</label>
+            <div class="d-flex gap-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="exportFormat" id="formatKml" value="kml" checked>
+                    <label class="form-check-label" for="formatKml">KML (Google Earth)</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson" value="geojson">
+                    <label class="form-check-label" for="formatGeojson">GeoJSON</label>
+                </div>
+            </div>
+        </div>
+
         <p class="small text-muted">Select layers to export:</p>
-        <div id="exportLayerList" class="mb-3"></div>
+        <div id="exportLayerList" class="mb-3" style="max-height: 150px; overflow-y: auto;"></div>
         <button id="confirmExportBtn" class="btn btn-success btn-sm w-100">Export Selected</button>
     </div>
 
@@ -262,6 +277,7 @@
                    Sketch, GraphicsLayer, Graphic, geometryEngine, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, TextSymbol,
                    Track, Point, webMercatorUtils, coordinateFormatter, projection) {
             
+            // Load Coordinate modules
             Promise.all([
                 coordinateFormatter.load(),
                 projection.load()
@@ -486,7 +502,6 @@
                 };
 
                 if (!isBuffer) {
-                    // Only open modal if description is not set (i.e., not a Search result)
                     if (!graphic.attributes.description) {
                         showAttributeModal(graphic, lat, lon, mgrsStr, geom.type);
                     }
@@ -537,7 +552,7 @@
                 document.getElementById('attributeForm').reset();
             }
 
-            // --- EXPORT KML ---
+            // --- EXPORT SYSTEM (KML & GeoJSON) ---
             function updateExportLayerList() {
                 var container = document.getElementById("exportLayerList");
                 container.innerHTML = "";
@@ -558,11 +573,20 @@
                 } else document.getElementById("confirmExportBtn").disabled = false;
             }
 
+            // Export Button Click Handler
             document.getElementById("confirmExportBtn").addEventListener("click", function() {
                 var checkboxes = document.querySelectorAll('.export-layer-checkbox:checked');
                 var layerIds = Array.from(checkboxes).map(cb => cb.value);
                 if (layerIds.length === 0) { alert("Please select at least one layer."); return; }
-                exportSelectedLayersToKML(layerIds);
+
+                // Check selected format
+                var exportType = document.querySelector('input[name="exportFormat"]:checked').value;
+
+                if (exportType === "kml") {
+                    exportSelectedLayersToKML(layerIds);
+                } else {
+                    exportSelectedLayersToGeoJSON(layerIds);
+                }
             });
 
             function toKmlColor(hexColor, alpha) {
@@ -586,7 +610,7 @@
                         kml += `<Folder><name>${layer.title}</name>`;
                         layer.graphics.forEach(function(graphic, index) {
                             var attrs = graphic.attributes || {};
-                            var name = attrs.description || "Untitled";
+                            var name = attrs.description || attrs.label || "Untitled"; 
                             var color = attrs.color || "#0000ff";
                             var styleId = "style_" + id + "_" + index;
                             var kmlColor = toKmlColor(color, "ff");
@@ -599,12 +623,18 @@
                                 <IconStyle><color>${kmlColor}</color><scale>1.0</scale><Icon><href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href></Icon></IconStyle>
                             </Style>`;
 
-                            var desc = `<b>Name:</b> ${name}<br><b>Lat:</b> ${attrs.latitude || "-"}<br><b>Lon:</b> ${attrs.longitude || "-"}<br><b>Buffer:</b> ${attrs.isBuffer || "No"}`;
+                            var desc = "";
+                            for (var key in attrs) {
+                                if (key !== "color" && key !== "timestamp") { 
+                                    desc += `<b>${key}:</b> ${attrs[key]}<br>`;
+                                }
+                            }
+                            if(desc === "") desc = `<b>Lat:</b> ${attrs.latitude || "-"}<br><b>Lon:</b> ${attrs.longitude || "-"}`;
+
                             kml += `<Placemark><name>${name}</name><description><![CDATA[${desc}]]></description><styleUrl>#${styleId}</styleUrl>`;
                             
                             var geom = graphic.geometry;
                             if (geom.type === "point") {
-                                // USE ATTRIBUTES IF AVAILABLE (WGS84 stored)
                                 if (attrs.latitude && attrs.longitude) {
                                     kml += `<Point><coordinates>${attrs.longitude},${attrs.latitude}</coordinates></Point>`;
                                 } else {
@@ -631,11 +661,78 @@
                 });
                 kml += `</Document></kml>`;
 
-                var blob = new Blob([kml], {type: "application/vnd.google-earth.kml+xml"});
+                downloadFile(kml, "map_export.kml", "application/vnd.google-earth.kml+xml");
+            }
+
+            // --- NEW: GeoJSON Export Function (WGS84) ---
+            function exportSelectedLayersToGeoJSON(layerIds) {
+                var features = [];
+
+                layerIds.forEach(function(id) {
+                    var layer = map.findLayerById(id);
+                    if (layer && layer.graphics && layer.graphics.length > 0) {
+                        layer.graphics.forEach(function(graphic) {
+                            var attrs = graphic.attributes || {};
+                            var properties = Object.assign({}, attrs); // Clone attributes
+                            
+                            // Ensure Geometry is WGS84
+                            var geom = graphic.geometry;
+                            var geoJsonGeom = null;
+
+                            if (geom.type === "point") {
+                                var lat, lon;
+                                // Use precise attributes if available (from Excel/Search)
+                                if (attrs.latitude && attrs.longitude && !isNaN(parseFloat(attrs.latitude))) {
+                                    lat = parseFloat(attrs.latitude);
+                                    lon = parseFloat(attrs.longitude);
+                                } else {
+                                    var ll = webMercatorUtils.webMercatorToGeographic(geom);
+                                    lat = ll.latitude;
+                                    lon = ll.longitude;
+                                }
+                                geoJsonGeom = { type: "Point", coordinates: [lon, lat] };
+                            }
+                            else if (geom.type === "polyline") {
+                                var geoLine = webMercatorUtils.webMercatorToGeographic(geom);
+                                geoJsonGeom = { 
+                                    type: "LineString", 
+                                    coordinates: geoLine.paths[0] // Simplify single path
+                                };
+                            }
+                            else if (geom.type === "polygon") {
+                                var geoPoly = webMercatorUtils.webMercatorToGeographic(geom);
+                                geoJsonGeom = { 
+                                    type: "Polygon", 
+                                    coordinates: geoPoly.rings 
+                                };
+                            }
+
+                            if (geoJsonGeom) {
+                                features.push({
+                                    type: "Feature",
+                                    properties: properties,
+                                    geometry: geoJsonGeom
+                                });
+                            }
+                        });
+                    }
+                });
+
+                var geoJsonObj = {
+                    type: "FeatureCollection",
+                    features: features
+                };
+
+                var jsonStr = JSON.stringify(geoJsonObj, null, 2);
+                downloadFile(jsonStr, "map_export.geojson", "application/geo+json");
+            }
+
+            function downloadFile(content, fileName, mimeType) {
+                var blob = new Blob([content], {type: mimeType});
                 var url = URL.createObjectURL(blob);
                 var a = document.createElement("a");
                 a.href = url;
-                a.download = "map_export.kml";
+                a.download = fileName;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -673,7 +770,7 @@
                 else { track.stop(); btn.classList.remove("tool-active"); locationLabelLayer.removeAll(); }
             });
 
-            // --- SEARCH (Updated for Stored Coordinates) ---
+            // --- SEARCH ---
             document.querySelectorAll('input[name="searchType"]').forEach((elem) => {
                 elem.addEventListener("change", function(event) {
                     var input = document.getElementById("searchInput");
@@ -707,8 +804,6 @@
 
             function executeSearch(lon, lat) {
                 var point = new Point({ latitude: lat, longitude: lon });
-
-                // Calculate MGRS for storage
                 var mgrsStr = "";
                 try { mgrsStr = coordinateFormatter.toMgrs(point, "automatic", 5); } catch(e) { mgrsStr = "Error"; }
                 
@@ -717,7 +812,6 @@
                     symbol: markerSymbol,
                     attributes: {
                         description: "Search: " + lat.toFixed(5) + ", " + lon.toFixed(5),
-                        // STORED COORDINATES for KML Export (WGS84)
                         latitude: lat.toFixed(6),
                         longitude: lon.toFixed(6),
                         mgrs: mgrsStr,
@@ -727,16 +821,14 @@
                     }
                 });
                 
-                // Add popup
                 handleGraphicCreation(graphic, false); 
-                
                 searchGraphicsLayer.add(graphic);
                 view.goTo({ target: point, zoom: 16 }, { duration: 1000 });
                 updateLayerList();
                 updateExportLayerList();
             }
 
-            // --- SERVICES & EXCEL (Unchanged) ---
+            // --- SERVICES & EXCEL ---
             document.getElementById("addServiceBtn").addEventListener("click", () => togglePanel("addServicePanel"));
             document.getElementById("addServiceConfirmBtn").addEventListener("click", function() {
                 var url = document.getElementById("serviceUrl").value, type = document.getElementById("serviceType").value, layer;
@@ -759,7 +851,13 @@
             }
             window.removeLayer = function(id) { map.remove(map.findLayerById(id)); updateLayerList(); populateDrawLayerSelect(); };
 
-            var excelPointsLayer = new GraphicsLayer({title:"Excel Points", listMode:"show"}); map.add(excelPointsLayer);
+            var excelPointsLayer = new GraphicsLayer({
+                title: "Excel Points", 
+                listMode: "show",
+                isDrawLayer: true 
+            }); 
+            map.add(excelPointsLayer);
+
             document.getElementById("excelImportBtn").addEventListener("click", () => togglePanel("excelImportPanel"));
             document.getElementById("excelFile").addEventListener("change", function(e) {
                 var file = e.target.files[0];
@@ -782,33 +880,69 @@
                     reader.readAsArrayBuffer(file);
                 }
             });
+
             document.getElementById("importExcelBtn").addEventListener("click", function() {
                 var file = document.getElementById("excelFile").files[0];
                 var latI = parseInt(document.getElementById("latColumn").value);
                 var lonI = parseInt(document.getElementById("lonColumn").value);
                 var lblI = parseInt(document.getElementById("labelColumn").value);
+
                 if (file && !isNaN(latI) && !isNaN(lonI)) {
                     var reader = new FileReader();
                     reader.onload = function(e) {
                         var data = new Uint8Array(e.target.result);
                         var wb = XLSX.read(data, { type: 'array' });
                         var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                        var headers = json[0];
+
                         excelPointsLayer.removeAll();
                         var pts = [];
-                        for (var i=1; i<json.length; i++) {
-                            var row=json[i], lat=parseFloat(row[latI]), lon=parseFloat(row[lonI]);
+
+                        for (var i = 1; i < json.length; i++) {
+                            var row = json[i];
+                            var lat = parseFloat(row[latI]);
+                            var lon = parseFloat(row[lonI]);
+
                             if (!isNaN(lat) && !isNaN(lon)) {
+                                var point = new Point({latitude: lat, longitude: lon});
+                                
+                                var attributes = {};
+                                headers.forEach((header, index) => {
+                                    attributes[header] = row[index];
+                                });
+
+                                var mgrsStr = "";
+                                try { mgrsStr = coordinateFormatter.toMgrs(point, "automatic", 5); } 
+                                catch(ex) { mgrsStr = "Error"; }
+                                attributes.mgrs = mgrsStr;
+
+                                attributes.latitude = lat;
+                                attributes.longitude = lon;
+                                if (!isNaN(lblI)) attributes.description = row[lblI];
+                                attributes.color = "#ff0000";
+
+                                var popupFields = headers.map(h => ({ fieldName: h, label: h }));
+                                popupFields.push({ fieldName: "mgrs", label: "MGRS" });
+
                                 pts.push(new Graphic({
-                                    geometry: new Point({latitude:lat, longitude:lon}),
+                                    geometry: point,
                                     symbol: new SimpleMarkerSymbol({color:[255,0,0,0.8], size:"12px", outline:{color:[255,255,255], width:2}}),
-                                    attributes: { label: !isNaN(lblI)?row[lblI]:`Point ${i}`, latitude:lat, longitude:lon },
-                                    popupTemplate: { title: "Point Info", content: [{ type: "fields", fieldInfos: [{fieldName:"label"},{fieldName:"latitude"},{fieldName:"longitude"}] }] }
+                                    attributes: attributes,
+                                    popupTemplate: { 
+                                        title: "Point Info", 
+                                        content: [{ 
+                                            type: "fields", 
+                                            fieldInfos: popupFields 
+                                        }] 
+                                    }
                                 }));
                             }
                         }
                         excelPointsLayer.addMany(pts);
                         if(pts.length>0) view.goTo(pts);
-                        updateLayerList(); closePanel('excelImportPanel');
+                        updateLayerList(); 
+                        updateExportLayerList();
+                        closePanel('excelImportPanel');
                     };
                     reader.readAsArrayBuffer(file);
                 }
