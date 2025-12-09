@@ -165,14 +165,22 @@
         
         <div class="mb-3 border-bottom pb-2">
             <label class="form-label small fw-bold">Select Format:</label>
-            <div class="d-flex gap-3">
+            <div class="d-flex flex-column gap-2">
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="exportFormat" id="formatKml" value="kml" checked>
-                    <label class="form-check-label" for="formatKml">KML (Google Earth)</label>
+                    <label class="form-check-label" for="formatKml">KML (Google Earth - WGS84)</label>
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson" value="geojson">
-                    <label class="form-check-label" for="formatGeojson">GeoJSON</label>
+                    <label class="form-check-label" for="formatGeojson">GeoJSON (WGS84)</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson47" value="geojson_47">
+                    <label class="form-check-label" for="formatGeojson47">GeoJSON (UTM Zone 47N)</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson48" value="geojson_48">
+                    <label class="form-check-label" for="formatGeojson48">GeoJSON (UTM Zone 48N)</label>
                 </div>
             </div>
         </div>
@@ -237,6 +245,16 @@
                 <label class="form-label small">MGRS (Center)</label>
                 <input type="text" class="form-control form-control-sm" id="attrMgrs" readonly>
             </div>
+            <div class="row mb-2">
+                <div class="col-6">
+                    <label class="form-label small">UTM Z47 (E, N)</label>
+                    <input type="text" class="form-control form-control-sm" id="attrUtm47" readonly>
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">UTM Z48 (E, N)</label>
+                    <input type="text" class="form-control form-control-sm" id="attrUtm48" readonly>
+                </div>
+            </div>
             <div class="mb-3">
                 <label for="description" class="form-label">Description / Name</label>
                 <input type="text" class="form-control" id="description" required>
@@ -277,12 +295,12 @@
                    Sketch, GraphicsLayer, Graphic, geometryEngine, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, TextSymbol,
                    Track, Point, webMercatorUtils, coordinateFormatter, projection) {
             
-            // Load Coordinate modules
+            // Load Coordinate and Projection modules
             Promise.all([
                 coordinateFormatter.load(),
                 projection.load()
             ]).then(() => {
-                console.log("Coordinate modules loaded");
+                console.log("Coordinate & Projection modules loaded");
             });
 
             var map = new Map({ basemap: "topo-vector" });
@@ -472,6 +490,21 @@
                 view.ui.add(sketch, "top-left");
             }
 
+            // --- HELPER: Calculate UTM Attributes ---
+            function getUTMAttributes(pointWGS84) {
+                var result = { utmz47: "-", utmz48: "-" };
+                try {
+                    // Project to UTM Zone 47N (WKID: 32647)
+                    var p47 = projection.project(pointWGS84, { wkid: 32647 });
+                    if (p47) result.utmz47 = `${p47.x.toFixed(2)}, ${p47.y.toFixed(2)}`;
+
+                    // Project to UTM Zone 48N (WKID: 32648)
+                    var p48 = projection.project(pointWGS84, { wkid: 32648 });
+                    if (p48) result.utmz48 = `${p48.x.toFixed(2)}, ${p48.y.toFixed(2)}`;
+                } catch (e) { console.error("Projection Error:", e); }
+                return result;
+            }
+
             function handleGraphicCreation(graphic, isBuffer) {
                 graphic.attributes = graphic.attributes || {};
                 graphic.attributes.color = graphic.attributes.color || activeColor;
@@ -479,8 +512,13 @@
 
                 var geom = graphic.geometry;
                 var centerPoint = (geom.type === "point") ? geom : geom.extent.center;
-                
                 var latLon = webMercatorUtils.webMercatorToGeographic(centerPoint);
+                
+                // --- ADD UTM ATTRIBUTES ---
+                var utmAttrs = getUTMAttributes(latLon);
+                graphic.attributes.utmz47 = utmAttrs.utmz47;
+                graphic.attributes.utmz48 = utmAttrs.utmz48;
+
                 var lat = latLon.latitude.toFixed(6);
                 var lon = latLon.longitude.toFixed(6);
                 var mgrsStr = "";
@@ -494,6 +532,8 @@
                             { fieldName: "latitude", label: "Center Lat" },
                             { fieldName: "longitude", label: "Center Lon" },
                             { fieldName: "mgrs", label: "MGRS" },
+                            { fieldName: "utmz47", label: "UTM Zone 47N" },
+                            { fieldName: "utmz48", label: "UTM Zone 48N" },
                             { fieldName: "type", label: "Type" },
                             { fieldName: "isBuffer", label: "Is Buffer" },
                             { fieldName: "timestamp", label: "Time" }
@@ -503,7 +543,7 @@
 
                 if (!isBuffer) {
                     if (!graphic.attributes.description) {
-                        showAttributeModal(graphic, lat, lon, mgrsStr, geom.type);
+                        showAttributeModal(graphic, lat, lon, mgrsStr, utmAttrs.utmz47, utmAttrs.utmz48, geom.type);
                     }
                 } else {
                     graphic.attributes.description = "Buffer (" + bufferDistance + "m)";
@@ -527,12 +567,14 @@
                 return [r, g, b, alpha];
             }
 
-            window.showAttributeModal = function(graphic, lat, lon, mgrs, type) {
+            window.showAttributeModal = function(graphic, lat, lon, mgrs, utm47, utm48, type) {
                 document.getElementById('modalBackdrop').style.display = 'block';
                 document.getElementById('attributeModal').style.display = 'block';
                 document.getElementById('attrLat').value = lat;
                 document.getElementById('attrLon').value = lon;
                 document.getElementById('attrMgrs').value = mgrs;
+                document.getElementById('attrUtm47').value = utm47;
+                document.getElementById('attrUtm48').value = utm48;
                 document.getElementById('description').focus();
 
                 document.getElementById('attributeForm').onsubmit = function(e) {
@@ -552,7 +594,7 @@
                 document.getElementById('attributeForm').reset();
             }
 
-            // --- EXPORT SYSTEM (KML & GeoJSON) ---
+            // --- EXPORT SYSTEM (KML & GeoJSON with UTM) ---
             function updateExportLayerList() {
                 var container = document.getElementById("exportLayerList");
                 container.innerHTML = "";
@@ -584,8 +626,12 @@
 
                 if (exportType === "kml") {
                     exportSelectedLayersToKML(layerIds);
-                } else {
-                    exportSelectedLayersToGeoJSON(layerIds);
+                } else if (exportType === "geojson") {
+                    exportSelectedLayersToGeoJSON(layerIds, 4326); // WGS84
+                } else if (exportType === "geojson_47") {
+                    exportSelectedLayersToGeoJSON(layerIds, 32647); // UTM 47N
+                } else if (exportType === "geojson_48") {
+                    exportSelectedLayersToGeoJSON(layerIds, 32648); // UTM 48N
                 }
             });
 
@@ -664,47 +710,45 @@
                 downloadFile(kml, "map_export.kml", "application/vnd.google-earth.kml+xml");
             }
 
-            // --- NEW: GeoJSON Export Function (WGS84) ---
-            function exportSelectedLayersToGeoJSON(layerIds) {
+            // --- GeoJSON Export (Supports WGS84, UTM47, UTM48) ---
+            function exportSelectedLayersToGeoJSON(layerIds, wkid) {
                 var features = [];
+                var crsObj = null;
+
+                // Define CRS for GeoJSON (if not WGS84)
+                if (wkid === 32647) {
+                    crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32647" } };
+                } else if (wkid === 32648) {
+                    crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32648" } };
+                }
 
                 layerIds.forEach(function(id) {
                     var layer = map.findLayerById(id);
                     if (layer && layer.graphics && layer.graphics.length > 0) {
                         layer.graphics.forEach(function(graphic) {
                             var attrs = graphic.attributes || {};
-                            var properties = Object.assign({}, attrs); // Clone attributes
+                            var properties = Object.assign({}, attrs);
                             
-                            // Ensure Geometry is WGS84
-                            var geom = graphic.geometry;
+                            // Project Geometry
                             var geoJsonGeom = null;
+                            var projectedGeom = null;
 
-                            if (geom.type === "point") {
-                                var lat, lon;
-                                // Use precise attributes if available (from Excel/Search)
-                                if (attrs.latitude && attrs.longitude && !isNaN(parseFloat(attrs.latitude))) {
-                                    lat = parseFloat(attrs.latitude);
-                                    lon = parseFloat(attrs.longitude);
-                                } else {
-                                    var ll = webMercatorUtils.webMercatorToGeographic(geom);
-                                    lat = ll.latitude;
-                                    lon = ll.longitude;
+                            // 1. Get Geometry in correct projection
+                            if (wkid === 4326) {
+                                projectedGeom = webMercatorUtils.webMercatorToGeographic(graphic.geometry);
+                            } else {
+                                // Project to UTM
+                                projectedGeom = projection.project(graphic.geometry, { wkid: wkid });
+                            }
+
+                            if (projectedGeom) {
+                                if (projectedGeom.type === "point") {
+                                    geoJsonGeom = { type: "Point", coordinates: [projectedGeom.x, projectedGeom.y] };
+                                } else if (projectedGeom.type === "polyline") {
+                                    geoJsonGeom = { type: "LineString", coordinates: projectedGeom.paths[0] };
+                                } else if (projectedGeom.type === "polygon") {
+                                    geoJsonGeom = { type: "Polygon", coordinates: projectedGeom.rings };
                                 }
-                                geoJsonGeom = { type: "Point", coordinates: [lon, lat] };
-                            }
-                            else if (geom.type === "polyline") {
-                                var geoLine = webMercatorUtils.webMercatorToGeographic(geom);
-                                geoJsonGeom = { 
-                                    type: "LineString", 
-                                    coordinates: geoLine.paths[0] // Simplify single path
-                                };
-                            }
-                            else if (geom.type === "polygon") {
-                                var geoPoly = webMercatorUtils.webMercatorToGeographic(geom);
-                                geoJsonGeom = { 
-                                    type: "Polygon", 
-                                    coordinates: geoPoly.rings 
-                                };
                             }
 
                             if (geoJsonGeom) {
@@ -722,9 +766,14 @@
                     type: "FeatureCollection",
                     features: features
                 };
+                if (crsObj) geoJsonObj.crs = crsObj;
+
+                var fileName = "map_export_wgs84.geojson";
+                if (wkid === 32647) fileName = "map_export_utm47n.geojson";
+                if (wkid === 32648) fileName = "map_export_utm48n.geojson";
 
                 var jsonStr = JSON.stringify(geoJsonObj, null, 2);
-                downloadFile(jsonStr, "map_export.geojson", "application/geo+json");
+                downloadFile(jsonStr, fileName, "application/geo+json");
             }
 
             function downloadFile(content, fileName, mimeType) {
@@ -807,6 +856,9 @@
                 var mgrsStr = "";
                 try { mgrsStr = coordinateFormatter.toMgrs(point, "automatic", 5); } catch(e) { mgrsStr = "Error"; }
                 
+                // Calculate UTM
+                var utmAttrs = getUTMAttributes(point);
+
                 var graphic = new Graphic({ 
                     geometry: point, 
                     symbol: markerSymbol,
@@ -815,6 +867,8 @@
                         latitude: lat.toFixed(6),
                         longitude: lon.toFixed(6),
                         mgrs: mgrsStr,
+                        utmz47: utmAttrs.utmz47, // Stored
+                        utmz48: utmAttrs.utmz48, // Stored
                         type: "point",
                         timestamp: new Date().toISOString(),
                         color: "#0000ff" 
@@ -915,6 +969,11 @@
                                 try { mgrsStr = coordinateFormatter.toMgrs(point, "automatic", 5); } 
                                 catch(ex) { mgrsStr = "Error"; }
                                 attributes.mgrs = mgrsStr;
+                                
+                                // Calculate UTM Attributes
+                                var utmAttrs = getUTMAttributes(point);
+                                attributes.utmz47 = utmAttrs.utmz47;
+                                attributes.utmz48 = utmAttrs.utmz48;
 
                                 attributes.latitude = lat;
                                 attributes.longitude = lon;
@@ -923,6 +982,8 @@
 
                                 var popupFields = headers.map(h => ({ fieldName: h, label: h }));
                                 popupFields.push({ fieldName: "mgrs", label: "MGRS" });
+                                popupFields.push({ fieldName: "utmz47", label: "UTM Z47" });
+                                popupFields.push({ fieldName: "utmz48", label: "UTM Z48" });
 
                                 pts.push(new Graphic({
                                     geometry: point,
