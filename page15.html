@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กฎหมายอาคารน่ารู้ - Building Regulations</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // --- 1. สร้าง Component Icon แบบฝังโดยตรง (แก้ปัญหา Lucide Load Failed) ---
+        const IconBase = ({ children, className, ...props }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className} 
+                {...props}
+            >
+                {children}
+            </svg>
+        );
+
+        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></IconBase>;
+        const Building2 = (props) => <IconBase {...props}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></IconBase>;
+        const Factory = (props) => <IconBase {...props}><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></IconBase>;
+        const Warehouse = (props) => <IconBase {...props}><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/></IconBase>;
+        const Info = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></IconBase>;
+        const Ruler = (props) => <IconBase {...props}><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></IconBase>;
+        const Maximize = (props) => <IconBase {...props}><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></IconBase>;
+        const ArrowRight = (props) => <IconBase {...props}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
+        const Waves = (props) => <IconBase {...props}><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></IconBase>;
+        const MoveHorizontal = (props) => <IconBase {...props}><polyline points="18 8 22 12 18 16"/><polyline points="6 8 2 12 6 16"/><line x1="2" x2="22" y1="12" y2="12"/></IconBase>;
+        const ChevronRight = (props) => <IconBase {...props}><path d="m9 18 6-6-6-6"/></IconBase>;
+        const Layers = (props) => <IconBase {...props}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></IconBase>;
+        const Copy = (props) => <IconBase {...props}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></IconBase>;
+        const Settings = (props) => <IconBase {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
+        const Car = (props) => <IconBase {...props}><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></IconBase>;
+        const Signpost = (props) => <IconBase {...props}><path d="M12 3v3"/><path d="M18.5 13h-13L2 9.5 5.5 6h13L22 9.5Z"/><path d="M12 13v8"/><path d="M12 21a2 2 0 0 1 0-4"/></IconBase>;
+
+
+        // --- ข้อมูลกฎหมายอาคาร (v14: Updated Data) ---
+        const buildingData = [
+          {
+            id: 1,
+            type: "บ้านเดี่ยว",
+            category: "residential",
+            icon: Home,
+            color: "bg-blue-100 text-blue-600",
+            summary: "อาคารอยู่อาศัยทั่วไป ผนังไม่ติดกับใคร",
+            dimensions: [
+              "ขนาด: ไม่กำหนดมิติกว้างยาวตายตัว",
+              "ห้องนอน: กว้าง ≥ 2.5 ม. พื้นที่ ≥ 8 ตร.ม.",
+              "ระยะดิ่ง (ห้องพัก): สูง ≥ 2.6 ม."
+            ],
+            openSpace: "≥ 30% ของพื้นที่ชั้นที่มากที่สุด",
+            setbacks: {
+              type: "standard", 
+              visual: { top: "ชิดเขต/0.5/2.0/3 ม.", right: "ชิดเขต/0.5/2.0/3 ม.", bottom: "ชิดเขต/0.5/2.0/3 ม.", left: "ชิดเขต/0.5/2.0/3 ม." },
+              details: [
+                "ผนังมีช่องเปิด (สูงไม่เกิน 9 ม.): ห่างเขต ≥ 2.00 ม.",
+                "ผนังมีช่องเปิด (สูง 9-23 ม.): ห่างเขต ≥ 3.00 ม.",
+                "อาคารสูงไม่เกิน 15 เมตร เป็นผนังทึบ และมีผนังทึบบนดาดฟ้าสูงไม่น้อยกว่า 1.8 ม.: ห่างเขต ≥ 0.50 ม.",
+                "อาคารสูงไม่เกิน 15 เมตร เป็นผนังทึบ และมีผนังทึบบนดาดฟ้าสูงไม่น้อยกว่า 1.8 ม.: เจ้าของพื้นที่ข้างเคียงยินยอม ชิดเขต"
+              ]
+            }
+          },
+          {
+            id: 2,
+            type: "บ้านแฝด",
+            category: "residential",
+            icon: Home,
+            color: "bg-green-100 text-green-600",
+            summary: "ผนังแบ่งอาคารติดต่อกัน มีทางเข้าออกแยกกัน",
+            dimensions: [
+              "ระยะดิ่ง (ห้องพัก): สูง ≥ 2.6 ม.",
+              "ลักษณะ: มีที่ว่างด้านหน้า ด้านหลัง และด้านข้าง (ด้านที่ไม่ติดกัน)"
+            ],
+            openSpace: "≥ 30% ของพื้นที่ชั้นที่มากที่สุด",
+            setbacks: {
+              type: "twin-house",
+              visual: { top: "3.0 ม.", right: "2.0 ม.", bottom: "2.0 ม.", left: "2.0 ม." },
+              details: [
+                "ด้านหน้า: ห่างรั้ว ≥ 3.00 ม.",
+                "ด้านหลัง: ห่างรั้ว ≥ 2.00 ม.",
+                "ด้านข้าง (ที่ไม่ติดกัน): ห่างรั้ว ≥ 2.00 ม.",
+                "ผนังด้านที่ติดกัน: ถือว่าเป็นผนังร่วม"
+              ]
+            }
+          },
+          {
+            id: 3,
+            type: "บ้านแถว (ทาวน์เฮาส์)",
+            category: "residential",
+            icon: Home,
+            color: "bg-orange-100 text-orange-600",
+            summary: "อยู่อาศัย สูงไม่เกิน 3 ชั้น ปลูกเรียงกัน",
+            dimensions: [
+              "ระยะดิ่ง (ห้องพัก): สูง ≥ 2.6 ม.",
+              "ความกว้าง: ≥ 4.00 ม.",
+              "ความลึก: 4.00 - 24.00 ม.",
+              "พื้นที่ชั้นล่าง: ≥ 24 ตร.ม./คูหา",
+              "ความยาวรวม: ติดต่อกันไม่เกิน 10 คูหา และ 40 ม.",
+              "ผนังกันไฟทุกระยะไม่เกิน 5 คูหา, ผนังกันไฟสูงเหนือหลังคา ≥ 30 ซม."
+            ],
+            openSpace: "≥ 30% ของพื้นที่ชั้นที่มากที่สุด",
+            setbacks: {
+              type: "row",
+              visual: { top: "3.0 ม.", right: "ติดกัน", bottom: "2.0 ม.", left: "ติดกัน", gapBetweenRows: "4.00 ม." },
+              details: [
+                "ด้านหน้า: ห่างรั้ว ≥ 3.00 ม.",
+                "ด้านหลัง: ห่างรั้ว ≥ 2.00 ม.",
+                "ด้านข้าง (หัว-ท้ายแถว): ห่างเขต ≥ 2.00 ม.",
+                "ระหว่างแถว (ทุก 10 คูหา): ช่องว่าง ≥ 4.00 ม."
+              ]
+            }
+          },
+          {
+            id: 4,
+            type: "ห้องแถว (ไม่ทนไฟ)",
+            category: "commercial",
+            icon: Building2,
+            color: "bg-yellow-100 text-yellow-700",
+            summary: "อาคารพาณิชย์ต่อเนื่อง วัสดุไม่ทนไฟ",
+            dimensions: [
+              "ความกว้าง: ≥ 4.00 ม.",
+              "ความลึก: 4.00 - 24.00 ม.",
+              "พื้นที่ชั้นล่าง: ≥ 30 ตร.ม./คูหา",
+              "ระยะดิ่ง: ชั้นล่าง ≥ 3.5 ม. / ชั้นบน ≥ 3.0 ม.",
+              "ความยาวรวม: 40 ม.",
+              "ผนังกันไฟทุกระยะไม่เกิน 5 คูหา, ผนังกันไฟสูงเหนือหลังคา ≥ 30 ซม."
+            ],
+            openSpace: "≥ 10% ของพื้นที่ชั้นที่มากที่สุด (ไม่ต้องปฏิบัติถ้าถอยร่นตามระยะด้านหลังอาคารและตามถนนแล้ว)",
+            setbacks: {
+              type: "row",
+              visual: { top: "ระยะร่น/6.0 ม.*", right: "ติดกัน", bottom: "3.0 ม.", left: "ติดกัน", gapBetweenRows: "4.00 ม." },
+              details: [
+                "ด้านหน้า (ไม่ติดถนนสาธารณะ): ว่าง ≥ 6.00 ม., มีประตู",
+                "ด้านหน้า (ติดถนนสาธารณะ): ระยะร่นถนนสาธารณะ/แหล่งน้ำ, มีประตู",
+                "ด้านหลัง: ห่างเขต ≥ 3.00 ม., มีประตู",
+                "ด้านข้าง: ห่างเขต ≥ 2.00 ม. (กรณีสร้างทดแทน ไม่เพิ่มขนาดอาคาร ความสูงน้อยกว่า 15 เมตร)",
+                "ระหว่างแถว (ทุก 10 คูหา): ช่องว่าง ≥ 4.00 ม."
+              ]
+            }
+          },
+          {
+            id: 5,
+            type: "ตึกแถว (ทนไฟ)",
+            category: "commercial",
+            icon: Building2,
+            color: "bg-purple-100 text-purple-600",
+            summary: "อาคารพาณิชย์ต่อเนื่อง วัสดุทนไฟ",
+            dimensions: [
+              "ความกว้าง: ≥ 4.00 ม.",
+              "ความลึก: 4.00 - 24.00 ม.",
+              "พื้นที่ชั้นล่าง: ≥ 30 ตร.ม./คูหา",
+              "ระยะดิ่ง: ชั้นล่าง ≥ 3.5 ม. / ชั้นบน ≥ 3.0 ม.",
+              "ความยาวรวม: 40 ม.",
+              "ผนังกันไฟทุกระยะไม่เกิน 5 คูหา, ผนังกันไฟสูงเหนือหลังคา ≥ 30 ซม."
+            ],
+            openSpace: "≥ 10% ของพื้นที่ชั้นที่มากที่สุด (ไม่ต้องปฏิบัติถ้าถอยร่นตามระยะด้านหลังอาคารและตามถนนแล้ว)",
+            setbacks: {
+              type: "row",
+              visual: { top: "ระยะร่น/6.0 ม.*", right: "ติดกัน", bottom: "3.0 ม.", left: "ติดกัน", gapBetweenRows: "4.00 ม." },
+              details: [
+                "ด้านหน้า (ไม่ติดถนนสาธารณะ): ว่าง ≥ 6.00 ม., มีประตู",
+                "ด้านหน้า (ติดถนนสาธารณะ): ระยะร่นถนนสาธารณะ/แหล่งน้ำ, มีประตู, สูงกว่าทางเท้า ≥ 10 ซม., สูงกว่ากึ่งกลางถนน ≥ 25 ซม.",
+                "ด้านหลัง: ห่างเขต ≥ 3.00 ม., มีประตู",
+                "ด้านข้าง: ห่างเขต ≥ 2.00 ม. (กรณีสร้างทดแทน ไม่เพิ่มขนาดอาคาร ความสูงน้อยกว่า 15 เมตร)",
+                "ระหว่างแถว (ทุก 10 คูหา): ช่องว่าง ≥ 4.00 ม."
+              ]
+            }
+          },
+          {
+            id: 6,
+            type: "อาคารอยู่อาศัยรวม",
+            category: "residential",
+            icon: Building2,
+            color: "bg-pink-100 text-pink-600",
+            summary: "อพาร์ตเมนต์ คอนโดมิเนียม หอพัก",
+            dimensions: [
+              "พื้นที่ห้องแต่ละหน่วย: ≥ 20 ตร.ม.",
+              "ทางเดิน: กว้าง ≥ 1.50 ม.",
+              "ระยะดิ่ง: ห้องพัก ≥ 2.60 ม."
+            ],
+            openSpace: "≥ 30% ของพื้นที่ชั้นที่มากที่สุด",
+            setbacks: {
+              type: "standard", 
+              visual: { top: "ชิดเขต/0.5/2.0/3 ม.", right: "ชิดเขต/0.5/2.0/3 ม.", bottom: "ชิดเขต/0.5/2.0/3 ม.", left: "ชิดเขต/0.5/2.0/3 ม." },
+              details: [
+                "ผนังมีช่องเปิด (สูงไม่เกิน 9 ม.): ห่างเขต ≥ 2.00 ม.",
+                "ผนังมีช่องเปิด (สูง 9-23 ม.): ห่างเขต ≥ 3.00 ม.",
+                "อาคารสูงไม่เกิน 15 เมตร เป็นผนังทึบ และมีผนังทึบบนดาดฟ้าสูงไม่น้อยกว่า 1.8 ม.: ห่างเขต ≥ 0.50 ม.",
+                "อาคารสูงไม่เกิน 15 เมตร เป็นผนังทึบ และมีผนังทึบบนดาดฟ้าสูงไม่น้อยกว่า 1.8 ม.: เจ้าของพื้นที่ข้างเคียงยินยอม ชิดเขต"
+              ]
+            }
+          },
+          {
+            id: 7,
+            type: "อาคารโรงงาน",
+            category: "industrial",
+            icon: Factory,
+            color: "bg-gray-100 text-gray-700",
+            summary: "โรงงานอุตสาหกรรม",
+            dimensions: [
+              "ระยะดิ่ง: ห้องทำงาน ≥ 3.00 ม."
+            ],
+            openSpace: "≥ 10% ของพื้นที่ชั้นที่มากที่สุด (ถ้าไม่มีนิคมฯ รองรับ)",
+            setbacks: {
+              type: "industrial",
+              buildingType: "factory",
+              options: [
+                { 
+                  label: "200 - 500 ตร.ม.", 
+                  scale: 0.4, 
+                  visual: { top: "6.0 ม.", right: "3.0 ม.", bottom: "6.0 ม.", left: "3.0 ม." },
+                  description: "ต้องมีที่ว่างห่างแนวเขตที่ดินไม่น้อยกว่า 3 เมตร (ผนังทึบ) 2 ด้าน ส่วนด้านอื่นต้องไม่น้อยกว่า 6 เมตร" 
+                },
+                { 
+                  label: "500 - 1,000 ตร.ม.", 
+                  scale: 0.6, 
+                  visual: { top: "6.0 ม.", right: "6.0 ม.", bottom: "6.0 ม.", left: "6.0 ม." },
+                  description: "ต้องมีที่ว่างห่างแนวเขตที่ดินไม่น้อยกว่า 6 เมตร ทุกด้าน"
+                },
+                { 
+                  label: "> 1,000 ตร.ม.", 
+                  scale: 0.8, 
+                  visual: { top: "10.0 ม.", right: "10.0 ม.", bottom: "10.0 ม.", left: "10.0 ม." },
+                  description: "ต้องมีที่ว่างห่างแนวเขตที่ดินไม่น้อยกว่า 10 เมตร ทุกด้าน"
+                }
+              ],
+              details: [
+                "อ้างอิง กฎกระทรวง ฉ.55 ข้อ 39",
+                "ระยะร่นวัดจากผนังอาคารถึงแนวเขตที่ดิน",
+                "ต้องมีที่ว่างโดยรอบอาคารตามระยะที่กำหนด"
+              ]
+            }
+          },
+          {
+            id: 8,
+            type: "อาคารคลังสินค้า",
+            category: "industrial",
+            icon: Warehouse,
+            color: "bg-indigo-100 text-indigo-700",
+            summary: "โกดังเก็บสินค้า",
+            dimensions: [
+              "ระยะดิ่ง: ≥ 3.50 ม."
+            ],
+            openSpace: "≥ 10% ของพื้นที่ชั้นที่มากที่สุด",
+            setbacks: {
+              type: "industrial",
+              buildingType: "warehouse",
+              options: [
+                { 
+                  label: "100 - 500 ตร.ม.", 
+                  scale: 0.4, 
+                  visual: { top: "6.0 ม.", right: "3.0 ม.", bottom: "6.0 ม.", left: "3.0 ม." },
+                  description: "ต้องมีที่ว่างห่างแนวเขตที่ดินไม่น้อยกว่า 6 เมตร 2 ด้าน ส่วนด้านอื่นต้องไม่น้อยกว่า 3 เมตร" 
+                },
+                { 
+                  label: "> 500 ตร.ม.", 
+                  scale: 0.7, 
+                  visual: { top: "10.0 ม.", right: "5.0 ม.", bottom: "10.0 ม.", left: "5.0 ม." },
+                  description: "ต้องมีที่ว่างห่างแนวเขตที่ดินไม่น้อยกว่า 10 เมตร 2 ด้าน ส่วนด้านอื่นต้องไม่น้อยกว่า 5 เมตร"
+                }
+              ],
+              details: [
+                "อ้างอิง กฎกระทรวง ฉ.55 ข้อ 38",
+                "ระยะร่นวัดจากผนังอาคารถึงแนวเขตที่ดิน"
+              ]
+            }
+          },
+          {
+            id: 9,
+            type: "อาคารสูง / ใหญ่พิเศษ",
+            category: "special",
+            icon: Building2,
+            color: "bg-red-100 text-red-600",
+            summary: "สูง ≥ 23 ม. หรือ พื้นที่รวม ≥ 10,000 ตร.ม.",
+            dimensions: [
+              "ที่ดิน: ติดถนนสาธารณะกว้าง ≥ 10-18 ม.",
+              "หน้ากว้างที่ดิน: ≥ 12.00 ม.",
+              "FAR: ไม่เกิน 10 : 1"
+            ],
+            openSpace: "พักอาศัย ≥ 30% / อื่นๆ ≥ 10% ของที่ดิน",
+            setbacks: {
+              type: "high-rise", 
+              visual: { top: "6.0 ม.", right: "6.0 ม.", bottom: "6.0 ม.", left: "6.0 ม." },
+              details: [
+                "ระยะร่น: ต้องห่างจากเขตที่ดินของผู้อื่นหรือถนนสาธารณะไม่น้อยกว่า 6.00 เมตร (กฎกระทรวง ฉ.33 ข้อ 4)",
+                "ถนนรอบอาคาร: กว้างไม่น้อยกว่า 6.00 เมตร (ข้อ 3)",
+                "ที่ดิน: ด้านติดถนนสาธารณะต้องยาว ≥ 12.00 เมตร (ข้อ 2)"
+              ]
+            }
+          }
+        ];
+
+        const roadRulesGeneral = [
+          { 
+            id: 'g1', 
+            label: 'กว้าง < 6 ม.', 
+            measureFrom: 'center', 
+            distLabel: 'ร่นจากกึ่งกลางถนน 3.00 ม.', 
+            desc: 'สำหรับอาคารทั่วไป: ร่นจากกึ่งกลางถนนสาธารณะ (ข้อ 41 วรรคหนึ่ง)', 
+            roadHeight: 30, setbackBase: 40, visualGap: 30 
+          }
+        ];
+
+        const roadRulesSpecific = [
+          { 
+            id: 's1', 
+            label: 'กว้าง < 10 ม.', 
+            measureFrom: 'center', 
+            distLabel: 'ร่นจากกึ่งกลางถนน 6.00 ม.', 
+            desc: 'สำหรับอาคารสูง/ใหญ่/พาณิชย์/โรงงานฯ: ร่นจากกึ่งกลางถนนสาธารณะ (ข้อ 41 วรรคสอง (1))', 
+            roadHeight: 30, setbackBase: 60, visualGap: 40 
+          },
+          { 
+            id: 's2', 
+            label: 'กว้าง 10 - 20 ม.', 
+            measureFrom: 'border', 
+            distLabel: 'ร่นจากเขตทาง 1/10 ของเขตทาง', 
+            desc: 'สำหรับอาคารสูง/ใหญ่/พาณิชย์/โรงงานฯ: ร่นจากเขตถนนสาธารณะ (ข้อ 41 วรรคสอง (2))', 
+            roadHeight: 50, setbackBase: 30, visualGap: 30 
+          },
+          { 
+            id: 's3', 
+            label: 'กว้าง > 20 ม.', 
+            measureFrom: 'border', 
+            distLabel: 'ร่นจากเขตทาง 2.00 ม.', 
+            desc: 'สำหรับอาคารสูง/ใหญ่/พาณิชย์/โรงงานฯ: ร่นจากเขตถนนสาธารณะ (ข้อ 41 วรรคสอง (3))', 
+            roadHeight: 70, setbackBase: 40, visualGap: 40 
+          },
+        ];
+
+        const waterRules = [
+          { id: 'w1', label: 'กว้าง < 10 ม.', distLabel: '3.00 ม.', desc: 'ร่นจากเขตแหล่งน้ำ', waterHeight: 40, setbackBase: 30 },
+          { id: 'w2', label: 'กว้าง ≥ 10 ม.', distLabel: '6.00 ม.', desc: 'ร่นจากเขตแหล่งน้ำ', waterHeight: 80, setbackBase: 60 },
+          { id: 'w3', label: 'ขนาดใหญ่ (บึง/ทะเล)', distLabel: '12.00 ม.', desc: 'ร่นจากเขตแหล่งน้ำ', waterHeight: 120, setbackBase: 120 },
+        ];
+
+        // Helper: ArrowHead for Dimension Lines
+        const ArrowHead = ({ direction }) => {
+            const base = "absolute w-0 h-0 border-solid border-red-500";
+            if(direction === 'up') return <div className={`${base} border-l-[3px] border-r-[3px] border-b-[6px] border-l-transparent border-r-transparent -top-[6px] left-1/2 -translate-x-1/2 rotate-180`}></div>;
+            if(direction === 'down') return <div className={`${base} border-l-[3px] border-r-[3px] border-b-[6px] border-l-transparent border-r-transparent -bottom-[6px] left-1/2 -translate-x-1/2`}></div>;
+            if(direction === 'left') return <div className={`${base} border-t-[3px] border-b-[3px] border-r-[6px] border-t-transparent border-b-transparent -left-[6px] top-1/2 -translate-y-1/2 rotate-180`}></div>;
+            if(direction === 'right') return <div className={`${base} border-t-[3px] border-b-[3px] border-r-[6px] border-t-transparent border-b-transparent -right-[6px] top-1/2 -translate-y-1/2`}></div>;
+            return null;
+        }
+
+        // --- Component: Standard Setback ---
+        const SetbackVisualizer = ({ visualData }) => {
+          const { top, right, bottom, left } = visualData;
+          return (
+            <div className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mb-4 overflow-hidden select-none">
+              <span className="absolute top-2 left-2 text-xs text-gray-400 font-semibold bg-white/80 px-1 rounded">แนวเขตที่ดิน</span>
+              <div className="relative w-1/2 h-1/2 bg-blue-500 rounded-md shadow-md flex items-center justify-center z-10 border border-blue-600">
+                <span className="text-white font-bold text-xs sm:text-sm">อาคาร</span>
+              </div>
+              <div className="absolute top-0 w-px h-1/4 bg-red-400 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap z-20">{top}</span>
+                <ArrowHead direction="down"/>
+                <div className="absolute top-0 w-2 h-px bg-red-400 -left-1"></div>
+              </div>
+              <div className="absolute bottom-0 w-px h-1/4 bg-red-400 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap z-20">{bottom}</span>
+                <ArrowHead direction="up"/>
+                <div className="absolute bottom-0 w-2 h-px bg-red-400 -left-1"></div>
+              </div>
+              <div className="absolute left-0 h-px w-1/4 bg-red-400 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap z-20">{left}</span>
+                <ArrowHead direction="right"/>
+                <div className="absolute left-0 h-2 w-px bg-red-400 -top-1"></div>
+              </div>
+              <div className="absolute right-0 h-px w-1/4 bg-red-400 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap z-20">{right}</span>
+                <ArrowHead direction="left"/>
+                <div className="absolute right-0 h-2 w-px bg-red-400 -top-1"></div>
+              </div>
+            </div>
+          );
+        };
+
+// --- Component: High Rise Setback (Finalized with 6m Road Ring) ---
+        const HighRiseSetbackVisualizer = () => {
+          const [isLarge, setIsLarge] = useState(false); 
+
+          const roadWidth = isLarge ? 18 : 10;
+          const visualRoadHeight = isLarge ? 80 : 50; 
+          
+          return (
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-center gap-2">
+                 <button onClick={() => setIsLarge(false)} className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${!isLarge ? 'bg-gray-800 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>พื้นที่อาคาร ≤ 30,000 ตร.ม.</button>
+                 <button onClick={() => setIsLarge(true)} className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${isLarge ? 'bg-gray-800 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>พื้นที่อาคาร {'>'} 30,000 ตร.ม.</button>
+              </div>
+
+              <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-300 flex flex-col items-center p-6 pt-8">
+                 <div className="absolute top-2 right-2 text-[10px] text-gray-400 bg-white/50 px-1 rounded">มุมมองจากด้านบน (Plan View)</div>
+
+                 {/* Plot Area (Land Boundary) */}
+                 <div className="relative bg-green-50 border-2 border-dashed border-green-500 w-full max-w-[280px] aspect-square flex items-center justify-center shadow-sm mb-1">
+                    
+                    {/* --- 6m Road Graphic (The Setback Area) --- */}
+                    {/* ถนนอยู่ภายในเขตที่ดิน และล้อมรอบอาคาร */}
+                    <div className="absolute inset-2 bg-gray-300 rounded shadow-inner border border-gray-400 z-0">
+                        {/* Lane Markings (เส้นประกลางถนน) */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-20px)] h-[calc(100%-20px)] border border-dashed border-white/60 rounded opacity-70 pointer-events-none"></div>
+                        
+                        {/* Fire Truck Icon showing circulation */}
+                        <div className="absolute top-2 left-2 opacity-90"><Car className="w-5 h-5 text-gray-700 transform rotate-90"/></div>
+                        <div className="absolute bottom-2 right-2 opacity-40"><Car className="w-5 h-5 text-gray-700 transform -rotate-90"/></div>
+                        
+                        {/* Road Label */}
+                        <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] text-gray-600 font-bold bg-white/70 px-1.5 rounded backdrop-blur-[1px] whitespace-nowrap border border-gray-200 shadow-sm">
+                            ถนนรอบอาคาร กว้าง 6.00 ม.
+                        </span>
+                    </div>
+
+                    {/* --- Building --- */}
+                    {/* ขนาดอาคารสัมพันธ์กับถนน (w-32 h-24 = 128px x 96px) */}
+                    <div className="relative bg-blue-500 border-2 border-blue-700 w-32 h-24 flex items-center justify-center z-10 shadow-lg rounded-sm">
+                       <span className="text-white text-[10px] font-bold text-center leading-tight">อาคารสูง<br/>ใหญ่พิเศษ</span>
+                    </div>
+
+                    {/* --- Dimension Lines (Setbacks) --- */}
+                    {/* เส้นระยะร่นชี้จากขอบอาคาร ไปยังขอบที่ดิน (ทับถนน) เพื่อแสดงว่าระยะร่นคือพื้นที่ถนน */}
+                    
+                    {/* Top Setback */}
+                    <div className="absolute top-0 w-px h-[calc(50%-48px)] bg-red-500 z-20 flex items-center justify-center">
+                        <span className="bg-white text-[9px] text-red-600 border border-red-200 px-1 rounded z-30 font-bold whitespace-nowrap shadow-sm">ร่น ≥ 6.00 ม.</span>
+                        <div className="absolute top-0 w-2 h-px bg-red-500"></div>
+                        <ArrowHead direction="down"/>
+                    </div>
+                    
+                    {/* Bottom Setback */}
+                    <div className="absolute bottom-0 w-px h-[calc(50%-48px)] bg-red-500 z-20 flex items-center justify-center">
+                        <span className="bg-white text-[9px] text-red-600 border border-red-200 px-1 rounded z-30 font-bold whitespace-nowrap shadow-sm">ร่น ≥ 6.00 ม.</span>
+                        <div className="absolute bottom-0 w-2 h-px bg-red-500"></div>
+                         <ArrowHead direction="up"/>
+                    </div>
+
+                    {/* Left Setback */}
+                    <div className="absolute left-0 h-px w-[calc(50%-64px)] bg-red-500 z-20 flex items-center justify-center">
+                        <span className="bg-white text-[9px] text-red-600 border border-red-200 px-1 rounded z-30 font-bold whitespace-nowrap shadow-sm rotate-90 md:rotate-0">6.00 ม.</span>
+                        <div className="absolute left-0 h-2 w-px bg-red-500"></div>
+                         <ArrowHead direction="right"/>
+                    </div>
+
+                    {/* Right Setback */}
+                    <div className="absolute right-0 h-px w-[calc(50%-64px)] bg-red-500 z-20 flex items-center justify-center">
+                        <span className="bg-white text-[9px] text-red-600 border border-red-200 px-1 rounded z-30 font-bold whitespace-nowrap shadow-sm rotate-90 md:rotate-0">6.00 ม.</span>
+                        <div className="absolute right-0 h-2 w-px bg-red-500"></div>
+                        <ArrowHead direction="left"/>
+                    </div>
+                 </div>
+
+                 {/* Frontage Measurement */}
+                 <div className="w-full max-w-[280px] border-t-2 border-black relative mb-0 mt-2">
+                     <div className="absolute -top-7 w-full text-center">
+                         <span className="bg-white px-1 text-[9px] font-bold border border-black rounded shadow-sm relative -top-1">
+                            หน้ากว้างติดถนน ≥ 12.00 ม.
+                         </span>
+                     </div>
+                     <div className="absolute -top-1 left-0 w-px h-2 bg-black"></div>
+                     <div className="absolute -top-1 right-0 w-px h-2 bg-black"></div>
+                 </div>
+
+                 {/* Public Road */}
+                 <div 
+                    className="w-full max-w-md bg-gray-700 flex items-center justify-center text-white text-xs font-bold transition-all duration-500 relative z-10 mt-0"
+                    style={{ height: `${visualRoadHeight}px` }}
+                 >
+                    <div className="absolute top-1/2 left-0 w-full h-px border-t-2 border-dashed border-yellow-400"></div>
+                    <span className="bg-gray-800/80 px-2 py-1 rounded relative z-20">ถนนสาธารณะ เขตทาง ≥ {roadWidth} ม.</span>
+                 </div>
+              </div>
+
+              <div className="text-xs text-blue-800 bg-blue-50 p-3 rounded border border-blue-100">
+                 <p className="font-bold mb-1">กฎกระทรวง ฉ.33 (สำหรับอาคารสูง/ใหญ่พิเศษ):</p>
+                 <ul className="list-disc list-inside space-y-1">
+                     <li><strong>ระยะร่นรอบตัวอาคาร:</strong> ต้องห่างจากเขตที่ดินผู้อื่นและถนนสาธารณะไม่น้อยกว่า 6.00 เมตร</li>
+                     <li><strong>ถนนภายใน:</strong> ต้องมีถนนรอบอาคารกว้างไม่น้อยกว่า 6.00 เมตร (เพื่อให้รถดับเพลิงวิ่งได้รอบ)</li>
+                     <li><strong>ที่ดิน:</strong> ด้านติดถนนสาธารณะต้องยาวไม่น้อยกว่า 12.00 เมตร</li>
+                 </ul>
+              </div>
+            </div>
+          )
+        }
+
+        // --- Component: Twin House Setback ---
+        const TwinHouseSetbackVisualizer = ({ visualData }) => {
+          const { top, right, bottom, left } = visualData;
+
+          return (
+            <div className="relative w-full h-48 bg-gray-50 border-2 border-solid border-gray-300 rounded-lg flex items-center justify-center mb-4 overflow-hidden select-none">
+              <span className="absolute top-2 left-2 text-[10px] text-gray-400 font-semibold bg-white/80 px-1 rounded">แนวเขตที่ดิน</span>
+              <div className="absolute top-0 bottom-0 left-1/2 w-px border-l-2 border-dashed border-gray-400 z-0"></div>
+              
+              <div className="relative w-full h-full flex items-center justify-center px-8">
+                <div className="w-1/2 h-full relative flex items-center justify-end pr-0.5">
+                    <span className="absolute bottom-2 left-2 text-[9px] text-gray-400">แปลงที่ 1</span>
+                    <div className="w-[70%] h-[60%] bg-green-100 border-2 border-green-500 rounded-l-md flex items-center justify-center relative z-10">
+                        <span className="text-green-700 font-bold text-[10px]">บ้าน 1</span>
+                    </div>
+                    <div className="absolute top-[20%] left-1/2 w-px h-[20%] bg-red-400 -translate-y-full"><ArrowHead direction="down"/></div>
+                    <span className="absolute top-[10%] left-1/2 -translate-x-1/2 text-[9px] text-red-600 bg-white px-1 border border-red-100 rounded">{top}</span>
+                    <div className="absolute bottom-[20%] left-1/2 w-px h-[20%] bg-red-400 translate-y-full"><ArrowHead direction="up"/></div>
+                    <span className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-[9px] text-red-600 bg-white px-1 border border-red-100 rounded">{bottom}</span>
+                    <div className="absolute left-[30%] top-1/2 w-[30%] h-px bg-red-400 -translate-x-full"><ArrowHead direction="right"/></div>
+                    <span className="absolute left-[15%] top-1/2 -translate-y-1/2 text-[9px] text-red-600 bg-white px-1 border border-red-100 rounded">{left}</span>
+                </div>
+
+                <div className="w-1/2 h-full relative flex items-center justify-start pl-0.5">
+                    <span className="absolute bottom-2 right-2 text-[9px] text-gray-400">แปลงที่ 2</span>
+                    <div className="w-[70%] h-[60%] bg-green-100 border-2 border-green-500 rounded-r-md flex items-center justify-center relative z-10">
+                        <span className="text-green-700 font-bold text-[10px]">บ้าน 2</span>
+                    </div>
+                     <div className="absolute top-[20%] left-1/2 w-px h-[20%] bg-red-400 -translate-y-full"><ArrowHead direction="down"/></div>
+                    <span className="absolute top-[10%] left-1/2 -translate-x-1/2 text-[9px] text-red-600 bg-white px-1 border border-red-100 rounded">{top}</span>
+                    <div className="absolute bottom-[20%] left-1/2 w-px h-[20%] bg-red-400 translate-y-full"><ArrowHead direction="up"/></div>
+                    <span className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-[9px] text-red-600 bg-white px-1 border border-red-100 rounded">{bottom}</span>
+                    <div className="absolute right-[30%] top-1/2 w-[30%] h-px bg-red-400 translate-x-full"><ArrowHead direction="left"/></div>
+                    <span className="absolute right-[15%] top-1/2 -translate-y-1/2 text-[9px] text-red-600 bg-white px-1 border border-red-100 rounded">{right}</span>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // --- Component: Industrial Setback ---
+        const IndustrialSetbackVisualizer = ({ options, buildingType }) => {
+          const [selectedSize, setSelectedSize] = useState(options[0]);
+          const scale = selectedSize.scale || 0.6; 
+          const { top, right, bottom, left } = selectedSize.visual;
+
+          return (
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2 justify-center">
+                    {options.map((opt, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setSelectedSize(opt)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                selectedSize.label === opt.label 
+                                ? "bg-gray-800 text-white border-gray-800 shadow-md" 
+                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                            }`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="relative w-full h-56 bg-gray-50 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center overflow-hidden select-none transition-all">
+                    <span className="absolute top-2 left-2 text-xs text-gray-500 font-bold bg-white/80 px-1 rounded">แนวเขตที่ดิน</span>
+                    
+                    <div 
+                        className="relative bg-gray-600 rounded-md shadow-lg flex items-center justify-center z-10 transition-all duration-500 ease-in-out border-2 border-gray-700"
+                        style={{
+                            width: `${scale * 50}%`,
+                            height: `${scale * 50}%`
+                        }}
+                    >
+                        <div className="text-center">
+                            {buildingType === 'factory' ? <Factory className="w-8 h-8 text-white mx-auto opacity-80" /> : <Warehouse className="w-8 h-8 text-white mx-auto opacity-80" />}
+                            <span className="text-white font-bold text-[10px] mt-1 block px-2 bg-black/20 rounded">
+                                {selectedSize.label}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Setback Lines */}
+                    <div className="absolute top-0 w-px h-[50%] bg-red-500 left-1/2 -translate-x-1/2 flex items-start justify-center transition-all" style={{height: `${(100 - (scale*50))/2}%`}}>
+                        <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap mt-1 shadow-sm font-bold z-20">{top}</span>
+                        <div className="absolute top-0 w-2 h-px bg-red-500"></div>
+                        <div className="absolute bottom-0"><ArrowHead direction="down"/></div>
+                    </div>
+                    <div className="absolute bottom-0 w-px bg-red-500 left-1/2 -translate-x-1/2 flex items-end justify-center transition-all" style={{height: `${(100 - (scale*50))/2}%`}}>
+                        <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap mb-1 shadow-sm font-bold z-20">{bottom}</span>
+                        <div className="absolute bottom-0 w-2 h-px bg-red-500"></div>
+                        <div className="absolute top-0"><ArrowHead direction="up"/></div>
+                    </div>
+                    <div className="absolute left-0 h-px bg-red-500 top-1/2 -translate-y-1/2 flex items-center justify-start transition-all" style={{width: `${(100 - (scale*50))/2}%`}}>
+                        <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap ml-1 shadow-sm font-bold z-20">{left}</span>
+                        <div className="absolute left-0 h-2 w-px bg-red-500"></div>
+                        <div className="absolute right-0"><ArrowHead direction="right"/></div>
+                    </div>
+                    <div className="absolute right-0 h-px bg-red-500 top-1/2 -translate-y-1/2 flex items-center justify-end transition-all" style={{width: `${(100 - (scale*50))/2}%`}}>
+                        <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap mr-1 shadow-sm font-bold z-20">{right}</span>
+                        <div className="absolute right-0 h-2 w-px bg-red-500"></div>
+                        <div className="absolute left-0"><ArrowHead direction="left"/></div>
+                    </div>
+                </div>
+
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-sm text-blue-800">
+                    <span className="font-bold block mb-1">เงื่อนไขตามขนาด:</span>
+                    {selectedSize.description}
+                </div>
+            </div>
+          );
+        };
+
+        // --- Component: Row Setback ---
+        const RowSetbackVisualizer = ({ visualData }) => {
+          const { top, right, bottom, left, gapBetweenRows } = visualData;
+
+          return (
+            <div className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mb-4 overflow-hidden select-none">
+              <span className="absolute top-2 left-2 text-xs text-gray-400 font-semibold bg-white/80 px-1 rounded">แนวเขตที่ดิน</span>
+              <div className="relative w-full h-full flex items-center justify-center">
+                <div className="relative w-1/4 h-1/2 bg-orange-100 rounded-l-md shadow-sm flex items-center justify-center z-10 border border-orange-300">
+                    <Building2 className="w-6 h-6 text-orange-400" />
+                    <span className="text-orange-600 font-bold text-[9px] text-center px-1 absolute bottom-1">แถวที่ 1</span>
+                </div>
+                <div className="relative w-1/6 h-full flex items-center justify-center">
+                    <div className="absolute top-1/2 left-0 w-full h-px bg-red-500 -translate-y-1/2"></div>
+                     <div className="absolute top-1/2 left-0"><ArrowHead direction="left"/></div>
+                     <div className="absolute top-1/2 right-0"><ArrowHead direction="right"/></div>
+                    <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap z-20 shadow-sm relative">{gapBetweenRows}</span>
+                    <span className="absolute bottom-1/3 text-[8px] text-gray-400 text-center w-full">ช่องว่าง</span>
+                </div>
+                <div className="relative w-1/4 h-1/2 bg-orange-100 rounded-r-md shadow-sm flex items-center justify-center z-10 border border-orange-300">
+                    <Building2 className="w-6 h-6 text-orange-400" />
+                    <span className="text-orange-600 font-bold text-[9px] text-center px-1 absolute bottom-1">แถวที่ 2</span>
+                </div>
+                <div className="absolute top-0 w-px h-1/4 bg-red-400 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                  <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap z-20">{top}</span>
+                  <div className="absolute top-0 -left-1 w-2 h-px bg-red-400"></div>
+                  <ArrowHead direction="down"/>
+                </div>
+                <div className="absolute bottom-0 w-px h-1/4 bg-red-400 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                  <span className="bg-white px-1 text-[10px] text-red-600 border border-red-200 rounded whitespace-nowrap z-20">{bottom}</span>
+                  <div className="absolute bottom-0 -left-1 w-2 h-px bg-red-400"></div>
+                  <ArrowHead direction="up"/>
+                </div>
+                <div className="absolute left-0 h-px w-[15%] bg-red-400 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                    <span className="bg-white px-1 text-[8px] text-red-600 border border-red-200 rounded whitespace-nowrap z-20">2.0ม.</span>
+                    <div className="absolute left-0 -top-1 w-px h-2 bg-red-400"></div>
+                    <ArrowHead direction="right"/>
+                </div>
+                <div className="absolute right-0 h-px w-[15%] bg-red-400 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                    <span className="bg-white px-1 text-[8px] text-red-600 border border-red-200 rounded whitespace-nowrap z-20">2.0ม.</span>
+                    <div className="absolute right-0 -top-1 w-px h-2 bg-red-400"></div>
+                    <ArrowHead direction="left"/>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // --- Component: Advanced Same Land Visualizer ---
+        const AdvancedSameLandVisualizer = () => {
+          const [b1Height, setB1Height] = useState(0); 
+          const [b1Wall, setB1Wall] = useState('open'); 
+          const [b2Height, setB2Height] = useState(0); 
+          const [b2Wall, setB2Wall] = useState('open');
+
+          const calculateDist = () => {
+            const isBothOpen = b1Wall === 'open' && b2Wall === 'open';
+            const isBothSolid = b1Wall === 'solid' && b2Wall === 'solid';
+            const isMixed = !isBothOpen && !isBothSolid;
+
+            if (isBothOpen) {
+                if (b1Height === 0 && b2Height === 0) return 4.00;
+                if (b1Height > 0 && b2Height > 0) return 6.00;
+                return 5.00;
+            }
+            const solidH = (b1Wall === 'solid' ? b1Height : b2Height);
+            const otherH = (b1Wall === 'solid' ? b2Height : b1Height);
+
+            if (isMixed) {
+                if (solidH <= 1) return otherH === 0 ? 2.00 : 3.00;
+                return otherH === 0 ? 2.50 : 3.50;
+            }
+            if (isBothSolid) return 1.00;
+            return 0;
+          };
+
+          const distance = calculateDist();
+          const getH = (level) => level === 0 ? 80 : (level === 1 ? 130 : 180);
+          const h1Px = getH(b1Height);
+          const h2Px = getH(b2Height);
+          const gapPx = Math.max(distance * 30, 40);
+
+          const renderWallPattern = (type) => {
+              if (type === 'open') {
+                  return (
+                    <div className="flex flex-col gap-2 items-center justify-center h-full w-full p-1">
+                        <div className="w-1/2 h-1/4 bg-blue-200 border border-blue-300"></div>
+                        <div className="w-1/2 h-1/4 bg-blue-200 border border-blue-300"></div>
+                    </div>
+                  );
+              } else {
+                  return (
+                    <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'repeating-linear-gradient(45deg, #000, #000 2px, transparent 2px, transparent 6px)'}}></div>
+                  );
+              }
+          };
+
+          return (
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                        <h5 className="font-bold text-gray-700 text-sm mb-2 flex items-center gap-1">
+                            <Home className="w-4 h-4 text-gray-500" /> อาคารเดิม
+                        </h5>
+                        <div className="space-y-2">
+                            <div className="flex gap-1">
+                                {[0, 1, 2].map(h => (
+                                    <button key={h} onClick={() => setB1Height(h)} className={`px-1 py-1 text-[10px] rounded border flex-1 ${b1Height === h ? 'bg-gray-600 text-white' : 'bg-gray-50'}`}>{h===0 ? '≤9ม.' : h===1 ? '9-15ม.' : '15-23ม.'}</button>
+                                ))}
+                            </div>
+                            <div className="flex gap-1">
+                                <button onClick={() => setB1Wall('open')} className={`flex-1 py-1 text-[10px] rounded border ${b1Wall === 'open' ? 'bg-blue-100 border-blue-300' : 'bg-gray-50'}`}>ช่องเปิด</button>
+                                <button onClick={() => setB1Wall('solid')} className={`flex-1 py-1 text-[10px] rounded border ${b1Wall === 'solid' ? 'bg-gray-200 border-gray-300' : 'bg-gray-50'}`}>ทึบ</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm">
+                        <h5 className="font-bold text-blue-700 text-sm mb-2 flex items-center gap-1">
+                            <Building2 className="w-4 h-4" /> อาคารใหม่
+                        </h5>
+                        <div className="space-y-2">
+                            <div className="flex gap-1">
+                                {[0, 1, 2].map(h => (
+                                    <button key={h} onClick={() => setB2Height(h)} className={`px-1 py-1 text-[10px] rounded border flex-1 ${b2Height === h ? 'bg-blue-600 text-white' : 'bg-gray-50'}`}>{h===0 ? '≤9ม.' : h===1 ? '9-15ม.' : '15-23ม.'}</button>
+                                ))}
+                            </div>
+                            <div className="flex gap-1">
+                                <button onClick={() => setB2Wall('open')} className={`flex-1 py-1 text-[10px] rounded border ${b2Wall === 'open' ? 'bg-blue-100 border-blue-300' : 'bg-gray-50'}`}>ช่องเปิด</button>
+                                <button onClick={() => setB2Wall('solid')} className={`flex-1 py-1 text-[10px] rounded border ${b2Wall === 'solid' ? 'bg-gray-200 border-gray-300' : 'bg-gray-50'}`}>ทึบ</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="relative w-full h-80 bg-gray-100 rounded-lg overflow-hidden border border-gray-300 flex flex-col justify-end p-4">
+                    <div className="absolute bottom-10 left-0 w-full h-px bg-gray-400"></div>
+                    <div className="flex items-end justify-center w-full gap-0 pb-10">
+                        <div className={`w-28 border-2 flex flex-col items-center justify-center relative shadow-sm transition-all duration-500 bg-white ${b1Wall === 'solid' ? 'border-gray-400' : 'border-blue-400'}`} style={{ height: `${h1Px}px` }}>
+                            <div className="absolute -top-6 text-[10px] text-gray-500 font-bold bg-white/80 px-2 py-0.5 rounded shadow-sm">อาคารเดิม</div>
+                            {renderWallPattern(b1Wall)}
+                        </div>
+                        <div style={{ width: `${gapPx}px` }} className="h-20 flex flex-col justify-end items-center relative transition-all duration-500">
+                            <div className="absolute -bottom-8 w-full flex flex-col items-center">
+                                <div className="w-full h-px bg-red-500 relative">
+                                    <div className="absolute -top-1 left-0"><ArrowHead direction="left"/></div>
+                                    <div className="absolute -top-1 right-0"><ArrowHead direction="right"/></div>
+                                </div>
+                                <div className="bg-white px-2 py-0.5 rounded border border-red-200 text-sm text-red-600 font-bold shadow-sm mt-1 whitespace-nowrap">ห่าง ≥ {distance.toFixed(2)} ม.</div>
+                            </div>
+                        </div>
+                        <div className={`w-28 border-2 flex flex-col items-center justify-center relative shadow-md transition-all duration-500 bg-blue-50 ${b2Wall === 'solid' ? 'border-gray-500' : 'border-blue-600'}`} style={{ height: `${h2Px}px` }}>
+                            <div className="absolute -top-6 text-[10px] text-blue-600 font-bold bg-white/80 px-2 py-0.5 rounded border border-blue-100 shadow-sm">อาคารใหม่</div>
+                            {renderWallPattern(b2Wall)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+          );
+        };
+
+        // --- Component: Road & Water Visualizers (Standard) ---
+        const RoadSetbackVisualizer = ({ rule, buildingTypeCategory }) => {
+          const isFromCenter = rule.measureFrom === 'center';
+          const roadHeight = rule.roadHeight || 50; 
+          const setbackHeight = rule.setbackBase || 60;
+          const buildingBottom = isFromCenter ? (roadHeight / 2) + setbackHeight : roadHeight + setbackHeight;
+          const lineHeight = isFromCenter ? (roadHeight / 2) + setbackHeight : setbackHeight;
+
+          return (
+            <div className="relative w-full h-80 bg-sky-50 rounded-xl overflow-hidden border border-sky-100 flex flex-col justify-end transition-all duration-500">
+              <div className="absolute left-1/2 -translate-x-1/2 w-32 h-24 bg-white border-2 border-gray-300 rounded shadow-sm z-20 flex flex-col items-center justify-center transition-all duration-700 ease-in-out" style={{ bottom: `${buildingBottom}px` }}>
+                <Building2 className="w-6 h-6 text-gray-400 mb-1" />
+                <span className="text-xs text-gray-500 font-bold text-center px-1 truncate w-full">{buildingTypeCategory === 'specific' ? 'อาคารสูง/ใหญ่/ฯลฯ' : 'อาคารทั่วไป'}</span>
+              </div>
+              <div className="absolute z-10 w-px bg-red-500 left-1/2 transition-all duration-700 ease-in-out" style={{ bottom: isFromCenter ? `${roadHeight/2}px` : `${roadHeight}px`, height: `${lineHeight}px` }}>
+                <div className="absolute top-1/2 -translate-y-1/2 left-2 bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded shadow-sm border border-red-200 whitespace-nowrap"><span className="mr-1">↕</span> {rule.distLabel}</div>
+                <div className="absolute bottom-0"><ArrowHead direction="up"/></div>
+                {/* For road, no arrow at road side usually, or tick */}
+              </div>
+              <div className="relative w-full bg-gray-600 flex items-center justify-center transition-all duration-700 ease-in-out" style={{ height: `${roadHeight}px` }}>
+                <span className="text-gray-200 text-xs font-medium z-10 bg-gray-700/50 px-2 py-0.5 rounded">ถนนสาธารณะ ({rule.label})</span>
+                <div className="absolute top-1/2 left-0 w-full h-0 border-t-2 border-dashed border-yellow-400 opacity-70"></div>
+                {/* Add label for center or border */}
+                {isFromCenter && <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/80 text-[9px] px-1 rounded border border-gray-300 text-gray-600 font-bold whitespace-nowrap">กึ่งกลางถนน</span>}
+                {!isFromCenter && <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/80 text-[9px] px-1 rounded border border-gray-300 text-gray-600 font-bold whitespace-nowrap">เขตถนน</span>}
+              </div>
+            </div>
+          );
+        };
+
+        const WaterSetbackVisualizer = ({ rule }) => {
+          const waterHeight = rule.waterHeight || 40;
+          const setbackHeight = rule.setbackBase || 30;
+          const buildingBottom = waterHeight + setbackHeight;
+
+          return (
+            <div className="relative w-full h-80 bg-sky-50 rounded-xl overflow-hidden border border-sky-100 flex flex-col justify-end transition-all duration-500">
+              <div className="absolute left-1/2 -translate-x-1/2 w-32 h-24 bg-white border-2 border-gray-300 rounded shadow-sm z-20 flex flex-col items-center justify-center transition-all duration-700 ease-in-out" style={{ bottom: `${buildingBottom}px` }}>
+                <Home className="w-6 h-6 text-gray-400 mb-1" />
+                <span className="text-xs text-gray-500 font-bold">อาคาร</span>
+              </div>
+              <div className="absolute z-10 w-px bg-blue-500 left-1/2 transition-all duration-700 ease-in-out" style={{ bottom: `${waterHeight}px`, height: `${setbackHeight}px` }}>
+                <div className="absolute top-1/2 -translate-y-1/2 left-2 bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded shadow-sm border border-blue-200 whitespace-nowrap"><span className="mr-1">↕</span> {rule.distLabel}</div>
+                <div className="absolute bottom-0"><ArrowHead direction="up"/></div>
+              </div>
+              <div className="relative w-full bg-blue-400 flex items-center justify-center overflow-hidden transition-all duration-700 ease-in-out" style={{ height: `${waterHeight}px` }}>
+                 <div className="absolute inset-0 opacity-20 bg-[url('https://www.svgrepo.com/show/306763/wave.svg')] bg-repeat-x bg-contain animate-pulse"></div>
+                 <span className="text-white text-xs font-medium z-10 drop-shadow-md flex items-center gap-1"><Waves className="w-4 h-4" /> แหล่งน้ำ ({rule.label})</span>
+              </div>
+            </div>
+          );
+        };
+
+        // --- Component: Mezzanine ---
+        const MezzanineVisualizer = () => {
+          return (
+            <div className="relative w-full h-48 bg-gray-50 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center p-4">
+              <div className="relative w-64 h-40 bg-white border-2 border-gray-400 border-b-4 flex flex-col justify-end shadow-sm">
+                <div className="absolute -left-8 top-0 h-full flex flex-col items-end pr-1">
+                  <div className="h-full border-r border-gray-400 w-2 relative">
+                     <div className="absolute top-0 right-0 w-2 h-px bg-gray-400"></div>
+                     <div className="absolute bottom-0 right-0 w-2 h-px bg-gray-400"></div>
+                  </div>
+                  <span className="absolute top-1/2 -translate-y-1/2 -left-1 text-[10px] bg-white px-1 font-bold text-gray-600 rotate-0 whitespace-nowrap">
+                    สูง ≥ 5.00 ม.
+                  </span>
+                </div>
+                <div className="absolute top-[45%] right-0 w-[60%] h-2 bg-blue-500 border-t border-b border-blue-600 z-10"></div>
+                <div className="absolute top-[45%] right-0 w-[60%] -mt-6 text-center">
+                   <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 rounded border border-blue-200">
+                     พื้นที่ ≤ 40% ของห้อง
+                   </span>
+                </div>
+                <div className="absolute top-0 right-2 h-[45%] w-px bg-red-400">
+                    <div className="absolute top-0 -left-1 w-2 h-px bg-red-400"></div>
+                    <div className="absolute bottom-0 -left-1 w-2 h-px bg-red-400"></div>
+                    <span className="absolute top-1/2 -translate-y-1/2 right-1 text-[10px] text-red-600 bg-white px-0.5 whitespace-nowrap">
+                      ≥ 2.40 ม.
+                    </span>
+                </div>
+                <div className="absolute bottom-0 right-2 h-[53%] w-px bg-red-400">
+                    <div className="absolute top-0 -left-1 w-2 h-px bg-red-400"></div>
+                    <div className="absolute bottom-0 -left-1 w-2 h-px bg-red-400"></div>
+                     <span className="absolute top-1/2 -translate-y-1/2 right-1 text-[10px] text-red-600 bg-white px-0.5 whitespace-nowrap">
+                      ≥ 2.40 ม.
+                    </span>
+                </div>
+                 <div className="absolute bottom-0 left-4 w-3 h-8 bg-gray-300 rounded-t-full"></div>
+                 <div className="absolute top-[45%] right-4 w-3 h-8 bg-gray-300 rounded-t-full -mt-8 opacity-50"></div>
+              </div>
+            </div>
+          );
+        };
+
+        // --- Main App Component ---
+        function BuildingRegulationsWeb() {
+          const [searchTerm, setSearchTerm] = useState("");
+          const [filterCategory, setFilterCategory] = useState("all");
+          const [selectedBuilding, setSelectedBuilding] = useState(null);
+          
+          // States for Common Rules
+          const [activeTab, setActiveTab] = useState('road'); 
+          const [buildingTypeCategory, setBuildingTypeCategory] = useState('general'); // 'general' or 'specific'
+          const [selectedRoadRule, setSelectedRoadRule] = useState(roadRulesGeneral[0]); // Default to general rule
+          const [selectedWaterRule, setSelectedWaterRule] = useState(waterRules[0]);
+
+          const categories = [
+            { id: "all", label: "ทั้งหมด" },
+            { id: "residential", label: "ที่อยู่อาศัย" },
+            { id: "commercial", label: "พาณิชย์" },
+            { id: "industrial", label: "อุตสาหกรรม" },
+            { id: "special", label: "อาคารพิเศษ" },
+            { id: "other", label: "อื่นๆ" },
+          ];
+
+          const filteredData = useMemo(() => {
+            return buildingData.filter((item) => {
+              const matchesSearch = item.type.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.setbacks.details.some(d => d.toLowerCase().includes(searchTerm.toLowerCase()));
+              const matchesCategory = filterCategory === "all" || item.category === filterCategory;
+              return matchesSearch && matchesCategory;
+            });
+          }, [searchTerm, filterCategory]);
+          
+          // Update Road Rule logic based on category change
+          const handleBuildingTypeCategoryChange = (category) => {
+              setBuildingTypeCategory(category);
+              if (category === 'general') {
+                  setSelectedRoadRule(roadRulesGeneral[0]);
+              } else {
+                  setSelectedRoadRule(roadRulesSpecific[0]);
+              }
+          };
+
+          return (
+            <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+              <header className="bg-white shadow-sm sticky top-0 z-20">
+                <div className="max-w-6xl mx-auto px-4 py-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h1 className="text-2xl font-bold text-blue-900 flex items-center gap-2">
+                        <Ruler className="w-8 h-8 text-blue-600" />
+                        กฎหมายอาคารน่ารู้
+                      </h1>
+                      <p className="text-sm text-gray-500">สรุปข้อมูลระยะร่นและที่ว่างตามกฎกระทรวง ฉบับที่ 55 และ 33 (v14)</p>
+                    </div>
+                    <div className="relative w-full md:w-96">
+                      <input type="text" placeholder="ค้นหาประเภทอาคาร หรือ ระยะร่น..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                      <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4 overflow-x-auto pb-2 no-scrollbar">
+                    {categories.map((cat) => (
+                      <button key={cat.id} onClick={() => setFilterCategory(cat.id)} className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${filterCategory === cat.id ? "bg-blue-600 text-white shadow-md" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>{cat.label}</button>
+                    ))}
+                  </div>
+                </div>
+              </header>
+
+              <main className="max-w-6xl mx-auto px-4 py-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredData.map((building) => (
+                      <div key={building.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 overflow-hidden cursor-pointer group" onClick={() => setSelectedBuilding(building)}>
+                        <div className="p-5">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className={`p-2 rounded-lg ${building.color}`}><building.icon className="w-6 h-6" /></div>
+                            <span className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-600 rounded">{categories.find(c => c.id === building.category)?.label}</span>
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{building.type}</h3>
+                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{building.summary}</p>
+                        </div>
+                        <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center group-hover:bg-blue-50/50 transition-colors">
+                            <span className="text-xs font-medium text-gray-500 group-hover:text-blue-600">ดูเงื่อนไขและระยะร่น</span>
+                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                <div className="mt-12 bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+                  <div className="bg-blue-900 px-6 py-6 md:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                     <div>
+                       <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Info className="w-6 h-6" /> กฎทั่วไปและระยะร่น (Common Rules)</h2>
+                       <p className="text-blue-200 text-sm mt-1">เครื่องมือตรวจสอบระยะร่นจากถนน แหล่งน้ำ ชั้นลอย และการก่อสร้างในที่ดินเดียวกัน</p>
+                     </div>
+                     <div className="flex bg-blue-800/50 p-1 rounded-lg self-start md:self-center overflow-x-auto max-w-full">
+                        <button onClick={() => setActiveTab('road')} className={`px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'road' ? 'bg-white text-blue-900 shadow' : 'text-blue-200 hover:text-white'}`}><div className="flex items-center gap-2"><MoveHorizontal className="w-4 h-4" /> ถนนสาธารณะ</div></button>
+                        <button onClick={() => setActiveTab('water')} className={`px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'water' ? 'bg-white text-blue-900 shadow' : 'text-blue-200 hover:text-white'}`}><div className="flex items-center gap-2"><Waves className="w-4 h-4" /> แหล่งน้ำ</div></button>
+                        <button onClick={() => setActiveTab('mezzanine')} className={`px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'mezzanine' ? 'bg-white text-blue-900 shadow' : 'text-blue-200 hover:text-white'}`}><div className="flex items-center gap-2"><Layers className="w-4 h-4" /> ชั้นลอย</div></button>
+                        <button onClick={() => setActiveTab('sameland')} className={`px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'sameland' ? 'bg-white text-blue-900 shadow' : 'text-blue-200 hover:text-white'}`}><div className="flex items-center gap-2"><Copy className="w-4 h-4" /> ที่ดินเดียวกัน</div></button>
+                     </div>
+                  </div>
+                  
+                  <div className="p-6 md:p-8 bg-gray-50">
+                     <div className="grid lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-1 space-y-4">
+                           <h3 className="font-bold text-gray-800 mb-4">
+                             {activeTab === 'road' ? 'เลือกขนาดความกว้างถนน' : 
+                              activeTab === 'water' ? 'เลือกขนาดความกว้างแหล่งน้ำ' : 
+                              activeTab === 'sameland' ? 'กำหนดเงื่อนไขอาคาร' :
+                              'ข้อกำหนดชั้นลอย'}
+                           </h3>
+                           <div className="flex flex-col gap-2">
+                              {(activeTab === 'road') && (
+                                  <>
+                                    <div className="flex gap-1 mb-2">
+                                        <button onClick={() => handleBuildingTypeCategoryChange('general')} className={`flex-1 py-1.5 text-[10px] md:text-xs rounded border transition-colors ${buildingTypeCategory === 'general' ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>อาคารทั่วไป</button>
+                                        <button onClick={() => handleBuildingTypeCategoryChange('specific')} className={`flex-1 py-1.5 text-[10px] md:text-xs rounded border transition-colors ${buildingTypeCategory === 'specific' ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>อาคารสูง/ใหญ่/โรงงาน ฯลฯ</button>
+                                    </div>
+                                    {(buildingTypeCategory === 'general' ? roadRulesGeneral : roadRulesSpecific).map(rule => (
+                                        <button key={rule.id} onClick={() => setSelectedRoadRule(rule)} className={`p-3 rounded-lg text-left border transition-all ${selectedRoadRule.id === rule.id ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'bg-white border-gray-200 hover:border-blue-300'}`}>
+                                            <div className="flex justify-between items-center"><span className="font-semibold text-gray-700">{rule.label}</span>{selectedRoadRule.id === rule.id && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}</div>
+                                            <p className="text-xs text-gray-500 mt-1">{rule.distLabel}</p>
+                                        </button>
+                                    ))}
+                                    {buildingTypeCategory === 'specific' && (
+                                        <div className="text-[10px] text-gray-400 mt-1 pl-1">
+                                            *สำหรับ อาคารสูงเกิน 2 ชั้น/8ม., ห้องแถว, ตึกแถว, บ้านแถว, พาณิชย์, โรงงาน, สาธารณะ, ป้าย, คลังสินค้า
+                                        </div>
+                                    )}
+                                  </>
+                              )}
+                              {activeTab === 'water' && (waterRules.map(rule => (<button key={rule.id} onClick={() => setSelectedWaterRule(rule)} className={`p-3 rounded-lg text-left border transition-all ${selectedWaterRule.id === rule.id ? 'bg-sky-50 border-sky-500 ring-1 ring-sky-500' : 'bg-white border-gray-200 hover:border-sky-300'}`}><div className="flex justify-between items-center"><span className="font-semibold text-gray-700">{rule.label}</span>{selectedWaterRule.id === rule.id && <div className="w-2 h-2 bg-sky-500 rounded-full"></div>}</div><p className="text-xs text-gray-500 mt-1">{rule.desc}</p></button>)))}
+                              {activeTab === 'sameland' && (<div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800"><p className="font-bold mb-2 flex items-center gap-2"><Settings className="w-4 h-4"/> ปรับค่าจากกราฟิกด้านขวา</p><p className="text-xs text-indigo-600">ท่านสามารถคลิกเลือก <strong>ความสูง</strong> และ <strong>ประเภทผนัง</strong> ของทั้งอาคารเดิมและอาคารใหม่ได้โดยตรงจากแผงควบคุมในกล่องแสดงผล</p></div>)}
+                              {activeTab === 'mezzanine' && (<div className="space-y-3"><div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-start gap-3"><div className="bg-blue-100 text-blue-600 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs">1</div><div className="text-sm text-gray-600"><span className="font-bold text-gray-800 block">ความสูงห้อง</span>ต้องสูงจากพื้นถึงพื้นอย่างน้อย 5.00 เมตร</div></div><div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-start gap-3"><div className="bg-blue-100 text-blue-600 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs">2</div><div className="text-sm text-gray-600"><span className="font-bold text-gray-800 block">พื้นที่ชั้นลอย</span>ต้องไม่เกิน 40% ของพื้นที่ห้อง</div></div><div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-start gap-3"><div className="bg-blue-100 text-blue-600 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs">3</div><div className="text-sm text-gray-600"><span className="font-bold text-gray-800 block">ระยะดิ่ง (Headroom)</span>ทั้งเหนือและใต้ชั้นลอย ต้องสูงอย่างน้อย 2.40 เมตร</div></div></div>)}
+                           </div>
+                        </div>
+
+                        <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center min-h-[300px]">
+                           <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">ภาพจำลอง (Simulation)</h3>
+                           <div className="w-full max-w-xl">
+                              {activeTab === 'road' && <RoadSetbackVisualizer rule={selectedRoadRule} buildingTypeCategory={buildingTypeCategory} />}
+                              {activeTab === 'water' && <WaterSetbackVisualizer rule={selectedWaterRule} />}
+                              {activeTab === 'mezzanine' && <MezzanineVisualizer />}
+                              {activeTab === 'sameland' && <AdvancedSameLandVisualizer />}
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              </main>
+
+              {selectedBuilding && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedBuilding(null)}>
+                  <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center z-10">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${selectedBuilding.color}`}><selectedBuilding.icon className="w-6 h-6" /></div>
+                        <div><h2 className="text-xl font-bold text-gray-900">{selectedBuilding.type}</h2><p className="text-sm text-gray-500">{selectedBuilding.summary}</p></div>
+                      </div>
+                      <button onClick={() => setSelectedBuilding(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-6 h-6 text-gray-400" /></button>
+                    </div>
+                    <div className="p-6 space-y-8">
+                      <section>
+                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2"><Maximize className="w-4 h-4 text-blue-500" /> แผนภาพจำลองระยะร่น (Setback Diagram)</h3>
+                        {selectedBuilding.setbacks.type === 'row' ? (<RowSetbackVisualizer visualData={selectedBuilding.setbacks.visual} />) : 
+                         selectedBuilding.setbacks.type === 'twin-house' ? (<TwinHouseSetbackVisualizer visualData={selectedBuilding.setbacks.visual} />) :
+                         selectedBuilding.setbacks.type === 'industrial' ? (<IndustrialSetbackVisualizer options={selectedBuilding.setbacks.options} buildingType={selectedBuilding.setbacks.buildingType} />) : 
+                         selectedBuilding.setbacks.type === 'high-rise' ? (<HighRiseSetbackVisualizer />) : 
+                         (<SetbackVisualizer visualData={selectedBuilding.setbacks.visual} />)}
+                        <p className="text-xs text-gray-400 text-center italic">*ตัวเลขเป็นค่าโดยประมาณหรือกรณีทั่วไป โปรดดูรายละเอียดด้านล่าง</p>
+                      </section>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <section><h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2"><Ruler className="w-4 h-4 text-blue-500" /> ขนาดและมิติ (Dimensions)</h3><ul className="space-y-2">{selectedBuilding.dimensions.map((dim, idx) => (<li key={idx} className="text-sm text-gray-600 flex items-start gap-2"><span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-1.5 shrink-0" />{dim}</li>))}</ul></section>
+                        <section><h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2"><Maximize className="w-4 h-4 text-green-500" /> ที่ว่างภายนอก (Open Space)</h3><div className="bg-green-50 border border-green-100 rounded-lg p-3 text-sm text-green-800 font-medium">{selectedBuilding.openSpace}</div></section>
+                      </div>
+                      <section className="bg-gray-50 rounded-xl p-5 border border-gray-100"><h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2"><ArrowRight className="w-4 h-4 text-red-500" /> รายละเอียดระยะร่นจากแนวเขต (Setbacks)</h3><ul className="space-y-3">{selectedBuilding.setbacks.details.map((detail, idx) => (<li key={idx} className="text-sm text-gray-700 bg-white p-3 rounded border border-gray-200 shadow-sm">{detail}</li>))}</ul></section>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // --- Render App ---
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BuildingRegulationsWeb />);
+    </script>
+</body>
+</html>
