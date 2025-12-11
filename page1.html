@@ -4,18 +4,223 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NoteMap</title>
+    
     <link rel="stylesheet" href="https://js.arcgis.com/4.22/esri/themes/light/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
-        html, body, #viewDiv { padding: 0; margin: 0; height: 100%; width: 100%; }
+        /* =========================================
+           1. Header Styles (From Template)
+           ========================================= */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+            --text-white: #ffffff;
+            --text-yellow: #ffeb3b;
+            --bg-glass: rgba(255, 255, 255, 0.1);
+            --bg-glass-hover: rgba(255, 255, 255, 0.25);
+            --header-height: 70px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0; /* Reset padding, we handle layout manually */
+            font-family: 'Prompt', sans-serif;
+            overflow: hidden; /* Prevent body scroll */
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mapraw-header {
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: relative; /* Changed from fixed to relative for flex layout */
+            width: 100%;
+            z-index: 2000; /* High z-index to stay above map controls */
+            height: var(--header-height);
+            flex-shrink: 0; /* Prevent header from shrinking */
+        }
+        
+        .mapraw-header-content {
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            height: 100%;
+        }
+        
+        .mapraw-logo-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-shrink: 0;
+            padding-right: 15px;
+        }
+        
+        .mapraw-logo-main {
+            color: var(--text-white);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        
+        .mapraw-logo-main span {
+            color: var(--text-yellow);
+            text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+        }
+        
+        .mapraw-page-title {
+            color: #e3f2fd;
+            font-size: 0.85rem;
+            font-weight: 400;
+            margin: 2px 0 0 0;
+            white-space: nowrap;
+        }
+        
+        .mapraw-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            height: 100%;
+        }
+        
+        .mapraw-nav-item {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+        
+        .mapraw-nav-btn {
+            background: var(--bg-glass);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Prompt', sans-serif;
+            white-space: nowrap;
+        }
+        
+        .mapraw-nav-btn:hover {
+            background: var(--bg-glass-hover);
+            transform: translateY(-1px);
+        }
+        
+        .mapraw-nav-btn.home-btn {
+            background: rgba(255, 235, 59, 0.15);
+            border-color: #ffeb3b;
+            color: #ffeb3b;
+        }
+        
+        .mapraw-nav-btn.home-btn:hover {
+            background: #ffeb3b;
+            color: #1565c0;
+        }
+
+        .mapraw-dropdown {
+            position: absolute;
+            top: calc(100% - 10px);
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            padding: 5px 0;
+            z-index: 2001;
+        }
+        
+        @media (min-width: 1201px) {
+            .mapraw-nav-item:hover .mapraw-dropdown {
+                opacity: 1;
+                visibility: visible;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .mapraw-dropdown-item {
+            display: block;
+            padding: 10px 20px;
+            color: #333;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        
+        .mapraw-dropdown-item:hover {
+            background: #f1f8ff;
+            color: #1565c0;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            z-index: 2002;
+        }
+        
+        .bar {
+            display: block;
+            width: 25px;
+            height: 3px;
+            margin: 5px auto;
+            background-color: white;
+            transition: all 0.3s ease-in-out;
+            border-radius: 2px;
+        }
+
+        /* =========================================
+           2. Page 1 Map Layout Adjustments
+           ========================================= */
+        
+        /* Map Container: Fills remaining space below header */
+        #viewDiv { 
+            padding: 0; 
+            margin: 0; 
+            flex: 1; /* Take up remaining height */
+            width: 100%; 
+            position: relative;
+        }
+
         .esri-view .esri-view-surface--inset-outline:focus::after { outline: none !important; }
         
+        /* --- RE-POSITIONING EXISTING UI ELEMENTS --- */
+
+        /* Move Top Toolbar down to avoid header (70px header + 10px spacing) */
         .top-toolbar-container {
-            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            position: absolute; 
+            top: 10px; /* Relative to viewDiv now */
+            left: 50%; 
+            transform: translateX(-50%);
             z-index: 1000;
-            display: flex; flex-direction: column; align-items: center;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            margin-top: 10px; /* Extra breathing room */
         }
 
         .top-toolbar {
@@ -37,31 +242,40 @@
         }
         .toolbar-toggle-btn:hover { background: #f8f9fa; color: #000; }
 
+        /* Hide old home button (Header has one) */
         .home-button {
-            position: absolute; top: 10px; right: 10px; z-index: 1000;
-            background: white; padding: 8px; border-radius: 5px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3); cursor: pointer; color: #333;
+            display: none; 
         }
-        .home-button:hover { background: #f0f0f0; color: #000; }
 
+        /* Panels: Move down because Toolbar is now lower */
+        /* Original top was 60px. Toolbar is ~50px high + 10px spacing.
+           Let's put panels at around 70px from the top of viewDiv */
         .panel {
             position: absolute; background-color: white; padding: 10px;
             border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
             display: none; z-index: 1000;
         }
 
-        #layerPanel { top: 60px; right: 10px; width: 300px; max-height: 80%; overflow-y: auto; }
-        #searchPanel { top: 60px; left: 10px; width: 320px; }
-        #addServicePanel { top: 60px; left: 10px; }
-        #exportPanel { top: 60px; right: 60px; width: 300px; }
-        #basemapGalleryPanel, #printPanel { top: 60px; right: 10px; width: 280px; max-height: 400px; overflow-y: auto; }
+        /* Adjust all panels to sit below the toolbar */
+        #layerPanel { top: 70px; right: 10px; width: 300px; max-height: 80%; overflow-y: auto; }
+        #searchPanel { top: 70px; left: 10px; width: 320px; }
+        #addServicePanel { top: 70px; left: 10px; }
+        #exportPanel { top: 70px; right: 60px; width: 300px; }
+        #basemapGalleryPanel, #printPanel { top: 70px; right: 10px; width: 280px; max-height: 400px; overflow-y: auto; }
         
         .draw-tools {
-            position: absolute; top: 60px; left: 10px; z-index: 1000;
+            position: absolute; top: 70px; left: 10px; z-index: 1000;
             background: white; padding: 10px; border-radius: 5px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 280px;
         }
+
+        .excel-import-panel {
+            position: absolute; top: 70px; left: 10px; z-index: 1000;
+            background: white; padding: 15px; border-radius: 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 300px;
+        }
         
+        /* Rest of Page 1 Styles */
         .draw-layer-control { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; }
         .color-picker, .buffer-control { margin: 5px 0; }
         .close-btn { position: absolute; top: 5px; right: 5px; cursor: pointer; font-size: 20px; color: #666; }
@@ -83,151 +297,280 @@
         .btn-toolbar-custom:hover { background: #f0f0f0; }
         .tool-active { background: #e0e0e0; color: #000; }
         
-        .excel-import-panel {
-            position: absolute; top: 60px; left: 10px; z-index: 1000;
-            background: white; padding: 15px; border-radius: 5px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 300px;
-        }
         .search-type-selector { display: flex; gap: 15px; margin-bottom: 10px; }
+
+        /* Responsive adjustments for Header */
+        @media (max-width: 1400px) {
+            .mapraw-nav-btn { padding: 6px 8px; font-size: 0.8rem; }
+            .mapraw-nav { gap: 4px; }
+        }
+
+        @media (max-width: 1200px) {
+            .mobile-menu-toggle { display: block; }
+
+            .mapraw-nav {
+                position: fixed;
+                top: var(--header-height);
+                right: -100%;
+                width: 280px;
+                height: calc(100vh - var(--header-height));
+                background: white;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0;
+                padding: 10px 0;
+                transition: right 0.3s ease;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+                overflow-y: auto;
+                z-index: 2002;
+            }
+
+            .mapraw-nav.active { right: 0; }
+
+            .mapraw-nav-item { height: auto; flex-direction: column; width: 100%; display: block; border-bottom: 1px solid #eee; }
+            .mapraw-nav-btn { background: white; color: #333; border: none; border-radius: 0; padding: 15px 20px; font-size: 1rem; justify-content: space-between; width: 100%; box-sizing: border-box; }
+            .mapraw-nav-btn:hover { background: #f5f5f5; color: #1565c0; transform: none; }
+            .mapraw-dropdown { position: static; transform: none; visibility: visible; opacity: 1; box-shadow: none; min-width: 100%; background: #f9f9f9; display: none; padding: 0; }
+            .mapraw-nav-item.active .mapraw-dropdown { display: block; }
+            .mapraw-dropdown-item { padding-left: 40px; font-size: 0.9rem; color: #666; }
+            .mobile-menu-toggle.active .bar:nth-child(2) { opacity: 0; }
+            .mobile-menu-toggle.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+            .mobile-menu-toggle.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+        }
+        
+        @media (max-width: 480px) {
+            .mapraw-logo-main { font-size: 1rem; }
+            .mapraw-page-title { font-size: 0.75rem; }
+        }
     </style>
 </head>
 <body>
-    <div id="viewDiv"></div>
 
-    <div class="top-toolbar-container">
-        <div class="top-toolbar btn-group" id="mainToolbar">
-            <button id="basemapBtn" class="btn btn-toolbar-custom" title="Basemap Gallery"><i class="fas fa-layer-group"></i></button>
-            <button id="fullscreenBtn" class="btn btn-toolbar-custom" title="Fullscreen"><i class="fas fa-expand"></i></button>
-            <button id="searchBtn" class="btn btn-toolbar-custom" title="Search"><i class="fas fa-search"></i></button>
-            <button id="printBtn" class="btn btn-toolbar-custom" title="Print"><i class="fas fa-print"></i></button>
-            <button id="addServiceBtn" class="btn btn-toolbar-custom" title="Add Service"><i class="fas fa-plus"></i></button>
-            <button id="drawBtn" class="btn btn-toolbar-custom" title="Draw"><i class="fas fa-pen"></i></button>
-            <button id="layerListBtn" class="btn btn-toolbar-custom" title="Layer List"><i class="fas fa-list"></i></button>
-            <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location"><i class="fas fa-location-dot"></i></button> 
-            <button id="exportPanelBtn" class="btn btn-toolbar-custom" title="Export Data"><i class="fas fa-download"></i></button> 
-            <button id="excelImportBtn" class="btn btn-toolbar-custom" title="Import Excel"><i class="fas fa-file-excel"></i></button>
+    <header class="mapraw-header">
+        <div class="mapraw-header-content">
+            <div class="mapraw-logo-section">
+                <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+                <p class="mapraw-page-title">NoteMap</p>
+            </div>
+            
+            <button class="mobile-menu-toggle" id="mobileMenuBtn">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+
+            <nav class="mapraw-nav" id="mainNav">
+                <div class="mapraw-nav-item">
+                    <a href="index.html" class="mapraw-nav-btn home-btn">
+                        <span>🏠 หน้าหลัก</span>
+                    </a>
+                </div>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>📋 เครื่องมือสำรวจ</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                        <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                    </div>
+                </div>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                        <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                        <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                        <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                    </div>
+                </div>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>⚙️ เครื่องมือประมวลผล</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                        <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                        <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                        <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                        <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                    </div>
+                </div>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>⚖️ เครื่องมือกฎหมาย</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                        <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                    </div>
+                </div>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>🧮 คำนวณเบื้องต้น</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                    </div>
+                </div>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>🎯 เครื่องมืออื่นๆ</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                    </div>
+                </div>
+            </nav>
         </div>
-        <button id="toolbarToggleBtn" class="toolbar-toggle-btn" title="Show/Hide Toolbar">
-            <i class="fas fa-chevron-up" id="toggleIcon"></i>
-        </button>
-    </div>
+    </header>
+    <div id="viewDiv">
+        <div class="top-toolbar-container">
+            <div class="top-toolbar btn-group" id="mainToolbar">
+                <button id="basemapBtn" class="btn btn-toolbar-custom" title="Basemap Gallery"><i class="fas fa-layer-group"></i></button>
+                <button id="fullscreenBtn" class="btn btn-toolbar-custom" title="Fullscreen"><i class="fas fa-expand"></i></button>
+                <button id="searchBtn" class="btn btn-toolbar-custom" title="Search"><i class="fas fa-search"></i></button>
+                <button id="printBtn" class="btn btn-toolbar-custom" title="Print"><i class="fas fa-print"></i></button>
+                <button id="addServiceBtn" class="btn btn-toolbar-custom" title="Add Service"><i class="fas fa-plus"></i></button>
+                <button id="drawBtn" class="btn btn-toolbar-custom" title="Draw"><i class="fas fa-pen"></i></button>
+                <button id="layerListBtn" class="btn btn-toolbar-custom" title="Layer List"><i class="fas fa-list"></i></button>
+                <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location"><i class="fas fa-location-dot"></i></button> 
+                <button id="exportPanelBtn" class="btn btn-toolbar-custom" title="Export Data"><i class="fas fa-download"></i></button> 
+                <button id="excelImportBtn" class="btn btn-toolbar-custom" title="Import Excel"><i class="fas fa-file-excel"></i></button>
+            </div>
+            <button id="toolbarToggleBtn" class="toolbar-toggle-btn" title="Show/Hide Toolbar">
+                <i class="fas fa-chevron-up" id="toggleIcon"></i>
+            </button>
+        </div>
 
-    <a href="index.html" class="home-button" title="Home"><i class="fas fa-home"></i></a>
+        <a href="index.html" class="home-button" title="Home" style="display:none;"><i class="fas fa-home"></i></a>
 
-    <div id="drawTools" class="draw-tools">
-        <span class="close-btn" onclick="closePanel('drawTools')">×</span>
-        <h6>Draw Tools</h6>
-        <div class="draw-layer-control">
-            <label class="form-label small">Active Draw Layer:</label>
-            <select id="drawLayerSelect" class="form-select form-select-sm mb-2"></select>
-            <label class="form-label small">Create New Layer:</label>
-            <div class="input-group input-group-sm mb-2">
-                <input type="text" id="newLayerName" class="form-control" placeholder="Layer Name">
-                <button class="btn btn-primary" id="createLayerBtn">Create</button>
+        <div id="drawTools" class="draw-tools">
+            <span class="close-btn" onclick="closePanel('drawTools')">×</span>
+            <h6>Draw Tools</h6>
+            <div class="draw-layer-control">
+                <label class="form-label small">Active Draw Layer:</label>
+                <select id="drawLayerSelect" class="form-select form-select-sm mb-2"></select>
+                <label class="form-label small">Create New Layer:</label>
+                <div class="input-group input-group-sm mb-2">
+                    <input type="text" id="newLayerName" class="form-control" placeholder="Layer Name">
+                    <button class="btn btn-primary" id="createLayerBtn">Create</button>
+                </div>
+            </div>
+            <div class="color-picker">
+                <label>Color:</label>
+                <input type="color" id="drawColor" value="#ff0000">
+            </div>
+            <div class="buffer-control">
+                <label>Buffer (meters):</label>
+                <input type="number" id="bufferDistance" value="0" min="0" class="form-control form-control-sm">
             </div>
         </div>
-        <div class="color-picker">
-            <label>Color:</label>
-            <input type="color" id="drawColor" value="#ff0000">
-        </div>
-        <div class="buffer-control">
-            <label>Buffer (meters):</label>
-            <input type="number" id="bufferDistance" value="0" min="0" class="form-control form-control-sm">
-        </div>
-    </div>
 
-    <div id="layerPanel" class="panel">
-        <span class="close-btn" onclick="closePanel('layerPanel')">×</span>
-        <h5>Layer List</h5>
-        <ul id="layerList" class="list-group"></ul>
-    </div>
-
-    <div id="searchPanel" class="panel">
-        <span class="close-btn" onclick="closePanel('searchPanel')">×</span>
-        <h5>Search Location</h5>
-        <div class="search-type-selector">
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="searchType" id="searchTypeLatLon" value="latlon" checked>
-                <label class="form-check-label" for="searchTypeLatLon">Lat, Long</label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="searchType" id="searchTypeMgrs" value="mgrs">
-                <label class="form-check-label" for="searchTypeMgrs">MGRS</label>
-            </div>
+        <div id="layerPanel" class="panel">
+            <span class="close-btn" onclick="closePanel('layerPanel')">×</span>
+            <h5>Layer List</h5>
+            <ul id="layerList" class="list-group"></ul>
         </div>
-        <input type="text" id="searchInput" class="form-control mb-2" placeholder="e.g. 13.7, 100.5">
-        <button id="searchCoordBtn" class="btn btn-primary btn-sm w-100">Search</button>
-    </div>
 
-    <div id="exportPanel" class="panel">
-        <span class="close-btn" onclick="closePanel('exportPanel')">×</span>
-        <h5>Export Data</h5>
-        
-        <div class="mb-3 border-bottom pb-2">
-            <label class="form-label small fw-bold">Select Format:</label>
-            <div class="d-flex flex-column gap-2">
+        <div id="searchPanel" class="panel">
+            <span class="close-btn" onclick="closePanel('searchPanel')">×</span>
+            <h5>Search Location</h5>
+            <div class="search-type-selector">
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="exportFormat" id="formatKml" value="kml" checked>
-                    <label class="form-check-label" for="formatKml">KML (Google Earth - WGS84)</label>
+                    <input class="form-check-input" type="radio" name="searchType" id="searchTypeLatLon" value="latlon" checked>
+                    <label class="form-check-label" for="searchTypeLatLon">Lat, Long</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson" value="geojson">
-                    <label class="form-check-label" for="formatGeojson">GeoJSON (WGS84)</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson47" value="geojson_47">
-                    <label class="form-check-label" for="formatGeojson47">GeoJSON (UTM Zone 47N)</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson48" value="geojson_48">
-                    <label class="form-check-label" for="formatGeojson48">GeoJSON (UTM Zone 48N)</label>
+                    <input class="form-check-input" type="radio" name="searchType" id="searchTypeMgrs" value="mgrs">
+                    <label class="form-check-label" for="searchTypeMgrs">MGRS</label>
                 </div>
             </div>
+            <input type="text" id="searchInput" class="form-control mb-2" placeholder="e.g. 13.7, 100.5">
+            <button id="searchCoordBtn" class="btn btn-primary btn-sm w-100">Search</button>
         </div>
 
-        <p class="small text-muted">Select layers to export:</p>
-        <div id="exportLayerList" class="mb-3" style="max-height: 150px; overflow-y: auto;"></div>
-        <button id="confirmExportBtn" class="btn btn-success btn-sm w-100">Export Selected</button>
-    </div>
+        <div id="exportPanel" class="panel">
+            <span class="close-btn" onclick="closePanel('exportPanel')">×</span>
+            <h5>Export Data</h5>
+            
+            <div class="mb-3 border-bottom pb-2">
+                <label class="form-label small fw-bold">Select Format:</label>
+                <div class="d-flex flex-column gap-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="exportFormat" id="formatKml" value="kml" checked>
+                        <label class="form-check-label" for="formatKml">KML (Google Earth - WGS84)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson" value="geojson">
+                        <label class="form-check-label" for="formatGeojson">GeoJSON (WGS84)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson47" value="geojson_47">
+                        <label class="form-check-label" for="formatGeojson47">GeoJSON (UTM Zone 47N)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson48" value="geojson_48">
+                        <label class="form-check-label" for="formatGeojson48">GeoJSON (UTM Zone 48N)</label>
+                    </div>
+                </div>
+            </div>
 
-    <div id="addServicePanel" class="panel">
-        <span class="close-btn" onclick="closePanel('addServicePanel')">×</span>
-        <div class="mb-3"><input type="text" id="serviceUrl" class="form-control" placeholder="Service URL"></div>
-        <div class="mb-3">
-            <select id="serviceType" class="form-select">
-                <option value="featureLayer">Feature Layer</option>
-                <option value="mapImageLayer">Map Image Layer</option>
-                <option value="wmsLayer">WMS Layer</option>
-                <option value="tileLayer">Tile Layer</option>
-            </select>
+            <p class="small text-muted">Select layers to export:</p>
+            <div id="exportLayerList" class="mb-3" style="max-height: 150px; overflow-y: auto;"></div>
+            <button id="confirmExportBtn" class="btn btn-success btn-sm w-100">Export Selected</button>
         </div>
-        <button id="addServiceConfirmBtn" class="btn btn-primary btn-sm">Add Service</button>
-    </div>
 
-    <div id="basemapGalleryPanel" class="panel">
-        <span class="close-btn" onclick="closePanel('basemapGalleryPanel')">×</span>
-        <div id="basemapGalleryDiv"></div>
-    </div>
-
-    <div id="printPanel" class="panel">
-        <span class="close-btn" onclick="closePanel('printPanel')">×</span>
-        <h5>Print Map</h5>
-        <div id="printDiv"></div>
-    </div>
-
-    <div id="excelImportPanel" class="excel-import-panel">
-        <span class="close-btn" onclick="closePanel('excelImportPanel')">×</span>
-        <h5>Import Excel Points</h5>
-        <div class="mb-3"><input type="file" id="excelFile" class="form-control" accept=".xlsx, .xls"></div>
-        <div class="column-select">
-            <label>Latitude Column:</label><select id="latColumn" class="form-select mb-2"></select>
-            <label>Longitude Column:</label><select id="lonColumn" class="form-select mb-2"></select>
-            <label>Label Column (optional):</label><select id="labelColumn" class="form-select"></select>
+        <div id="addServicePanel" class="panel">
+            <span class="close-btn" onclick="closePanel('addServicePanel')">×</span>
+            <div class="mb-3"><input type="text" id="serviceUrl" class="form-control" placeholder="Service URL"></div>
+            <div class="mb-3">
+                <select id="serviceType" class="form-select">
+                    <option value="featureLayer">Feature Layer</option>
+                    <option value="mapImageLayer">Map Image Layer</option>
+                    <option value="wmsLayer">WMS Layer</option>
+                    <option value="tileLayer">Tile Layer</option>
+                </select>
+            </div>
+            <button id="addServiceConfirmBtn" class="btn btn-primary btn-sm">Add Service</button>
         </div>
-        <button id="importExcelBtn" class="btn btn-primary" disabled>Import Points</button>
-    </div>
 
-    <div class="modal-backdrop" id="modalBackdrop"></div>
+        <div id="basemapGalleryPanel" class="panel">
+            <span class="close-btn" onclick="closePanel('basemapGalleryPanel')">×</span>
+            <div id="basemapGalleryDiv"></div>
+        </div>
+
+        <div id="printPanel" class="panel">
+            <span class="close-btn" onclick="closePanel('printPanel')">×</span>
+            <h5>Print Map</h5>
+            <div id="printDiv"></div>
+        </div>
+
+        <div id="excelImportPanel" class="excel-import-panel">
+            <span class="close-btn" onclick="closePanel('excelImportPanel')">×</span>
+            <h5>Import Excel Points</h5>
+            <div class="mb-3"><input type="file" id="excelFile" class="form-control" accept=".xlsx, .xls"></div>
+            <div class="column-select">
+                <label>Latitude Column:</label><select id="latColumn" class="form-select mb-2"></select>
+                <label>Longitude Column:</label><select id="lonColumn" class="form-select mb-2"></select>
+                <label>Label Column (optional):</label><select id="labelColumn" class="form-select"></select>
+            </div>
+            <button id="importExcelBtn" class="btn btn-primary" disabled>Import Points</button>
+        </div>
+    </div> <div class="modal-backdrop" id="modalBackdrop"></div>
     <div class="custom-modal" id="attributeModal">
         <h5>Feature Attributes</h5>
         <form id="attributeForm">
@@ -265,6 +608,29 @@
             </div>
         </form>
     </div>
+
+    <script>
+        const menuBtn = document.getElementById('mobileMenuBtn');
+        const nav = document.getElementById('mainNav');
+
+        menuBtn.addEventListener('click', () => {
+            menuBtn.classList.toggle('active');
+            nav.classList.toggle('active');
+        });
+
+        function toggleMobileDropdown(element) {
+            if (window.innerWidth <= 1200) {
+                element.classList.toggle('active');
+            }
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
+                nav.classList.remove('active');
+                menuBtn.classList.remove('active');
+            }
+        });
+    </script>
 
     <script src="https://js.arcgis.com/4.22/"></script>
     <script>
