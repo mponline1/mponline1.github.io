@@ -13,17 +13,418 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --text-white: #ffffff;
+        --text-yellow: #ffeb3b;
+        --bg-glass: rgba(255, 255, 255, 0.1);
+        --bg-glass-hover: rgba(255, 255, 255, 0.25);
+        --header-height: 70px;
+    }
+    
+    body {
+        margin: 0;
+        padding-top: var(--header-height);
+        font-family: 'Prompt', sans-serif;
+    }
+
+    /* Header Structure */
+    .mapraw-header {
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        font-family: 'Prompt', sans-serif;
+        height: var(--header-height);
+    }
+    
+    .mapraw-header-content {
+        max-width: 100%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        height: 100%;
+    }
+    
+    /* Logo Section */
+    .mapraw-logo-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-shrink: 0;
+        padding-right: 15px;
+    }
+    
+    .mapraw-logo-main {
+        color: var(--text-white);
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    
+    .mapraw-logo-main span {
+        color: var(--text-yellow);
+        text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+    }
+    
+    .mapraw-page-title {
+        color: #e3f2fd;
+        font-size: 0.85rem;
+        font-weight: 400;
+        margin: 2px 0 0 0;
+        white-space: nowrap;
+    }
+    
+    /* Navigation Section */
+    .mapraw-nav {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        height: 100%;
+    }
+    
+    .mapraw-nav-item {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Buttons */
+    .mapraw-nav-btn {
+        background: var(--bg-glass);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Prompt', sans-serif;
+        white-space: nowrap;
+    }
+    
+    .mapraw-nav-btn:hover {
+        background: var(--bg-glass-hover);
+        transform: translateY(-1px);
+    }
+    
+    .mapraw-nav-btn.home-btn {
+        background: rgba(255, 235, 59, 0.15);
+        border-color: #ffeb3b;
+        color: #ffeb3b;
+    }
+    
+    .mapraw-nav-btn.home-btn:hover {
+        background: #ffeb3b;
+        color: #1565c0;
+    }
+
+    /* Dropdown */
+    .mapraw-dropdown {
+        position: absolute;
+        top: calc(100% - 10px);
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        min-width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        padding: 5px 0;
+        z-index: 1001;
+    }
+    
+    /* Hover Logic for Desktop */
+    @media (min-width: 1201px) {
+        .mapraw-nav-item:hover .mapraw-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+    
+    .mapraw-dropdown-item {
+        display: block;
+        padding: 10px 20px;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+        white-space: nowrap;
+    }
+    
+    .mapraw-dropdown-item:hover {
+        background: #f1f8ff;
+        color: #1565c0;
+    }
+
+    /* Hamburger Menu Toggle (Hidden on Desktop) */
+    .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        z-index: 1002;
+    }
+    
+    .bar {
+        display: block;
+        width: 25px;
+        height: 3px;
+        margin: 5px auto;
+        background-color: white;
+        transition: all 0.3s ease-in-out;
+        border-radius: 2px;
+    }
+
+    /* ==== Responsive Styles ==== */
+    
+    @media (max-width: 1400px) {
+        .mapraw-nav-btn {
+            padding: 6px 8px;
+            font-size: 0.8rem;
+        }
+        .mapraw-nav {
+            gap: 4px;
+        }
+    }
+
+    /* Mobile & Small Tablet */
+    @media (max-width: 1200px) {
+        .mobile-menu-toggle {
+            display: block;
+        }
+
+        .mapraw-nav {
+            position: fixed;
+            top: var(--header-height);
+            right: -100%;
+            width: 280px;
+            height: calc(100vh - var(--header-height));
+            background: white;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            padding: 10px 0;
+            transition: right 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .mapraw-nav.active {
+            right: 0;
+        }
+
+        .mapraw-nav-item {
+            height: auto;
+            flex-direction: column;
+            width: 100%;
+            display: block;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mapraw-nav-btn {
+            background: white;
+            color: #333;
+            border: none;
+            border-radius: 0;
+            padding: 15px 20px;
+            font-size: 1rem;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mapraw-nav-btn:hover {
+            background: #f5f5f5;
+            color: #1565c0;
+            transform: none;
+        }
+
+        .mapraw-dropdown {
+            position: static;
+            transform: none;
+            visibility: visible;
+            opacity: 1;
+            box-shadow: none;
+            min-width: 100%;
+            background: #f9f9f9;
+            display: none;
+            padding: 0;
+        }
+        
+        .mapraw-nav-item.active .mapraw-dropdown {
+            display: block;
+        }
+
+        .mapraw-dropdown-item {
+            padding-left: 40px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .mobile-menu-toggle.active .bar:nth-child(2) {
+            opacity: 0;
+        }
+        .mobile-menu-toggle.active .bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .mobile-menu-toggle.active .bar:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .mapraw-logo-main { font-size: 1rem; }
+        .mapraw-page-title { font-size: 0.75rem; }
+    }
+    
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
+
+<header class="mapraw-header">
+    <div class="mapraw-header-content">
+        <div class="mapraw-logo-section">
+            <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+            <p class="mapraw-page-title">Building Laws</p>
+        </div>
+        
+        <button class="mobile-menu-toggle" id="mobileMenuBtn">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <nav class="mapraw-nav" id="mainNav">
+            <div class="mapraw-nav-item">
+                <a href="index.html" class="mapraw-nav-btn home-btn">
+                    <span>🏠 หน้าหลัก</span>
+                </a>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>📋 เครื่องมือสำรวจ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                    <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                    <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                    <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                    <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚙️ เครื่องมือประมวลผล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                    <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                    <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                    <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                    <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚖️ เครื่องมือกฎหมาย</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                    <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🧮 คำนวณเบื้องต้น</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🎯 เครื่องมืออื่นๆ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
+
 <body class="bg-gray-50">
     <div id="root"></div>
+
+    <script>
+        const menuBtn = document.getElementById('mobileMenuBtn');
+        const nav = document.getElementById('mainNav');
+
+        menuBtn.addEventListener('click', () => {
+            menuBtn.classList.toggle('active');
+            nav.classList.toggle('active');
+        });
+
+        function toggleMobileDropdown(element) {
+            if (window.innerWidth <= 1200) {
+                element.classList.toggle('active');
+            }
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
+                nav.classList.remove('active');
+                menuBtn.classList.remove('active');
+            }
+        });
+    </script>
 
     <script type="text/babel">
         const { useState, useMemo } = React;
 
-        // --- 1. สร้าง Component Icon แบบฝังโดยตรง (แก้ปัญหา Lucide Load Failed) ---
+        // --- 1. สร้าง Component Icon แบบฝังโดยตรง ---
         const IconBase = ({ children, className, ...props }) => (
             <svg 
                 xmlns="http://www.w3.org/2000/svg" 
@@ -913,7 +1314,8 @@
 
           return (
             <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-              <header className="bg-white shadow-sm sticky top-0 z-20">
+              {/* IMPORTANT: Changed from sticky top-0 to sticky top-[70px] to prevent hiding behind the fixed global header */}
+              <header className="bg-white shadow-sm sticky top-[70px] z-20">
                 <div className="max-w-6xl mx-auto px-4 py-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -1020,7 +1422,8 @@
               </main>
 
               {selectedBuilding && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedBuilding(null)}>
+                // UPDATE: Increased z-index to 2000 to overlay the main fixed header (z-1000)
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedBuilding(null)}>
                   <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
                     <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center z-10">
                       <div className="flex items-center gap-3">
