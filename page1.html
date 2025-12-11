@@ -5,18 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NoteMap</title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://js.arcgis.com/4.22/esri/themes/light/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        /* =========================================
-           1. Header Styles (From Template)
-           ========================================= */
+        /* ================= HEADER STYLES ================= */
         :root {
             --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
             --text-white: #ffffff;
@@ -28,211 +27,97 @@
 
         body {
             margin: 0;
-            padding: 0; /* Reset padding, we handle layout manually */
+            padding: 0;
+            overflow: hidden;
             font-family: 'Prompt', sans-serif;
-            overflow: hidden; /* Prevent body scroll */
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            flex-direction: column;
         }
 
         .mapraw-header {
             background: var(--primary-gradient);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            position: relative; /* Changed from fixed to relative for flex layout */
-            width: 100%;
-            z-index: 2000; /* High z-index to stay above map controls */
-            height: var(--header-height);
-            flex-shrink: 0; /* Prevent header from shrinking */
+            position: fixed; top: 0; left: 0; width: 100%;
+            z-index: 2000; height: var(--header-height);
         }
         
         .mapraw-header-content {
-            max-width: 100%;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            height: 100%;
+            max-width: 100%; margin: 0 auto; display: flex;
+            align-items: center; justify-content: space-between;
+            padding: 0 20px; height: 100%;
         }
         
-        .mapraw-logo-section {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            flex-shrink: 0;
-            padding-right: 15px;
-        }
+        .mapraw-logo-section { display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; padding-right: 15px; }
+        .mapraw-logo-main { color: var(--text-white); font-size: 1.2rem; font-weight: 700; margin: 0; line-height: 1; white-space: nowrap; }
+        .mapraw-logo-main span { color: var(--text-yellow); text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); }
+        .mapraw-page-title { color: #e3f2fd; font-size: 0.85rem; font-weight: 400; margin: 2px 0 0 0; white-space: nowrap; }
         
-        .mapraw-logo-main {
-            color: var(--text-white);
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin: 0;
-            line-height: 1;
-            white-space: nowrap;
-        }
-        
-        .mapraw-logo-main span {
-            color: var(--text-yellow);
-            text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
-        }
-        
-        .mapraw-page-title {
-            color: #e3f2fd;
-            font-size: 0.85rem;
-            font-weight: 400;
-            margin: 2px 0 0 0;
-            white-space: nowrap;
-        }
-        
-        .mapraw-nav {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            height: 100%;
-        }
-        
-        .mapraw-nav-item {
-            position: relative;
-            height: 100%;
-            display: flex;
-            align-items: center;
-        }
+        .mapraw-nav { display: flex; gap: 8px; align-items: center; height: 100%; }
+        .mapraw-nav-item { position: relative; height: 100%; display: flex; align-items: center; }
         
         .mapraw-nav-btn {
-            background: var(--bg-glass);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-family: 'Prompt', sans-serif;
-            white-space: nowrap;
+            background: var(--bg-glass); color: white; border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+            font-weight: 500; transition: all 0.2s ease; text-decoration: none;
+            display: flex; align-items: center; gap: 6px; font-family: 'Prompt', sans-serif; white-space: nowrap;
         }
-        
-        .mapraw-nav-btn:hover {
-            background: var(--bg-glass-hover);
-            transform: translateY(-1px);
-        }
-        
-        .mapraw-nav-btn.home-btn {
-            background: rgba(255, 235, 59, 0.15);
-            border-color: #ffeb3b;
-            color: #ffeb3b;
-        }
-        
-        .mapraw-nav-btn.home-btn:hover {
-            background: #ffeb3b;
-            color: #1565c0;
-        }
+        .mapraw-nav-btn:hover { background: var(--bg-glass-hover); transform: translateY(-1px); }
+        .mapraw-nav-btn.home-btn { background: rgba(255, 235, 59, 0.15); border-color: #ffeb3b; color: #ffeb3b; }
+        .mapraw-nav-btn.home-btn:hover { background: #ffeb3b; color: #1565c0; }
 
         .mapraw-dropdown {
-            position: absolute;
-            top: calc(100% - 10px);
-            left: 50%;
-            transform: translateX(-50%) translateY(10px);
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            min-width: 200px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-            padding: 5px 0;
-            z-index: 2001;
+            position: absolute; top: calc(100% - 10px); left: 50%; transform: translateX(-50%) translateY(10px);
+            background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            min-width: 200px; opacity: 0; visibility: hidden; transition: all 0.2s ease; padding: 5px 0; z-index: 2001;
         }
         
         @media (min-width: 1201px) {
-            .mapraw-nav-item:hover .mapraw-dropdown {
-                opacity: 1;
-                visibility: visible;
-                transform: translateX(-50%) translateY(0);
+            .mapraw-nav-item:hover .mapraw-dropdown { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+        }
+        
+        .mapraw-dropdown-item { display: block; padding: 10px 20px; color: #333; text-decoration: none; font-size: 0.9rem; transition: background 0.2s; white-space: nowrap; }
+        .mapraw-dropdown-item:hover { background: #f1f8ff; color: #1565c0; }
+
+        .mobile-menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 10px; z-index: 2002; }
+        .bar { display: block; width: 25px; height: 3px; margin: 5px auto; background-color: white; transition: all 0.3s ease-in-out; border-radius: 2px; }
+
+        @media (max-width: 1400px) { .mapraw-nav-btn { padding: 6px 8px; font-size: 0.8rem; } .mapraw-nav { gap: 4px; } }
+        @media (max-width: 1200px) {
+            .mobile-menu-toggle { display: block; }
+            .mapraw-nav {
+                position: fixed; top: var(--header-height); right: -100%; width: 280px; height: calc(100vh - var(--header-height));
+                background: white; flex-direction: column; align-items: stretch; gap: 0; padding: 10px 0;
+                transition: right 0.3s ease; box-shadow: -5px 0 15px rgba(0,0,0,0.1); overflow-y: auto;
             }
+            .mapraw-nav.active { right: 0; }
+            .mapraw-nav-item { height: auto; flex-direction: column; width: 100%; display: block; border-bottom: 1px solid #eee; }
+            .mapraw-nav-btn { background: white; color: #333; border: none; border-radius: 0; padding: 15px 20px; font-size: 1rem; justify-content: space-between; width: 100%; box-sizing: border-box; }
+            .mapraw-dropdown { position: static; transform: none; visibility: visible; opacity: 1; box-shadow: none; min-width: 100%; background: #f9f9f9; display: none; padding: 0; }
+            .mapraw-nav-item.active .mapraw-dropdown { display: block; }
+            .mapraw-dropdown-item { padding-left: 40px; font-size: 0.9rem; color: #666; }
+            .mobile-menu-toggle.active .bar:nth-child(2) { opacity: 0; }
+            .mobile-menu-toggle.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+            .mobile-menu-toggle.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
         }
-        
-        .mapraw-dropdown-item {
-            display: block;
-            padding: 10px 20px;
-            color: #333;
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: background 0.2s;
-            white-space: nowrap;
-        }
-        
-        .mapraw-dropdown-item:hover {
-            background: #f1f8ff;
-            color: #1565c0;
-        }
+        @media (max-width: 480px) { .mapraw-logo-main { font-size: 1rem; } .mapraw-page-title { font-size: 0.75rem; } }
 
-        .mobile-menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 10px;
-            z-index: 2002;
-        }
-        
-        .bar {
-            display: block;
-            width: 25px;
-            height: 3px;
-            margin: 5px auto;
-            background-color: white;
-            transition: all 0.3s ease-in-out;
-            border-radius: 2px;
-        }
-
-        /* =========================================
-           2. Page 1 Map Layout Adjustments
-           ========================================= */
-        
-        /* Map Container: Fills remaining space below header */
+        /* ================= MAP PAGE STYLES ================= */
         #viewDiv { 
-            padding: 0; 
-            margin: 0; 
-            flex: 1; /* Take up remaining height */
-            width: 100%; 
-            position: relative;
+            padding: 0; margin: 0; height: calc(100vh - 70px); width: 100%;
+            position: absolute; top: 70px; left: 0;
         }
 
         .esri-view .esri-view-surface--inset-outline:focus::after { outline: none !important; }
         
-        /* --- RE-POSITIONING EXISTING UI ELEMENTS --- */
-
-        /* Move Top Toolbar down to avoid header (70px header + 10px spacing) */
         .top-toolbar-container {
-            position: absolute; 
-            top: 10px; /* Relative to viewDiv now */
-            left: 50%; 
-            transform: translateX(-50%);
-            z-index: 1000;
-            display: flex; 
-            flex-direction: column; 
-            align-items: center;
-            margin-top: 10px; /* Extra breathing room */
+            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; display: flex; flex-direction: column; align-items: center;
         }
 
         .top-toolbar {
             background: white; padding: 5px; border-radius: 5px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            display: flex; transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; transition: all 0.3s ease;
             max-height: 60px; overflow: hidden; opacity: 1;
         }
-
-        .top-toolbar.collapsed {
-            max-height: 0; padding: 0; opacity: 0; margin: 0; border: none;
-        }
+        .top-toolbar.collapsed { max-height: 0; padding: 0; opacity: 0; margin: 0; border: none; }
 
         .toolbar-toggle-btn {
             background: white; border: none; border-radius: 0 0 10px 10px;
@@ -242,42 +127,40 @@
         }
         .toolbar-toggle-btn:hover { background: #f8f9fa; color: #000; }
 
-        /* Hide old home button (Header has one) */
         .home-button {
-            display: none; 
+            position: absolute; top: 80px; right: 10px; z-index: 1000;
+            background: white; padding: 8px; border-radius: 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); cursor: pointer; color: #333;
         }
+        .home-button:hover { background: #f0f0f0; color: #000; }
 
-        /* Panels: Move down because Toolbar is now lower */
-        /* Original top was 60px. Toolbar is ~50px high + 10px spacing.
-           Let's put panels at around 70px from the top of viewDiv */
         .panel {
             position: absolute; background-color: white; padding: 10px;
             border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
             display: none; z-index: 1000;
         }
 
-        /* Adjust all panels to sit below the toolbar */
-        #layerPanel { top: 70px; right: 10px; width: 300px; max-height: 80%; overflow-y: auto; }
-        #searchPanel { top: 70px; left: 10px; width: 320px; }
-        #addServicePanel { top: 70px; left: 10px; }
-        #exportPanel { top: 70px; right: 60px; width: 300px; }
-        #basemapGalleryPanel, #printPanel { top: 70px; right: 10px; width: 280px; max-height: 400px; overflow-y: auto; }
+        #layerPanel { top: 130px; right: 10px; width: 300px; max-height: calc(100vh - 150px); overflow-y: auto; }
+        #searchPanel { top: 130px; left: 10px; width: 320px; }
+        #addServicePanel { top: 130px; left: 10px; }
+        #exportPanel { top: 130px; right: 60px; width: 300px; }
+        #basemapGalleryPanel, #printPanel { top: 130px; right: 10px; width: 280px; max-height: 400px; overflow-y: auto; }
         
         .draw-tools {
-            position: absolute; top: 70px; left: 10px; z-index: 1000;
+            position: absolute; top: 130px; left: 10px; z-index: 1000;
             background: white; padding: 10px; border-radius: 5px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 280px;
         }
-
+        
         .excel-import-panel {
-            position: absolute; top: 70px; left: 10px; z-index: 1000;
+            position: absolute; top: 130px; left: 10px; z-index: 1000;
             background: white; padding: 15px; border-radius: 5px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 300px;
         }
-        
-        /* Rest of Page 1 Styles */
+
         .draw-layer-control { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; }
-        .color-picker, .buffer-control { margin: 5px 0; }
+        .color-picker { margin: 5px 0; }
+        .buffer-section { margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd; }
         .close-btn { position: absolute; top: 5px; right: 5px; cursor: pointer; font-size: 20px; color: #666; }
         .layer-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .layer-controls { display: flex; gap: 5px; }
@@ -286,11 +169,11 @@
             display: none; position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%); background: white; padding: 20px;
             border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            z-index: 2000; min-width: 350px;
+            z-index: 3000; min-width: 350px;
         }
         .modal-backdrop {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 1999;
+            background: rgba(0,0,0,0.5); z-index: 2999;
         }
         
         .btn-toolbar-custom { padding: 6px 12px; margin: 0 2px; border: none; background: transparent; color: #333; }
@@ -298,50 +181,6 @@
         .tool-active { background: #e0e0e0; color: #000; }
         
         .search-type-selector { display: flex; gap: 15px; margin-bottom: 10px; }
-
-        /* Responsive adjustments for Header */
-        @media (max-width: 1400px) {
-            .mapraw-nav-btn { padding: 6px 8px; font-size: 0.8rem; }
-            .mapraw-nav { gap: 4px; }
-        }
-
-        @media (max-width: 1200px) {
-            .mobile-menu-toggle { display: block; }
-
-            .mapraw-nav {
-                position: fixed;
-                top: var(--header-height);
-                right: -100%;
-                width: 280px;
-                height: calc(100vh - var(--header-height));
-                background: white;
-                flex-direction: column;
-                align-items: stretch;
-                gap: 0;
-                padding: 10px 0;
-                transition: right 0.3s ease;
-                box-shadow: -5px 0 15px rgba(0,0,0,0.1);
-                overflow-y: auto;
-                z-index: 2002;
-            }
-
-            .mapraw-nav.active { right: 0; }
-
-            .mapraw-nav-item { height: auto; flex-direction: column; width: 100%; display: block; border-bottom: 1px solid #eee; }
-            .mapraw-nav-btn { background: white; color: #333; border: none; border-radius: 0; padding: 15px 20px; font-size: 1rem; justify-content: space-between; width: 100%; box-sizing: border-box; }
-            .mapraw-nav-btn:hover { background: #f5f5f5; color: #1565c0; transform: none; }
-            .mapraw-dropdown { position: static; transform: none; visibility: visible; opacity: 1; box-shadow: none; min-width: 100%; background: #f9f9f9; display: none; padding: 0; }
-            .mapraw-nav-item.active .mapraw-dropdown { display: block; }
-            .mapraw-dropdown-item { padding-left: 40px; font-size: 0.9rem; color: #666; }
-            .mobile-menu-toggle.active .bar:nth-child(2) { opacity: 0; }
-            .mobile-menu-toggle.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
-            .mobile-menu-toggle.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
-        }
-        
-        @media (max-width: 480px) {
-            .mapraw-logo-main { font-size: 1rem; }
-            .mapraw-page-title { font-size: 0.75rem; }
-        }
     </style>
 </head>
 <body>
@@ -350,258 +189,186 @@
         <div class="mapraw-header-content">
             <div class="mapraw-logo-section">
                 <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
-                <p class="mapraw-page-title">NoteMap</p>
+                <p class="mapraw-page-title">NoteMap System</p>
             </div>
             
             <button class="mobile-menu-toggle" id="mobileMenuBtn">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
+                <span class="bar"></span><span class="bar"></span><span class="bar"></span>
             </button>
-
+    
             <nav class="mapraw-nav" id="mainNav">
-                <div class="mapraw-nav-item">
-                    <a href="index.html" class="mapraw-nav-btn home-btn">
-                        <span>🏠 หน้าหลัก</span>
-                    </a>
-                </div>
-                
+                <div class="mapraw-nav-item"><a href="index.html" class="mapraw-nav-btn home-btn"><span>🏠 หน้าหลัก</span></a></div>
                 <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                    <div class="mapraw-nav-btn">
-                        <span>📋 เครื่องมือสำรวจ</span>
-                        <span style="font-size: 0.8em">▼</span>
-                    </div>
-                    <div class="mapraw-dropdown">
-                        <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
-                        <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
-                    </div>
+                    <div class="mapraw-nav-btn"><span>📋 เครื่องมือสำรวจ</span><span style="font-size: 0.8em">▼</span></div>
+                    <div class="mapraw-dropdown"><a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a><a href="#" class="mapraw-dropdown-item">SURVEY WORK</a></div>
                 </div>
-                
                 <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                    <div class="mapraw-nav-btn">
-                        <span>🔧 เครื่องมือเตรียมข้อมูล</span>
-                        <span style="font-size: 0.8em">▼</span>
-                    </div>
-                    <div class="mapraw-dropdown">
-                        <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
-                        <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
-                        <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
-                        <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
-                    </div>
+                    <div class="mapraw-nav-btn"><span>🔧 เครื่องมือเตรียมข้อมูล</span><span style="font-size: 0.8em">▼</span></div>
+                    <div class="mapraw-dropdown"><a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a><a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a><a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a><a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a></div>
                 </div>
-                
                 <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                    <div class="mapraw-nav-btn">
-                        <span>⚙️ เครื่องมือประมวลผล</span>
-                        <span style="font-size: 0.8em">▼</span>
-                    </div>
-                    <div class="mapraw-dropdown">
-                        <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
-                        <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
-                        <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
-                        <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
-                        <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
-                    </div>
+                    <div class="mapraw-nav-btn"><span>⚙️ เครื่องมือประมวลผล</span><span style="font-size: 0.8em">▼</span></div>
+                    <div class="mapraw-dropdown"><a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a><a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a><a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a><a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a><a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a></div>
                 </div>
-                
                 <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                    <div class="mapraw-nav-btn">
-                        <span>⚖️ เครื่องมือกฎหมาย</span>
-                        <span style="font-size: 0.8em">▼</span>
-                    </div>
-                    <div class="mapraw-dropdown">
-                        <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
-                        <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
-                    </div>
+                    <div class="mapraw-nav-btn"><span>⚖️ เครื่องมือกฎหมาย</span><span style="font-size: 0.8em">▼</span></div>
+                    <div class="mapraw-dropdown"><a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a><a href="page15.html" class="mapraw-dropdown-item">Building Laws</a></div>
                 </div>
-                
                 <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                    <div class="mapraw-nav-btn">
-                        <span>🧮 คำนวณเบื้องต้น</span>
-                        <span style="font-size: 0.8em">▼</span>
-                    </div>
-                    <div class="mapraw-dropdown">
-                        <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
-                    </div>
+                    <div class="mapraw-nav-btn"><span>🧮 คำนวณเบื้องต้น</span><span style="font-size: 0.8em">▼</span></div>
+                    <div class="mapraw-dropdown"><a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a></div>
                 </div>
-                
                 <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                    <div class="mapraw-nav-btn">
-                        <span>🎯 เครื่องมืออื่นๆ</span>
-                        <span style="font-size: 0.8em">▼</span>
-                    </div>
-                    <div class="mapraw-dropdown">
-                        <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
-                    </div>
+                    <div class="mapraw-nav-btn"><span>🎯 เครื่องมืออื่นๆ</span><span style="font-size: 0.8em">▼</span></div>
+                    <div class="mapraw-dropdown"><a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a></div>
                 </div>
             </nav>
         </div>
     </header>
-    <div id="viewDiv">
-        <div class="top-toolbar-container">
-            <div class="top-toolbar btn-group" id="mainToolbar">
-                <button id="basemapBtn" class="btn btn-toolbar-custom" title="Basemap Gallery"><i class="fas fa-layer-group"></i></button>
-                <button id="fullscreenBtn" class="btn btn-toolbar-custom" title="Fullscreen"><i class="fas fa-expand"></i></button>
-                <button id="searchBtn" class="btn btn-toolbar-custom" title="Search"><i class="fas fa-search"></i></button>
-                <button id="printBtn" class="btn btn-toolbar-custom" title="Print"><i class="fas fa-print"></i></button>
-                <button id="addServiceBtn" class="btn btn-toolbar-custom" title="Add Service"><i class="fas fa-plus"></i></button>
-                <button id="drawBtn" class="btn btn-toolbar-custom" title="Draw"><i class="fas fa-pen"></i></button>
-                <button id="layerListBtn" class="btn btn-toolbar-custom" title="Layer List"><i class="fas fa-list"></i></button>
-                <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location"><i class="fas fa-location-dot"></i></button> 
-                <button id="exportPanelBtn" class="btn btn-toolbar-custom" title="Export Data"><i class="fas fa-download"></i></button> 
-                <button id="excelImportBtn" class="btn btn-toolbar-custom" title="Import Excel"><i class="fas fa-file-excel"></i></button>
-            </div>
-            <button id="toolbarToggleBtn" class="toolbar-toggle-btn" title="Show/Hide Toolbar">
-                <i class="fas fa-chevron-up" id="toggleIcon"></i>
-            </button>
+
+    <div id="viewDiv"></div>
+
+    <div class="top-toolbar-container">
+        <div class="top-toolbar btn-group" id="mainToolbar">
+            <button id="basemapBtn" class="btn btn-toolbar-custom" title="Basemap Gallery"><i class="fas fa-layer-group"></i></button>
+            <button id="fullscreenBtn" class="btn btn-toolbar-custom" title="Fullscreen"><i class="fas fa-expand"></i></button>
+            <button id="searchBtn" class="btn btn-toolbar-custom" title="Search"><i class="fas fa-search"></i></button>
+            <button id="printBtn" class="btn btn-toolbar-custom" title="Print"><i class="fas fa-print"></i></button>
+            <button id="addServiceBtn" class="btn btn-toolbar-custom" title="Add Service"><i class="fas fa-plus"></i></button>
+            <button id="drawBtn" class="btn btn-toolbar-custom" title="Draw"><i class="fas fa-pen"></i></button>
+            <button id="layerListBtn" class="btn btn-toolbar-custom" title="Layer List"><i class="fas fa-list"></i></button>
+            <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location"><i class="fas fa-location-dot"></i></button> 
+            <button id="exportPanelBtn" class="btn btn-toolbar-custom" title="Export Data"><i class="fas fa-download"></i></button> 
+            <button id="excelImportBtn" class="btn btn-toolbar-custom" title="Import Excel"><i class="fas fa-file-excel"></i></button>
         </div>
+        <button id="toolbarToggleBtn" class="toolbar-toggle-btn" title="Show/Hide Toolbar"><i class="fas fa-chevron-up" id="toggleIcon"></i></button>
+    </div>
 
-        <a href="index.html" class="home-button" title="Home" style="display:none;"><i class="fas fa-home"></i></a>
+    <a href="index.html" class="home-button" title="Home"><i class="fas fa-home"></i></a>
 
-        <div id="drawTools" class="draw-tools">
-            <span class="close-btn" onclick="closePanel('drawTools')">×</span>
-            <h6>Draw Tools</h6>
-            <div class="draw-layer-control">
-                <label class="form-label small">Active Draw Layer:</label>
-                <select id="drawLayerSelect" class="form-select form-select-sm mb-2"></select>
-                <label class="form-label small">Create New Layer:</label>
-                <div class="input-group input-group-sm mb-2">
-                    <input type="text" id="newLayerName" class="form-control" placeholder="Layer Name">
-                    <button class="btn btn-primary" id="createLayerBtn">Create</button>
-                </div>
+    <div id="drawTools" class="draw-tools">
+        <span class="close-btn" onclick="closePanel('drawTools')">×</span>
+        <h6 class="fw-bold"><i class="fas fa-pencil-alt"></i> Draw Tools</h6>
+        <div class="draw-layer-control">
+            <label class="form-label small fw-bold">Active Draw Layer:</label>
+            <select id="drawLayerSelect" class="form-select form-select-sm mb-2"></select>
+            <label class="form-label small fw-bold">Create New Layer:</label>
+            <div class="input-group input-group-sm mb-2">
+                <input type="text" id="newLayerName" class="form-control" placeholder="Layer Name">
+                <button class="btn btn-primary" id="createLayerBtn">Create</button>
             </div>
-            <div class="color-picker">
-                <label>Color:</label>
-                <input type="color" id="drawColor" value="#ff0000">
-            </div>
-            <div class="buffer-control">
-                <label>Buffer (meters):</label>
-                <input type="number" id="bufferDistance" value="0" min="0" class="form-control form-control-sm">
+            <div class="color-picker d-flex align-items-center gap-2">
+                <label class="small fw-bold mb-0">Color:</label>
+                <input type="color" id="drawColor" value="#ff0000" class="form-control form-control-color form-control-sm" title="Choose your color">
             </div>
         </div>
-
-        <div id="layerPanel" class="panel">
-            <span class="close-btn" onclick="closePanel('layerPanel')">×</span>
-            <h5>Layer List</h5>
-            <ul id="layerList" class="list-group"></ul>
-        </div>
-
-        <div id="searchPanel" class="panel">
-            <span class="close-btn" onclick="closePanel('searchPanel')">×</span>
-            <h5>Search Location</h5>
-            <div class="search-type-selector">
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="searchType" id="searchTypeLatLon" value="latlon" checked>
-                    <label class="form-check-label" for="searchTypeLatLon">Lat, Long</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="searchType" id="searchTypeMgrs" value="mgrs">
-                    <label class="form-check-label" for="searchTypeMgrs">MGRS</label>
-                </div>
+        <div class="buffer-section">
+            <h6 class="fw-bold small"><i class="fas fa-bullseye"></i> Buffer Tool</h6>
+            <div class="mb-2">
+                <label class="form-label small">Select Layer to Buffer:</label>
+                <select id="bufferTargetLayer" class="form-select form-select-sm"></select>
             </div>
-            <input type="text" id="searchInput" class="form-control mb-2" placeholder="e.g. 13.7, 100.5">
-            <button id="searchCoordBtn" class="btn btn-primary btn-sm w-100">Search</button>
-        </div>
-
-        <div id="exportPanel" class="panel">
-            <span class="close-btn" onclick="closePanel('exportPanel')">×</span>
-            <h5>Export Data</h5>
-            
-            <div class="mb-3 border-bottom pb-2">
-                <label class="form-label small fw-bold">Select Format:</label>
-                <div class="d-flex flex-column gap-2">
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="exportFormat" id="formatKml" value="kml" checked>
-                        <label class="form-check-label" for="formatKml">KML (Google Earth - WGS84)</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson" value="geojson">
-                        <label class="form-check-label" for="formatGeojson">GeoJSON (WGS84)</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson47" value="geojson_47">
-                        <label class="form-check-label" for="formatGeojson47">GeoJSON (UTM Zone 47N)</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson48" value="geojson_48">
-                        <label class="form-check-label" for="formatGeojson48">GeoJSON (UTM Zone 48N)</label>
-                    </div>
-                </div>
+            <div class="mb-2">
+                <label class="form-label small">Distance (meters):</label>
+                <input type="number" id="manualBufferDist" value="100" min="1" class="form-control form-control-sm">
             </div>
-
-            <p class="small text-muted">Select layers to export:</p>
-            <div id="exportLayerList" class="mb-3" style="max-height: 150px; overflow-y: auto;"></div>
-            <button id="confirmExportBtn" class="btn btn-success btn-sm w-100">Export Selected</button>
+            <button id="executeBufferBtn" class="btn btn-warning btn-sm w-100"><i class="fas fa-circle-notch"></i> Create Buffer</button>
         </div>
+    </div>
 
-        <div id="addServicePanel" class="panel">
-            <span class="close-btn" onclick="closePanel('addServicePanel')">×</span>
-            <div class="mb-3"><input type="text" id="serviceUrl" class="form-control" placeholder="Service URL"></div>
-            <div class="mb-3">
-                <select id="serviceType" class="form-select">
-                    <option value="featureLayer">Feature Layer</option>
-                    <option value="mapImageLayer">Map Image Layer</option>
-                    <option value="wmsLayer">WMS Layer</option>
-                    <option value="tileLayer">Tile Layer</option>
-                </select>
+    <div id="layerPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('layerPanel')">×</span>
+        <h5>Layer List</h5>
+        <ul id="layerList" class="list-group"></ul>
+    </div>
+
+    <div id="searchPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('searchPanel')">×</span>
+        <h5>Search Location</h5>
+        <div class="search-type-selector">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="searchType" id="searchTypeLatLon" value="latlon" checked>
+                <label class="form-check-label" for="searchTypeLatLon">Lat, Long</label>
             </div>
-            <button id="addServiceConfirmBtn" class="btn btn-primary btn-sm">Add Service</button>
-        </div>
-
-        <div id="basemapGalleryPanel" class="panel">
-            <span class="close-btn" onclick="closePanel('basemapGalleryPanel')">×</span>
-            <div id="basemapGalleryDiv"></div>
-        </div>
-
-        <div id="printPanel" class="panel">
-            <span class="close-btn" onclick="closePanel('printPanel')">×</span>
-            <h5>Print Map</h5>
-            <div id="printDiv"></div>
-        </div>
-
-        <div id="excelImportPanel" class="excel-import-panel">
-            <span class="close-btn" onclick="closePanel('excelImportPanel')">×</span>
-            <h5>Import Excel Points</h5>
-            <div class="mb-3"><input type="file" id="excelFile" class="form-control" accept=".xlsx, .xls"></div>
-            <div class="column-select">
-                <label>Latitude Column:</label><select id="latColumn" class="form-select mb-2"></select>
-                <label>Longitude Column:</label><select id="lonColumn" class="form-select mb-2"></select>
-                <label>Label Column (optional):</label><select id="labelColumn" class="form-select"></select>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="searchType" id="searchTypeMgrs" value="mgrs">
+                <label class="form-check-label" for="searchTypeMgrs">MGRS</label>
             </div>
-            <button id="importExcelBtn" class="btn btn-primary" disabled>Import Points</button>
         </div>
-    </div> <div class="modal-backdrop" id="modalBackdrop"></div>
+        <input type="text" id="searchInput" class="form-control mb-2" placeholder="e.g. 13.7, 100.5">
+        <button id="searchCoordBtn" class="btn btn-primary btn-sm w-100">Search</button>
+    </div>
+
+    <div id="exportPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('exportPanel')">×</span>
+        <h5>Export Data</h5>
+        <div class="mb-3 border-bottom pb-2">
+            <label class="form-label small fw-bold">Select Format:</label>
+            <div class="d-flex flex-column gap-2">
+                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatKml" value="kml" checked><label class="form-check-label" for="formatKml">KML (Google Earth - WGS84)</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson" value="geojson"><label class="form-check-label" for="formatGeojson">GeoJSON (WGS84)</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson47" value="geojson_47"><label class="form-check-label" for="formatGeojson47">GeoJSON (UTM Zone 47N)</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson48" value="geojson_48"><label class="form-check-label" for="formatGeojson48">GeoJSON (UTM Zone 48N)</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatExcel" value="excel"><label class="form-check-label" for="formatExcel" style="color: #198754; font-weight: 500;">Excel (.xlsx)</label></div>
+            </div>
+        </div>
+        <p class="small text-muted">Select layers to export:</p>
+        <div id="exportLayerList" class="mb-3" style="max-height: 150px; overflow-y: auto;"></div>
+        <button id="confirmExportBtn" class="btn btn-success btn-sm w-100">Export Selected</button>
+    </div>
+
+    <div id="addServicePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('addServicePanel')">×</span>
+        <div class="mb-3"><input type="text" id="serviceUrl" class="form-control" placeholder="Service URL (e.g., .../MapServer/0)"></div>
+        <div class="mb-3">
+            <select id="serviceType" class="form-select">
+                <option value="featureLayer">Feature Layer</option>
+                <option value="mapImageLayer">Map Image Layer</option>
+                <option value="wmsLayer">WMS Layer</option>
+                <option value="tileLayer">Tile Layer</option>
+            </select>
+        </div>
+        <p class="small text-muted">* Select <b>Feature Layer</b> to enable "Copy to Draw Layer" function.</p>
+        <button id="addServiceConfirmBtn" class="btn btn-primary btn-sm">Add Service</button>
+    </div>
+
+    <div id="basemapGalleryPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('basemapGalleryPanel')">×</span>
+        <div id="basemapGalleryDiv"></div>
+    </div>
+
+    <div id="printPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('printPanel')">×</span>
+        <h5>Print Map</h5>
+        <div id="printDiv"></div>
+    </div>
+
+    <div id="excelImportPanel" class="excel-import-panel">
+        <span class="close-btn" onclick="closePanel('excelImportPanel')">×</span>
+        <h5>Import Excel Points</h5>
+        <div class="mb-3"><input type="file" id="excelFile" class="form-control" accept=".xlsx, .xls"></div>
+        <div class="column-select">
+            <label>Latitude Column:</label><select id="latColumn" class="form-select mb-2"></select>
+            <label>Longitude Column:</label><select id="lonColumn" class="form-select mb-2"></select>
+            <label>Label Column (optional):</label><select id="labelColumn" class="form-select"></select>
+        </div>
+        <button id="importExcelBtn" class="btn btn-primary" disabled>Import Points</button>
+    </div>
+
+    <div class="modal-backdrop" id="modalBackdrop"></div>
     <div class="custom-modal" id="attributeModal">
         <h5>Feature Attributes</h5>
         <form id="attributeForm">
             <div class="row mb-2">
-                <div class="col-6">
-                    <label class="form-label small">Latitude (Center)</label>
-                    <input type="text" class="form-control form-control-sm" id="attrLat" readonly>
-                </div>
-                <div class="col-6">
-                    <label class="form-label small">Longitude (Center)</label>
-                    <input type="text" class="form-control form-control-sm" id="attrLon" readonly>
-                </div>
+                <div class="col-6"><label class="form-label small">Latitude (Center)</label><input type="text" class="form-control form-control-sm" id="attrLat" readonly></div>
+                <div class="col-6"><label class="form-label small">Longitude (Center)</label><input type="text" class="form-control form-control-sm" id="attrLon" readonly></div>
             </div>
-            <div class="mb-2">
-                <label class="form-label small">MGRS (Center)</label>
-                <input type="text" class="form-control form-control-sm" id="attrMgrs" readonly>
-            </div>
+            <div class="mb-2"><label class="form-label small">MGRS (Center)</label><input type="text" class="form-control form-control-sm" id="attrMgrs" readonly></div>
             <div class="row mb-2">
-                <div class="col-6">
-                    <label class="form-label small">UTM Z47 (E, N)</label>
-                    <input type="text" class="form-control form-control-sm" id="attrUtm47" readonly>
-                </div>
-                <div class="col-6">
-                    <label class="form-label small">UTM Z48 (E, N)</label>
-                    <input type="text" class="form-control form-control-sm" id="attrUtm48" readonly>
-                </div>
+                <div class="col-6"><label class="form-label small">UTM Z47 (E, N)</label><input type="text" class="form-control form-control-sm" id="attrUtm47" readonly></div>
+                <div class="col-6"><label class="form-label small">UTM Z48 (E, N)</label><input type="text" class="form-control form-control-sm" id="attrUtm48" readonly></div>
             </div>
-            <div class="mb-3">
-                <label for="description" class="form-label">Description / Name</label>
-                <input type="text" class="form-control" id="description" required>
-            </div>
+            <div class="mb-3"><label for="description" class="form-label">Description / Name</label><input type="text" class="form-control" id="description" required></div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-secondary" onclick="closeAttributeModal()">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save</button>
@@ -612,138 +379,63 @@
     <script>
         const menuBtn = document.getElementById('mobileMenuBtn');
         const nav = document.getElementById('mainNav');
-
-        menuBtn.addEventListener('click', () => {
-            menuBtn.classList.toggle('active');
-            nav.classList.toggle('active');
-        });
-
-        function toggleMobileDropdown(element) {
-            if (window.innerWidth <= 1200) {
-                element.classList.toggle('active');
-            }
-        }
-        
-        document.addEventListener('click', (e) => {
-            if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
-                nav.classList.remove('active');
-                menuBtn.classList.remove('active');
-            }
-        });
+        menuBtn.addEventListener('click', () => { menuBtn.classList.toggle('active'); nav.classList.toggle('active'); });
+        function toggleMobileDropdown(element) { if (window.innerWidth <= 1200) { element.classList.toggle('active'); } }
+        document.addEventListener('click', (e) => { if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) { nav.classList.remove('active'); menuBtn.classList.remove('active'); } });
     </script>
 
-    <script src="https://js.arcgis.com/4.22/"></script>
+ <script src="https://js.arcgis.com/4.22/"></script>
     <script>
         require([
-            "esri/Map",
-            "esri/views/MapView",
-            "esri/widgets/BasemapGallery",
-            "esri/widgets/Search",
-            "esri/widgets/Print",
-            "esri/layers/FeatureLayer",
-            "esri/layers/MapImageLayer",
-            "esri/layers/WMSLayer",
-            "esri/layers/TileLayer",
-            "esri/widgets/Sketch",
-            "esri/layers/GraphicsLayer",
-            "esri/Graphic",
-            "esri/geometry/geometryEngine",
-            "esri/symbols/SimpleMarkerSymbol",
-            "esri/symbols/SimpleLineSymbol",
-            "esri/symbols/SimpleFillSymbol",
-            "esri/symbols/TextSymbol",
-            "esri/widgets/Track",
-            "esri/geometry/Point",
-            "esri/geometry/support/webMercatorUtils",
-            "esri/geometry/coordinateFormatter", 
-            "esri/geometry/projection"          
+            "esri/Map", "esri/views/MapView", "esri/widgets/BasemapGallery", "esri/widgets/Search", "esri/widgets/Print",
+            "esri/layers/FeatureLayer", "esri/layers/MapImageLayer", "esri/layers/WMSLayer", "esri/layers/TileLayer",
+            "esri/widgets/Sketch", "esri/layers/GraphicsLayer", "esri/Graphic", "esri/geometry/geometryEngine",
+            "esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleFillSymbol", "esri/symbols/TextSymbol",
+            "esri/widgets/Track", "esri/geometry/Point", "esri/geometry/support/webMercatorUtils",
+            "esri/geometry/coordinateFormatter", "esri/geometry/projection"          
         ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, 
                    Sketch, GraphicsLayer, Graphic, geometryEngine, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, TextSymbol,
                    Track, Point, webMercatorUtils, coordinateFormatter, projection) {
             
-            // Load Coordinate and Projection modules
-            Promise.all([
-                coordinateFormatter.load(),
-                projection.load()
-            ]).then(() => {
-                console.log("Coordinate & Projection modules loaded");
+            // 1. Load Projection Engine & Coordinate Formatter (สำคัญมากสำหรับการแปลงพิกัด)
+            Promise.all([coordinateFormatter.load(), projection.load()]).then(() => { 
+                console.log("Projection modules loaded"); 
             });
 
             var map = new Map({ basemap: "topo-vector" });
-            var view = new MapView({
-                container: "viewDiv",
-                map: map,
-                center: [100.5, 13.7],
-                zoom: 6
-            });
-
-            var print = new Print({
-                view: view,
-                container: "printDiv",
-                templateOptions: {
-                    title: "My Map", author: "ArcGIS Web Map",
-                    copyright: "© ArcGIS Web Map", legendEnabled: true, scalebarEnabled: true
-                },
-                format: { formats: ["pdf", "png32", "jpg"] }
-            });
+            var view = new MapView({ container: "viewDiv", map: map, center: [100.5, 13.7], zoom: 6, popup: { defaultPopupTemplateEnabled: true } });
+            var print = new Print({ view: view, container: "printDiv", templateOptions: { title: "My Map", author: "ArcGIS Web Map", copyright: "© ArcGIS Web Map", legendEnabled: true, scalebarEnabled: true }, format: { formats: ["pdf", "png32", "jpg"] } });
 
             var activeDrawingLayer = null;
             var activeColor = "#ff0000";
-            var bufferDistance = 0;
             var sketch;
 
-            // Search History Layer
-            var searchGraphicsLayer = new GraphicsLayer({
-                id: "system_search_layer",
-                title: "Search History",
-                listMode: "show",
-                isDrawLayer: true // Enabled for Export
-            });
+            var searchGraphicsLayer = new GraphicsLayer({ id: "system_search_layer", title: "Search History", listMode: "show", isDrawLayer: true });
             map.add(searchGraphicsLayer);
-
             var locationLabelLayer = new GraphicsLayer({ id: "location_label_layer", listMode: "hide" });
             map.add(locationLabelLayer);
 
-            var markerSymbol = new SimpleMarkerSymbol({
-                color: [0, 0, 255, 0.8],
-                size: "24px",
-                outline: { color: [255, 255, 255], width: 2 }
-            });
+            var markerSymbol = new SimpleMarkerSymbol({ color: [0, 0, 255, 0.8], size: "24px", outline: { color: [255, 255, 255], width: 2 } });
 
             view.ui.move("zoom", "bottom-right");
             var basemapGallery = new BasemapGallery({ view: view, container: "basemapGalleryDiv" });
 
-            // Toolbar Toggle
             document.getElementById("toolbarToggleBtn").addEventListener("click", function() {
                 var toolbar = document.getElementById("mainToolbar");
                 var icon = document.getElementById("toggleIcon");
-                if (toolbar.classList.contains("collapsed")) {
-                    toolbar.classList.remove("collapsed");
-                    icon.classList.remove("fa-chevron-down");
-                    icon.classList.add("fa-chevron-up");
-                } else {
-                    toolbar.classList.add("collapsed");
-                    icon.classList.remove("fa-chevron-up");
-                    icon.classList.add("fa-chevron-down");
-                }
+                if (toolbar.classList.contains("collapsed")) { toolbar.classList.remove("collapsed"); icon.classList.remove("fa-chevron-down"); icon.classList.add("fa-chevron-up"); }
+                else { toolbar.classList.add("collapsed"); icon.classList.remove("fa-chevron-up"); icon.classList.add("fa-chevron-down"); }
             });
 
             function togglePanel(panelId) {
-                var panels = document.querySelectorAll('.panel');
-                var drawTools = document.getElementById('drawTools');
-                panels.forEach(p => { if (p.id !== panelId) p.style.display = 'none'; });
-                if(panelId !== 'drawTools' && drawTools) drawTools.style.display = 'none';
+                document.querySelectorAll('.panel, .draw-tools, .excel-import-panel').forEach(p => { if (p.id !== panelId) p.style.display = 'none'; });
                 var panel = document.getElementById(panelId);
                 panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none';
             }
             window.closePanel = function(panelId) { document.getElementById(panelId).style.display = 'none'; }
 
-            // Button Listeners
             document.getElementById("basemapBtn").addEventListener("click", () => togglePanel("basemapGalleryPanel"));
-            document.getElementById("fullscreenBtn").addEventListener("click", () => {
-                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-                else if (document.exitFullscreen) document.exitFullscreen();
-            });
+            document.getElementById("fullscreenBtn").addEventListener("click", () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else if (document.exitFullscreen) document.exitFullscreen(); });
             document.getElementById("searchBtn").addEventListener("click", () => togglePanel("searchPanel"));
             document.getElementById("printBtn").addEventListener("click", () => togglePanel("printPanel"));
             document.getElementById("layerListBtn").addEventListener("click", () => { togglePanel("layerPanel"); updateLayerList(); });
@@ -754,7 +446,7 @@
                 var drawTools = document.getElementById("drawTools");
                 var button = document.getElementById("drawBtn");
                 if (drawTools.style.display === "none" || drawTools.style.display === "") {
-                    drawTools.style.display = "block";
+                    togglePanel("drawTools");
                     button.classList.add("tool-active");
                     if (!activeDrawingLayer) createNewDrawingLayer("Default Drawing Layer");
                     populateDrawLayerSelect();
@@ -768,11 +460,8 @@
 
             document.getElementById("createLayerBtn").addEventListener("click", function() {
                 var nameInput = document.getElementById("newLayerName");
-                if (nameInput.value.trim()) {
-                    createNewDrawingLayer(nameInput.value.trim());
-                    nameInput.value = "";
-                    populateDrawLayerSelect();
-                } else { alert("Please enter a layer name"); }
+                if (nameInput.value.trim()) { createNewDrawingLayer(nameInput.value.trim()); nameInput.value = ""; populateDrawLayerSelect(); } 
+                else { alert("Please enter a layer name"); }
             });
 
             document.getElementById("drawLayerSelect").addEventListener("change", function(e) {
@@ -785,92 +474,81 @@
                 map.add(newLayer);
                 activeDrawingLayer = newLayer;
                 updateLayerList();
+                populateDrawLayerSelect();
             }
 
             function populateDrawLayerSelect() {
-                var select = document.getElementById("drawLayerSelect");
-                select.innerHTML = "";
+                var select = document.getElementById("drawLayerSelect"); select.innerHTML = "";
+                var bufferSelect = document.getElementById("bufferTargetLayer"); bufferSelect.innerHTML = "";
                 map.layers.forEach(function(layer) {
                     if (layer.isDrawLayer && layer.id !== "system_search_layer") {
-                        var option = document.createElement("option");
-                        option.value = layer.id;
-                        option.textContent = layer.title;
+                        var option = document.createElement("option"); option.value = layer.id; option.textContent = layer.title;
                         if (activeDrawingLayer && layer.id === activeDrawingLayer.id) option.selected = true;
                         select.appendChild(option);
+                        var bufferOption = document.createElement("option"); bufferOption.value = layer.id; bufferOption.textContent = layer.title;
+                        bufferSelect.appendChild(bufferOption);
                     }
                 });
             }
 
-            document.getElementById("drawColor").addEventListener("change", function(e) {
-                activeColor = e.target.value;
-                updateSketchSymbols();
-            });
+            document.getElementById("drawColor").addEventListener("change", function(e) { activeColor = e.target.value; updateSketchSymbols(); });
 
-            document.getElementById("bufferDistance").addEventListener("change", function(e) {
-                bufferDistance = parseFloat(e.target.value);
+            // --- BUFFER TOOL ---
+            document.getElementById("executeBufferBtn").addEventListener("click", function() {
+                var targetLayerId = document.getElementById("bufferTargetLayer").value;
+                var dist = parseFloat(document.getElementById("manualBufferDist").value);
+                if (!targetLayerId) { alert("Please select a layer to buffer."); return; }
+                if (isNaN(dist) || dist <= 0) { alert("Please enter a valid buffer distance."); return; }
+                var targetLayer = map.findLayerById(targetLayerId);
+                if (targetLayer && targetLayer.graphics.length > 0) {
+                    var newLayerName = `Buffer ${dist}m - ${targetLayer.title}`;
+                    var bufferLayer = new GraphicsLayer({ title: newLayerName, isDrawLayer: true });
+                    map.add(bufferLayer);
+                    targetLayer.graphics.forEach(function(graphic) {
+                        try {
+                            var bufferGeom = geometryEngine.buffer(graphic.geometry, dist, "meters");
+                            if (bufferGeom) {
+                                var bufferGraphic = new Graphic({
+                                    geometry: bufferGeom,
+                                    symbol: new SimpleFillSymbol({ color: hexToRgba(activeColor, 0.3), outline: { color: activeColor, width: 2 } }),
+                                    attributes: { description: `Buffer ${dist}m`, color: activeColor }
+                                });
+                                handleGraphicCreation(bufferGraphic, true);
+                                bufferLayer.add(bufferGraphic);
+                            }
+                        } catch (e) { console.error("Buffer error:", e); }
+                    });
+                    updateLayerList(); populateDrawLayerSelect(); updateExportLayerList(); alert(`Created buffer layer: ${newLayerName}`);
+                } else { alert("Selected layer is empty."); }
             });
 
             function initializeSketch() {
                 if (sketch) { view.ui.remove(sketch); sketch.destroy(); }
                 if (!activeDrawingLayer) return;
-
-                sketch = new Sketch({
-                    layer: activeDrawingLayer,
-                    view: view,
-                    creationMode: "single",
-                    updateOnGraphicClick: false,
-                    availableCreateTools: ["point", "polyline", "polygon"],
-                    visibleElements: {
-                        createTools: { point: true, polyline: true, polygon: true, rectangle: false, circle: false },
-                        selectionTools: { "lasso-selection": false, "rectangle-selection": false },
-                        settingsMenu: false, undoRedoMenu: true
-                    }
-                });
+                sketch = new Sketch({ layer: activeDrawingLayer, view: view, creationMode: "single", updateOnGraphicClick: false, availableCreateTools: ["point", "polyline", "polygon"], visibleElements: { createTools: { point: true, polyline: true, polygon: true }, selectionTools: { "lasso-selection": false, "rectangle-selection": false }, settingsMenu: false, undoRedoMenu: true } });
                 updateSketchSymbols();
-                
                 sketch.on("create", function(event) {
-                    if (event.state === "complete") {
-                        var graphic = event.graphic;
-                        handleGraphicCreation(graphic, false); 
-
-                        if (bufferDistance > 0) {
-                            try {
-                                var bufferGeometry = geometryEngine.buffer(graphic.geometry, bufferDistance, "meters");
-                                if (bufferGeometry) {
-                                    var bufferGraphic = new Graphic({
-                                        geometry: bufferGeometry,
-                                        symbol: new SimpleFillSymbol({
-                                            color: hexToRgba(activeColor, 0.3),
-                                            outline: { color: activeColor, width: 2 }
-                                        })
-                                    });
-                                    activeDrawingLayer.add(bufferGraphic);
-                                    handleGraphicCreation(bufferGraphic, true);
-                                }
-                            } catch (e) {
-                                console.error("Buffer error:", e);
-                            }
-                        }
-                    }
+                    if (event.state === "complete") { handleGraphicCreation(event.graphic, false); }
                 });
                 view.ui.add(sketch, "top-left");
             }
 
-            // --- HELPER: Calculate UTM Attributes ---
+            // --- CENTRALIZED COORDINATE ATTRIBUTE HANDLER (หัวใจสำคัญของการแปลงพิกัด) ---
             function getUTMAttributes(pointWGS84) {
                 var result = { utmz47: "-", utmz48: "-" };
                 try {
-                    // Project to UTM Zone 47N (WKID: 32647)
+                    // แปลงเป็น UTM Zone 47N (EPSG:32647)
                     var p47 = projection.project(pointWGS84, { wkid: 32647 });
                     if (p47) result.utmz47 = `${p47.x.toFixed(2)}, ${p47.y.toFixed(2)}`;
-
-                    // Project to UTM Zone 48N (WKID: 32648)
+                    
+                    // แปลงเป็น UTM Zone 48N (EPSG:32648)
                     var p48 = projection.project(pointWGS84, { wkid: 32648 });
                     if (p48) result.utmz48 = `${p48.x.toFixed(2)}, ${p48.y.toFixed(2)}`;
                 } catch (e) { console.error("Projection Error:", e); }
                 return result;
             }
 
+// --- UPDATED CENTRALIZED ATTRIBUTE HANDLER ---
             function handleGraphicCreation(graphic, isBuffer) {
                 graphic.attributes = graphic.attributes || {};
                 graphic.attributes.color = graphic.attributes.color || activeColor;
@@ -878,49 +556,122 @@
 
                 var geom = graphic.geometry;
                 var centerPoint = (geom.type === "point") ? geom : geom.extent.center;
-                var latLon = webMercatorUtils.webMercatorToGeographic(centerPoint);
                 
-                // --- ADD UTM ATTRIBUTES ---
+                // **แก้ไขจุดสำคัญ: ตรวจสอบระบบพิกัดก่อนแปลง**
+                var latLon;
+                if (centerPoint.spatialReference.isWebMercator) {
+                    // กรณีมาจาก Draw Tool (WebMercator -> WGS84)
+                    latLon = webMercatorUtils.webMercatorToGeographic(centerPoint);
+                } else {
+                    // กรณีมาจาก Search หรือ Excel (เป็น WGS84 อยู่แล้ว)
+                    latLon = centerPoint;
+                }
+                
+                // 1. คำนวณ UTM 47N & 48N (จาก WGS84)
                 var utmAttrs = getUTMAttributes(latLon);
                 graphic.attributes.utmz47 = utmAttrs.utmz47;
                 graphic.attributes.utmz48 = utmAttrs.utmz48;
 
+                // 2. เก็บค่า Lat/Lon (WGS84)
                 var lat = latLon.latitude.toFixed(6);
                 var lon = latLon.longitude.toFixed(6);
+                graphic.attributes.latitude = lat;
+                graphic.attributes.longitude = lon;
+
+                // 3. คำนวณ MGRS (จาก WGS84)
                 var mgrsStr = "";
                 try { mgrsStr = coordinateFormatter.toMgrs(latLon, "automatic", 5); } catch(e) { mgrsStr = "Error"; }
+                graphic.attributes.mgrs = mgrsStr;
 
+                graphic.attributes.type = geom.type;
+                if(!graphic.attributes.timestamp) {
+                    graphic.attributes.timestamp = new Date().toISOString();
+                }
+
+                // ตั้งค่า Popup Template ให้แสดงครบทุกค่าเหมือนกันหมด
                 graphic.popupTemplate = {
                     title: "{description}",
                     content: [{
                         type: "fields",
                         fieldInfos: [
-                            { fieldName: "latitude", label: "Center Lat" },
-                            { fieldName: "longitude", label: "Center Lon" },
-                            { fieldName: "mgrs", label: "MGRS" },
-                            { fieldName: "utmz47", label: "UTM Zone 47N" },
-                            { fieldName: "utmz48", label: "UTM Zone 48N" },
+                            { fieldName: "latitude", label: "Lat (WGS84)" },
+                            { fieldName: "longitude", label: "Lon (WGS84)" },
+                            { fieldName: "mgrs", label: "MGRS (WGS84)" },
+                            { fieldName: "utmz47", label: "UTM Z47N (WGS84)" },
+                            { fieldName: "utmz48", label: "UTM Z48N (WGS84)" },
                             { fieldName: "type", label: "Type" },
-                            { fieldName: "isBuffer", label: "Is Buffer" },
-                            { fieldName: "timestamp", label: "Time" }
+                            { fieldName: "LayerName", label: "Layer" }
                         ]
                     }]
                 };
 
-                if (!isBuffer) {
-                    if (!graphic.attributes.description) {
-                        showAttributeModal(graphic, lat, lon, mgrsStr, utmAttrs.utmz47, utmAttrs.utmz48, geom.type);
-                    }
-                } else {
-                    graphic.attributes.description = "Buffer (" + bufferDistance + "m)";
-                    graphic.attributes.latitude = lat;
-                    graphic.attributes.longitude = lon;
-                    graphic.attributes.mgrs = mgrsStr; 
-                    graphic.attributes.type = "polygon";
-                    graphic.attributes.timestamp = new Date().toISOString();
+                // ถ้าไม่ใช่ Buffer และยังไม่มีชื่อ ให้เด้ง Modal (เฉพาะกรณีวาดมือ)
+                // กรณี Search/Excel เรามักจะใส่ชื่อมาให้แล้ว จึงไม่เด้ง Modal
+                if (!isBuffer && !graphic.attributes.description) {
+                    showAttributeModal(graphic, lat, lon, mgrsStr, utmAttrs.utmz47, utmAttrs.utmz48, geom.type);
                 }
             }
 
+            // --- SEARCH SYSTEM (UPDATED) ---
+            document.querySelectorAll('input[name="searchType"]').forEach((elem) => { 
+                elem.addEventListener("change", (e) => { 
+                    document.getElementById("searchInput").placeholder = e.target.value === "latlon" ? "e.g. 13.7, 100.5" : "e.g. 47Q LA 377 437"; 
+                }); 
+            });
+
+            document.getElementById("searchCoordBtn").addEventListener("click", function() {
+                var input = document.getElementById("searchInput").value.trim();
+                var searchType = document.querySelector('input[name="searchType"]:checked').value;
+                
+                if (searchType === "latlon") {
+                    var coords = input.split(",");
+                    if (coords.length === 2 && !isNaN(parseFloat(coords[0])) && !isNaN(parseFloat(coords[1]))) {
+                        // Input: Lat, Lon
+                        executeSearch(parseFloat(coords[1].trim()), parseFloat(coords[0].trim()));
+                    } else { alert("Invalid Lat/Lon format. Use: lat,lon"); }
+                } else if (searchType === "mgrs") {
+                    if (coordinateFormatter.isSupported()) {
+                        try { 
+                            // Convert MGRS to Point (WGS84)
+                            var p = coordinateFormatter.fromMgrs(input, { wkid: 4326 }, "automatic"); 
+                            if(p) {
+                                executeSearch(p.longitude, p.latitude); 
+                            } else { alert("Invalid MGRS coordinate"); }
+                        } catch(e) { alert("Error parsing MGRS"); }
+                    }
+                }
+            });
+
+            // ฟังก์ชัน Execute Search ที่เรียกใช้ระบบคำนวณพิกัดกลาง (handleGraphicCreation)
+// --- UPDATED SEARCH EXECUTION ---
+            function executeSearch(lon, lat) {
+                // สร้างจุดแบบ WGS84 อย่างชัดเจน
+                var point = new Point({ 
+                    latitude: lat, 
+                    longitude: lon,
+                    spatialReference: { wkid: 4326 } // ระบุว่าเป็น WGS84
+                });
+                
+                var graphic = new Graphic({ 
+                    geometry: point, 
+                    symbol: markerSymbol, 
+                    attributes: { 
+                        description: "Search Result (" + lat.toFixed(5) + ", " + lon.toFixed(5) + ")", 
+                        color: "#0000ff",
+                        LayerName: "Search History"
+                    } 
+                });
+
+                // เรียกใช้ฟังก์ชันกลางเพื่อคำนวณ UTM/MGRS ให้ครบ
+                handleGraphicCreation(graphic, false); 
+                
+                searchGraphicsLayer.add(graphic);
+                view.goTo({ target: point, zoom: 16 }); 
+                updateLayerList(); 
+                updateExportLayerList();
+            }
+
+            // --- HELPER FUNCTIONS ---
             function updateSketchSymbols() {
                 if (sketch) {
                     sketch.viewModel.pointSymbol = new SimpleMarkerSymbol({ color: activeColor, size: "8px", outline: { color: [255, 255, 255], width: 1 } });
@@ -936,21 +687,12 @@
             window.showAttributeModal = function(graphic, lat, lon, mgrs, utm47, utm48, type) {
                 document.getElementById('modalBackdrop').style.display = 'block';
                 document.getElementById('attributeModal').style.display = 'block';
-                document.getElementById('attrLat').value = lat;
-                document.getElementById('attrLon').value = lon;
-                document.getElementById('attrMgrs').value = mgrs;
-                document.getElementById('attrUtm47').value = utm47;
-                document.getElementById('attrUtm48').value = utm48;
-                document.getElementById('description').focus();
-
+                document.getElementById('attrLat').value = lat; document.getElementById('attrLon').value = lon;
+                document.getElementById('attrMgrs').value = mgrs; document.getElementById('attrUtm47').value = utm47;
+                document.getElementById('attrUtm48').value = utm48; document.getElementById('description').focus();
                 document.getElementById('attributeForm').onsubmit = function(e) {
                     e.preventDefault();
                     graphic.attributes.description = document.getElementById('description').value;
-                    graphic.attributes.latitude = lat;
-                    graphic.attributes.longitude = lon;
-                    graphic.attributes.mgrs = mgrs;
-                    graphic.attributes.type = type;
-                    graphic.attributes.timestamp = new Date().toISOString();
                     closeAttributeModal();
                 };
             }
@@ -960,107 +702,104 @@
                 document.getElementById('attributeForm').reset();
             }
 
-            // --- EXPORT SYSTEM (KML & GeoJSON with UTM) ---
+            // --- EXPORT SYSTEM ---
             function updateExportLayerList() {
-                var container = document.getElementById("exportLayerList");
-                container.innerHTML = "";
+                var container = document.getElementById("exportLayerList"); container.innerHTML = "";
                 var hasLayers = false;
                 map.layers.forEach(function(layer) {
                     if (layer.isDrawLayer) {
                         hasLayers = true;
-                        var div = document.createElement("div");
-                        div.className = "form-check";
-                        div.innerHTML = `<input class="form-check-input export-layer-checkbox" type="checkbox" value="${layer.id}" id="export_${layer.id}" checked>
-                            <label class="form-check-label" for="export_${layer.id}">${layer.title}</label>`;
+                        var div = document.createElement("div"); div.className = "form-check";
+                        div.innerHTML = `<input class="form-check-input export-layer-checkbox" type="checkbox" value="${layer.id}" id="export_${layer.id}" checked><label class="form-check-label" for="export_${layer.id}">${layer.title}</label>`;
                         container.appendChild(div);
                     }
                 });
-                if (!hasLayers) {
-                    container.innerHTML = "<p class='text-center text-muted'>No drawing layers found.</p>";
-                    document.getElementById("confirmExportBtn").disabled = true;
-                } else document.getElementById("confirmExportBtn").disabled = false;
+                document.getElementById("confirmExportBtn").disabled = !hasLayers;
+                if (!hasLayers) container.innerHTML = "<p class='text-center text-muted'>No drawing layers found.</p>";
             }
 
-            // Export Button Click Handler
             document.getElementById("confirmExportBtn").addEventListener("click", function() {
                 var checkboxes = document.querySelectorAll('.export-layer-checkbox:checked');
                 var layerIds = Array.from(checkboxes).map(cb => cb.value);
                 if (layerIds.length === 0) { alert("Please select at least one layer."); return; }
-
-                // Check selected format
                 var exportType = document.querySelector('input[name="exportFormat"]:checked').value;
-
-                if (exportType === "kml") {
-                    exportSelectedLayersToKML(layerIds);
-                } else if (exportType === "geojson") {
-                    exportSelectedLayersToGeoJSON(layerIds, 4326); // WGS84
-                } else if (exportType === "geojson_47") {
-                    exportSelectedLayersToGeoJSON(layerIds, 32647); // UTM 47N
-                } else if (exportType === "geojson_48") {
-                    exportSelectedLayersToGeoJSON(layerIds, 32648); // UTM 48N
-                }
+                if (exportType === "kml") exportSelectedLayersToKML(layerIds);
+                else if (exportType === "geojson") exportSelectedLayersToGeoJSON(layerIds, 4326);
+                else if (exportType === "geojson_47") exportSelectedLayersToGeoJSON(layerIds, 32647);
+                else if (exportType === "geojson_48") exportSelectedLayersToGeoJSON(layerIds, 32648);
+                else if (exportType === "excel") exportSelectedLayersToExcel(layerIds);
             });
 
+            // --- EXPORT EXCEL (With UTM/MGRS) ---
+            function exportSelectedLayersToExcel(layerIds) {
+                var wb = XLSX.utils.book_new();
+                var hasData = false;
+                layerIds.forEach(function(id) {
+                    var layer = map.findLayerById(id);
+                    if (layer && layer.graphics && layer.graphics.length > 0) {
+                        var rowData = [];
+                        layer.graphics.forEach(function(graphic) {
+                            var attrs = graphic.attributes || {};
+                            var row = Object.assign({}, attrs);
+                            // Ensure coords exist even if somehow missing
+                            if (!row.latitude) {
+                                var geom = graphic.geometry;
+                                var center = (geom.type === "point") ? geom : geom.extent.center;
+                                var ll = webMercatorUtils.webMercatorToGeographic(center);
+                                row.latitude = ll.latitude.toFixed(6); row.longitude = ll.longitude.toFixed(6);
+                                try { row.mgrs = coordinateFormatter.toMgrs(ll, "automatic", 5); } catch(e){}
+                                var utm = getUTMAttributes(ll);
+                                row.utmz47 = utm.utmz47; row.utmz48 = utm.utmz48;
+                            }
+                            row.LayerName = layer.title;
+                            rowData.push(row);
+                        });
+                        if (rowData.length > 0) {
+                            hasData = true;
+                            var ws = XLSX.utils.json_to_sheet(rowData);
+                            var sheetName = (layer.title || "Layer").replace(/[\\/?*\[\]]/g, "").substring(0, 30);
+                            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                        }
+                    }
+                });
+                if (hasData) { XLSX.writeFile(wb, "map_export_wgs84_utm.xlsx"); closePanel('exportPanel'); } 
+                else { alert("No data found to export."); }
+            }
+
             function toKmlColor(hexColor, alpha) {
-                var a = alpha || "ff";
-                if (!hexColor) return "ff0000ff";
+                var a = alpha || "ff"; if (!hexColor) return "ff0000ff";
                 var hex = hexColor.replace("#", "");
                 if (hex.length === 3) hex = hex[0]+hex[0] + hex[1]+hex[1] + hex[2]+hex[2];
-                var r = hex.substring(0, 2), g = hex.substring(2, 4), b = hex.substring(4, 6);
-                return a + b + g + r;
+                return a + hex.substring(4, 6) + hex.substring(2, 4) + hex.substring(0, 2);
             }
 
             function exportSelectedLayersToKML(layerIds) {
-                var kml = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-<Document>
-<name>Map Export</name>`;
-                
+                var kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Map Export</name>`;
                 layerIds.forEach(function(id) {
                     var layer = map.findLayerById(id);
                     if (layer && layer.graphics && layer.graphics.length > 0) {
                         kml += `<Folder><name>${layer.title}</name>`;
                         layer.graphics.forEach(function(graphic, index) {
                             var attrs = graphic.attributes || {};
-                            var name = attrs.description || attrs.label || "Untitled"; 
+                            var name = attrs.description || "Untitled"; 
                             var color = attrs.color || "#0000ff";
                             var styleId = "style_" + id + "_" + index;
                             var kmlColor = toKmlColor(color, "ff");
                             var kmlFillColor = toKmlColor(color, "4D");
-
-                            kml += `
-                            <Style id="${styleId}">
-                                <LineStyle><color>${kmlColor}</color><width>2</width></LineStyle>
-                                <PolyStyle><color>${kmlFillColor}</color></PolyStyle>
-                                <IconStyle><color>${kmlColor}</color><scale>1.0</scale><Icon><href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href></Icon></IconStyle>
-                            </Style>`;
-
+                            kml += `<Style id="${styleId}"><LineStyle><color>${kmlColor}</color><width>2</width></LineStyle><PolyStyle><color>${kmlFillColor}</color></PolyStyle><IconStyle><color>${kmlColor}</color><scale>1.0</scale><Icon><href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href></Icon></IconStyle></Style>`;
                             var desc = "";
-                            for (var key in attrs) {
-                                if (key !== "color" && key !== "timestamp") { 
-                                    desc += `<b>${key}:</b> ${attrs[key]}<br>`;
-                                }
-                            }
-                            if(desc === "") desc = `<b>Lat:</b> ${attrs.latitude || "-"}<br><b>Lon:</b> ${attrs.longitude || "-"}`;
-
+                            for (var key in attrs) { if (key !== "color" && key !== "timestamp") desc += `<b>${key}:</b> ${attrs[key]}<br>`; }
                             kml += `<Placemark><name>${name}</name><description><![CDATA[${desc}]]></description><styleUrl>#${styleId}</styleUrl>`;
-                            
                             var geom = graphic.geometry;
                             if (geom.type === "point") {
-                                if (attrs.latitude && attrs.longitude) {
-                                    kml += `<Point><coordinates>${attrs.longitude},${attrs.latitude}</coordinates></Point>`;
-                                } else {
-                                    var ll = webMercatorUtils.webMercatorToGeographic(geom);
-                                    kml += `<Point><coordinates>${ll.longitude},${ll.latitude}</coordinates></Point>`;
-                                }
-                            } 
-                            else if (geom.type === "polyline") {
+                                var ll = attrs.latitude ? {latitude:attrs.latitude, longitude:attrs.longitude} : webMercatorUtils.webMercatorToGeographic(geom);
+                                kml += `<Point><coordinates>${ll.longitude},${ll.latitude}</coordinates></Point>`;
+                            } else if (geom.type === "polyline") {
                                 kml += '<LineString><coordinates>';
                                 var geoLine = webMercatorUtils.webMercatorToGeographic(geom);
                                 geoLine.paths[0].forEach(p => { kml += `${p[0]},${p[1]} `; });
                                 kml += '</coordinates></LineString>';
-                            } 
-                            else if (geom.type === "polygon") {
+                            } else if (geom.type === "polygon") {
                                 kml += '<Polygon><outerBoundaryIs><LinearRing><coordinates>';
                                 var geoPoly = webMercatorUtils.webMercatorToGeographic(geom);
                                 geoPoly.rings[0].forEach(p => { kml += `${p[0]},${p[1]} `; });
@@ -1072,21 +811,16 @@
                     }
                 });
                 kml += `</Document></kml>`;
-
                 downloadFile(kml, "map_export.kml", "application/vnd.google-earth.kml+xml");
             }
 
-            // --- GeoJSON Export (Supports WGS84, UTM47, UTM48) ---
             function exportSelectedLayersToGeoJSON(layerIds, wkid) {
                 var features = [];
                 var crsObj = null;
-
-                // Define CRS for GeoJSON (if not WGS84)
-                if (wkid === 32647) {
-                    crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32647" } };
-                } else if (wkid === 32648) {
-                    crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32648" } };
-                }
+                // Define CRS Name for GeoJSON
+                if (wkid === 32647) crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32647" } };
+                else if (wkid === 32648) crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32648" } };
+                else crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }; // Standard WGS84
 
                 layerIds.forEach(function(id) {
                     var layer = map.findLayerById(id);
@@ -1095,169 +829,92 @@
                             var attrs = graphic.attributes || {};
                             var properties = Object.assign({}, attrs);
                             
-                            // Project Geometry
+                            // PROJECT GEOMETRY BASED ON SELECTED FORMAT
+                            var projectedGeom = (wkid === 4326) 
+                                ? webMercatorUtils.webMercatorToGeographic(graphic.geometry) 
+                                : projection.project(graphic.geometry, { wkid: wkid });
+                            
                             var geoJsonGeom = null;
-                            var projectedGeom = null;
-
-                            // 1. Get Geometry in correct projection
-                            if (wkid === 4326) {
-                                projectedGeom = webMercatorUtils.webMercatorToGeographic(graphic.geometry);
-                            } else {
-                                // Project to UTM
-                                projectedGeom = projection.project(graphic.geometry, { wkid: wkid });
-                            }
-
                             if (projectedGeom) {
-                                if (projectedGeom.type === "point") {
-                                    geoJsonGeom = { type: "Point", coordinates: [projectedGeom.x, projectedGeom.y] };
-                                } else if (projectedGeom.type === "polyline") {
-                                    geoJsonGeom = { type: "LineString", coordinates: projectedGeom.paths[0] };
-                                } else if (projectedGeom.type === "polygon") {
-                                    geoJsonGeom = { type: "Polygon", coordinates: projectedGeom.rings };
-                                }
+                                if (projectedGeom.type === "point") geoJsonGeom = { type: "Point", coordinates: [projectedGeom.x, projectedGeom.y] };
+                                else if (projectedGeom.type === "polyline") geoJsonGeom = { type: "LineString", coordinates: projectedGeom.paths[0] };
+                                else if (projectedGeom.type === "polygon") geoJsonGeom = { type: "Polygon", coordinates: projectedGeom.rings };
                             }
-
-                            if (geoJsonGeom) {
-                                features.push({
-                                    type: "Feature",
-                                    properties: properties,
-                                    geometry: geoJsonGeom
-                                });
-                            }
+                            if (geoJsonGeom) features.push({ type: "Feature", properties: properties, geometry: geoJsonGeom });
                         });
                     }
                 });
-
-                var geoJsonObj = {
-                    type: "FeatureCollection",
-                    features: features
-                };
-                if (crsObj) geoJsonObj.crs = crsObj;
-
-                var fileName = "map_export_wgs84.geojson";
-                if (wkid === 32647) fileName = "map_export_utm47n.geojson";
-                if (wkid === 32648) fileName = "map_export_utm48n.geojson";
-
-                var jsonStr = JSON.stringify(geoJsonObj, null, 2);
-                downloadFile(jsonStr, fileName, "application/geo+json");
+                var geoJsonObj = { type: "FeatureCollection", crs: crsObj, features: features };
+                var fileName = (wkid === 32647) ? "map_export_utm47n.geojson" : (wkid === 32648) ? "map_export_utm48n.geojson" : "map_export_wgs84.geojson";
+                downloadFile(JSON.stringify(geoJsonObj, null, 2), fileName, "application/geo+json");
             }
 
             function downloadFile(content, fileName, mimeType) {
                 var blob = new Blob([content], {type: mimeType});
                 var url = URL.createObjectURL(blob);
-                var a = document.createElement("a");
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                var a = document.createElement("a"); a.href = url; a.download = fileName;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
                 closePanel('exportPanel');
             }
 
-            // --- TRACK LOCATION (Same as before) ---
-            var track = new Track({
-                view: view,
-                graphic: new Graphic({
-                    symbol: { type: "simple-marker", size: "14px", color: "blue", outline: { color: "white", width: 2 } }
-                }),
-                useHeadingEnabled: false
-            });
-
+            // --- TRACK LOCATION ---
+            var track = new Track({ view: view, graphic: new Graphic({ symbol: { type: "simple-marker", size: "14px", color: "blue", outline: { color: "white", width: 2 } } }), useHeadingEnabled: false });
             track.on("track", function(trackEvent) {
                 view.goTo({ target: trackEvent.position, zoom: 18 });
                 var geom = trackEvent.position.geometry;
                 var geographic = webMercatorUtils.webMercatorToGeographic(geom);
-                var mgrs = "";
-                try { mgrs = coordinateFormatter.toMgrs(geographic, "automatic", 5); } catch(e) {}
+                var mgrs = ""; try { mgrs = coordinateFormatter.toMgrs(geographic, "automatic", 5); } catch(e) {}
                 var labelText = `Lat: ${geographic.latitude.toFixed(5)}\nLon: ${geographic.longitude.toFixed(5)}\nMGRS: ${mgrs}`;
-                var textGraphic = new Graphic({
-                    geometry: geom,
-                    symbol: { type: "text", color: "black", haloColor: "white", haloSize: "2px", text: labelText, xoffset: 0, yoffset: -25, font: { size: 10, weight: "bold" } }
-                });
-                locationLabelLayer.removeAll();
-                locationLabelLayer.add(textGraphic);
+                var textGraphic = new Graphic({ geometry: geom, symbol: { type: "text", color: "black", haloColor: "white", haloSize: "2px", text: labelText, xoffset: 0, yoffset: -25, font: { size: 10, weight: "bold" } } });
+                locationLabelLayer.removeAll(); locationLabelLayer.add(textGraphic);
             });
-
             document.getElementById("locationBtn").addEventListener("click", function() {
-                var btn = this;
-                if (!track.tracking) { track.start(); btn.classList.add("tool-active"); } 
-                else { track.stop(); btn.classList.remove("tool-active"); locationLabelLayer.removeAll(); }
+                if (!track.tracking) { track.start(); this.classList.add("tool-active"); } 
+                else { track.stop(); this.classList.remove("tool-active"); locationLabelLayer.removeAll(); }
             });
 
-            // --- SEARCH ---
-            document.querySelectorAll('input[name="searchType"]').forEach((elem) => {
-                elem.addEventListener("change", function(event) {
-                    var input = document.getElementById("searchInput");
-                    input.placeholder = event.target.value === "latlon" ? "e.g. 13.7, 100.5" : "e.g. 47Q LA 377 437";
-                });
-            });
+            // --- SERVICES & COPY TO DRAW ---
+            document.getElementById("addServiceBtn").addEventListener("click", () => togglePanel("addServicePanel"));
+            var copyToDrawAction = { title: "Copy to Draw Layer", id: "copy-to-draw", className: "esri-icon-duplicate" };
 
-            document.getElementById("searchCoordBtn").addEventListener("click", function() {
-                var input = document.getElementById("searchInput").value.trim();
-                var searchType = document.querySelector('input[name="searchType"]:checked').value;
-                if (searchType === "latlon") {
-                    if (input.includes(",")) {
-                        var coords = input.split(",");
-                        if (coords.length === 2) {
-                            var lat = parseFloat(coords[0].trim()), lon = parseFloat(coords[1].trim());
-                            if (!isNaN(lat) && !isNaN(lon)) executeSearch(lon, lat);
-                            else alert("Invalid Lat/Lon");
-                        }
-                    } else alert("Please use format: Lat, Lon");
-                } 
-                else if (searchType === "mgrs") {
-                    if (coordinateFormatter.isSupported()) {
-                        try {
-                            var wgs84Point = coordinateFormatter.fromMgrs(input, { wkid: 4326 }, "automatic");
-                            if (wgs84Point) executeSearch(wgs84Point.longitude, wgs84Point.latitude);
-                            else alert("Invalid MGRS format.");
-                        } catch (e) { alert("Error parsing MGRS."); }
-                    } else alert("Modules loading...");
+            view.popup.on("trigger-action", function(event) {
+                if (event.action.id === "copy-to-draw") {
+                    if (!activeDrawingLayer) { alert("Please create or select a 'Draw Layer' first."); return; }
+                    var selectedFeature = view.popup.selectedFeature;
+                    if (selectedFeature) {
+                        var clonedGeometry = selectedFeature.geometry.clone();
+                        var sym = null;
+                        if (clonedGeometry.type === "point") sym = new SimpleMarkerSymbol({ color: activeColor, size: "8px", outline: { color: "white", width: 1 } });
+                        else if (clonedGeometry.type === "polyline") sym = new SimpleLineSymbol({ color: activeColor, width: 2 });
+                        else if (clonedGeometry.type === "polygon") sym = new SimpleFillSymbol({ color: hexToRgba(activeColor, 0.3), outline: { color: activeColor, width: 2 } });
+
+                        // Clone attrs but REMOVE old coordinate fields to force recalculation
+                        var newAttributes = Object.assign({}, selectedFeature.attributes);
+                        delete newAttributes.latitude; delete newAttributes.longitude;
+                        delete newAttributes.mgrs; delete newAttributes.utmz47; delete newAttributes.utmz48;
+
+                        var newGraphic = new Graphic({ geometry: clonedGeometry, symbol: sym, attributes: newAttributes });
+                        newGraphic.attributes.color = activeColor;
+                        handleGraphicCreation(newGraphic, false); // Force Recalculate Coords
+                        activeDrawingLayer.add(newGraphic);
+                        alert("Feature copied to: " + activeDrawingLayer.title); view.popup.close();
+                    }
                 }
             });
 
-            function executeSearch(lon, lat) {
-                var point = new Point({ latitude: lat, longitude: lon });
-                var mgrsStr = "";
-                try { mgrsStr = coordinateFormatter.toMgrs(point, "automatic", 5); } catch(e) { mgrsStr = "Error"; }
-                
-                // Calculate UTM
-                var utmAttrs = getUTMAttributes(point);
-
-                var graphic = new Graphic({ 
-                    geometry: point, 
-                    symbol: markerSymbol,
-                    attributes: {
-                        description: "Search: " + lat.toFixed(5) + ", " + lon.toFixed(5),
-                        latitude: lat.toFixed(6),
-                        longitude: lon.toFixed(6),
-                        mgrs: mgrsStr,
-                        utmz47: utmAttrs.utmz47, // Stored
-                        utmz48: utmAttrs.utmz48, // Stored
-                        type: "point",
-                        timestamp: new Date().toISOString(),
-                        color: "#0000ff" 
-                    }
-                });
-                
-                handleGraphicCreation(graphic, false); 
-                searchGraphicsLayer.add(graphic);
-                view.goTo({ target: point, zoom: 16 }, { duration: 1000 });
-                updateLayerList();
-                updateExportLayerList();
-            }
-
-            // --- SERVICES & EXCEL ---
-            document.getElementById("addServiceBtn").addEventListener("click", () => togglePanel("addServicePanel"));
             document.getElementById("addServiceConfirmBtn").addEventListener("click", function() {
-                var url = document.getElementById("serviceUrl").value, type = document.getElementById("serviceType").value, layer;
-                if(type==="wmsLayer") layer = new WMSLayer({url:url, customParameters:{transparent:true}});
-                else if(type==="featureLayer") layer = new FeatureLayer({url:url});
-                else if(type==="mapImageLayer") layer = new MapImageLayer({url:url});
-                else if(type==="tileLayer") layer = new TileLayer({url:url});
-                if(layer){ map.add(layer); updateLayerList(); closePanel('addServicePanel'); }
+                var url = document.getElementById("serviceUrl").value.trim();
+                var type = document.getElementById("serviceType").value;
+                var layer;
+                if (url) {
+                    if(type==="wmsLayer") layer = new WMSLayer({url:url, customParameters:{transparent:true}});
+                    else if(type==="featureLayer") layer = new FeatureLayer({ url: url, outFields: ["*"], popupTemplate: { title: "{*}", content: "{*}", actions: [copyToDrawAction] } });
+                    else if(type==="mapImageLayer") layer = new MapImageLayer({url:url});
+                    else if(type==="tileLayer") layer = new TileLayer({url:url});
+                    if(layer){ map.add(layer); updateLayerList(); closePanel('addServicePanel'); }
+                }
             });
+
             function updateLayerList() {
                 var list = document.getElementById("layerList"); list.innerHTML = "";
                 map.layers.toArray().reverse().forEach((l,i) => {
@@ -1271,13 +928,9 @@
             }
             window.removeLayer = function(id) { map.remove(map.findLayerById(id)); updateLayerList(); populateDrawLayerSelect(); };
 
-            var excelPointsLayer = new GraphicsLayer({
-                title: "Excel Points", 
-                listMode: "show",
-                isDrawLayer: true 
-            }); 
+            // --- EXCEL IMPORT ---
+            var excelPointsLayer = new GraphicsLayer({ title: "Excel Points", listMode: "show", isDrawLayer: true }); 
             map.add(excelPointsLayer);
-
             document.getElementById("excelImportBtn").addEventListener("click", () => togglePanel("excelImportPanel"));
             document.getElementById("excelFile").addEventListener("change", function(e) {
                 var file = e.target.files[0];
@@ -1285,13 +938,12 @@
                     var reader = new FileReader();
                     reader.onload = function(e) {
                         var data = new Uint8Array(e.target.result);
-                        var workbook = XLSX.read(data, { type: 'array' });
-                        var jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
-                        if (jsonData.length > 0) {
-                            var headers = jsonData[0];
+                        var wb = XLSX.read(data, { type: 'array' });
+                        var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                        if (json.length > 0) {
+                            var headers = json[0];
                             ['latColumn', 'lonColumn', 'labelColumn'].forEach(id => {
-                                var sel = document.getElementById(id);
-                                sel.innerHTML = '<option value="">Select Column</option>';
+                                var sel = document.getElementById(id); sel.innerHTML = '<option value="">Select Column</option>';
                                 headers.forEach((h,i) => { var op=document.createElement('option'); op.value=i; op.textContent=h; sel.appendChild(op); });
                             });
                             document.getElementById("importExcelBtn").disabled = false;
@@ -1300,13 +952,13 @@
                     reader.readAsArrayBuffer(file);
                 }
             });
-
+            // --- UPDATED EXCEL IMPORT LISTENER ---
             document.getElementById("importExcelBtn").addEventListener("click", function() {
                 var file = document.getElementById("excelFile").files[0];
                 var latI = parseInt(document.getElementById("latColumn").value);
                 var lonI = parseInt(document.getElementById("lonColumn").value);
                 var lblI = parseInt(document.getElementById("labelColumn").value);
-
+                
                 if (file && !isNaN(latI) && !isNaN(lonI)) {
                     var reader = new FileReader();
                     reader.onload = function(e) {
@@ -1314,68 +966,62 @@
                         var wb = XLSX.read(data, { type: 'array' });
                         var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
                         var headers = json[0];
-
+                        
                         excelPointsLayer.removeAll();
                         var pts = [];
-
+                        
                         for (var i = 1; i < json.length; i++) {
                             var row = json[i];
                             var lat = parseFloat(row[latI]);
                             var lon = parseFloat(row[lonI]);
-
+                            
                             if (!isNaN(lat) && !isNaN(lon)) {
-                                var point = new Point({latitude: lat, longitude: lon});
-                                
-                                var attributes = {};
-                                headers.forEach((header, index) => {
-                                    attributes[header] = row[index];
+                                // สร้างจุด WGS84
+                                var point = new Point({
+                                    latitude: lat, 
+                                    longitude: lon,
+                                    spatialReference: { wkid: 4326 }
                                 });
-
-                                var mgrsStr = "";
-                                try { mgrsStr = coordinateFormatter.toMgrs(point, "automatic", 5); } 
-                                catch(ex) { mgrsStr = "Error"; }
-                                attributes.mgrs = mgrsStr;
                                 
-                                // Calculate UTM Attributes
-                                var utmAttrs = getUTMAttributes(point);
-                                attributes.utmz47 = utmAttrs.utmz47;
-                                attributes.utmz48 = utmAttrs.utmz48;
-
-                                attributes.latitude = lat;
-                                attributes.longitude = lon;
-                                if (!isNaN(lblI)) attributes.description = row[lblI];
-                                attributes.color = "#ff0000";
-
-                                var popupFields = headers.map(h => ({ fieldName: h, label: h }));
-                                popupFields.push({ fieldName: "mgrs", label: "MGRS" });
-                                popupFields.push({ fieldName: "utmz47", label: "UTM Z47" });
-                                popupFields.push({ fieldName: "utmz48", label: "UTM Z48" });
-
-                                pts.push(new Graphic({
-                                    geometry: point,
-                                    symbol: new SimpleMarkerSymbol({color:[255,0,0,0.8], size:"12px", outline:{color:[255,255,255], width:2}}),
-                                    attributes: attributes,
-                                    popupTemplate: { 
-                                        title: "Point Info", 
-                                        content: [{ 
-                                            type: "fields", 
-                                            fieldInfos: popupFields 
-                                        }] 
-                                    }
-                                }));
+                                var attributes = {}; 
+                                // เก็บค่าเดิมจาก Excel
+                                headers.forEach((h, idx) => attributes[h] = row[idx]);
+                                
+                                attributes.color = "#ff0000"; // สีแดงสำหรับ Excel
+                                attributes.LayerName = "Excel Import";
+                                
+                                if (!isNaN(lblI)) {
+                                    attributes.description = row[lblI];
+                                } else {
+                                    attributes.description = "Point " + i;
+                                }
+                                
+                                var graphic = new Graphic({ 
+                                    geometry: point, 
+                                    symbol: new SimpleMarkerSymbol({color:"red", size:"10px", outline:{color:"white", width:1}}), 
+                                    attributes: attributes 
+                                });
+                                
+                                // **เรียกฟังก์ชันกลางเพื่อคำนวณ MGRS, UTM เพิ่มเติมลงใน attributes**
+                                handleGraphicCreation(graphic, false); 
+                                
+                                pts.push(graphic);
                             }
                         }
-                        excelPointsLayer.addMany(pts);
-                        if(pts.length>0) view.goTo(pts);
+                        
+                        excelPointsLayer.addMany(pts); 
+                        if(pts.length > 0) view.goTo(pts); 
+                        
                         updateLayerList(); 
-                        updateExportLayerList();
+                        updateExportLayerList(); 
                         closePanel('excelImportPanel');
+                        alert("Imported " + pts.length + " points with full coordinates.");
                     };
                     reader.readAsArrayBuffer(file);
                 }
             });
-
-            view.when(() => document.querySelectorAll('.panel').forEach(p => p.style.display = 'none'));
+            
+            view.when(() => { document.querySelectorAll('.panel, .draw-tools, .excel-import-panel').forEach(p => p.style.display = 'none'); });
         });
     </script>
 </body>
