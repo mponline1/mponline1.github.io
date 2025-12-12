@@ -9,6 +9,290 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <style>
+
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --text-white: #ffffff;
+        --text-yellow: #ffeb3b;
+        --bg-glass: rgba(255, 255, 255, 0.1);
+        --bg-glass-hover: rgba(255, 255, 255, 0.25);
+        --header-height: 70px;
+    }
+    
+    body {
+        margin: 0;
+        padding-top: var(--header-height);
+    }
+
+    /* Header Structure */
+    .mapraw-header {
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        font-family: 'Prompt', sans-serif;
+        height: var(--header-height);
+    }
+    
+    .mapraw-header-content {
+        max-width: 100%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        height: 100%;
+    }
+    
+    /* Logo Section */
+    .mapraw-logo-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-shrink: 0;
+        padding-right: 15px;
+    }
+    
+    .mapraw-logo-main {
+        color: var(--text-white);
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    
+    .mapraw-logo-main span {
+        color: var(--text-yellow);
+        text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+    }
+    
+    .mapraw-page-title {
+        color: #e3f2fd;
+        font-size: 1rem;
+        font-weight: 400;
+        margin: 2px 0 0 0;
+        white-space: nowrap;
+    }
+    
+    /* Navigation Section */
+    .mapraw-nav {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        height: 100%;
+    }
+    
+    .mapraw-nav-item {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Buttons */
+    .mapraw-nav-btn {
+        background: var(--bg-glass);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Prompt', sans-serif;
+        white-space: nowrap;
+    }
+    
+    .mapraw-nav-btn:hover {
+        background: var(--bg-glass-hover);
+        transform: translateY(-1px);
+    }
+    
+    .mapraw-nav-btn.home-btn {
+        background: rgba(255, 235, 59, 0.15);
+        border-color: #ffeb3b;
+        color: #ffeb3b;
+    }
+    
+    .mapraw-nav-btn.home-btn:hover {
+        background: #ffeb3b;
+        color: #1565c0;
+    }
+
+    /* Dropdown */
+    .mapraw-dropdown {
+        position: absolute;
+        top: calc(100% - 10px);
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        min-width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        padding: 5px 0;
+        z-index: 1001;
+    }
+    
+    /* Hover Logic for Desktop */
+    @media (min-width: 1201px) {
+        .mapraw-nav-item:hover .mapraw-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+    
+    .mapraw-dropdown-item {
+        display: block;
+        padding: 10px 20px;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+        white-space: nowrap;
+    }
+    
+    .mapraw-dropdown-item:hover {
+        background: #f1f8ff;
+        color: #1565c0;
+    }
+
+    /* Hamburger Menu Toggle */
+    .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        z-index: 1002;
+    }
+    
+    .bar {
+        display: block;
+        width: 25px;
+        height: 3px;
+        margin: 5px auto;
+        background-color: white;
+        transition: all 0.3s ease-in-out;
+        border-radius: 2px;
+    }
+
+    /* ==== Responsive Styles ==== */
+    
+    @media (max-width: 1400px) {
+        .mapraw-nav-btn {
+            padding: 6px 8px;
+            font-size: 0.8rem;
+        }
+        .mapraw-nav {
+            gap: 4px;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .mobile-menu-toggle {
+            display: block;
+        }
+
+        .mapraw-nav {
+            position: fixed;
+            top: var(--header-height);
+            right: -100%;
+            width: 280px;
+            height: calc(100vh - var(--header-height));
+            background: white;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            padding: 10px 0;
+            transition: right 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .mapraw-nav.active {
+            right: 0;
+        }
+
+        .mapraw-nav-item {
+            height: auto;
+            flex-direction: column;
+            width: 100%;
+            display: block;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mapraw-nav-btn {
+            background: white;
+            color: #333;
+            border: none;
+            border-radius: 0;
+            padding: 15px 20px;
+            font-size: 1rem;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mapraw-nav-btn:hover {
+            background: #f5f5f5;
+            color: #1565c0;
+            transform: none;
+        }
+
+        .mapraw-dropdown {
+            position: static;
+            transform: none;
+            visibility: visible;
+            opacity: 1;
+            box-shadow: none;
+            min-width: 100%;
+            background: #f9f9f9;
+            display: none;
+            padding: 0;
+        }
+        
+        .mapraw-nav-item.active .mapraw-dropdown {
+            display: block;
+        }
+
+        .mapraw-dropdown-item {
+            padding-left: 40px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .mobile-menu-toggle.active .bar:nth-child(2) {
+            opacity: 0;
+        }
+        .mobile-menu-toggle.active .bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .mobile-menu-toggle.active .bar:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .mapraw-logo-main { font-size: 1rem; }
+        .mapraw-page-title { font-size: 0.75rem; }
+    }
+ 
         .gradient-bg {
             background: #f0fdfa;
             min-height: 100vh;
@@ -317,6 +601,97 @@
         }
     </style>
 </head>
+<header class="mapraw-header">
+    <div class="mapraw-header-content">
+        <div class="mapraw-logo-section">
+            <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+            <p class="mapraw-page-title">Reclass BLDG</p>
+        </div>
+        
+        <button class="mobile-menu-toggle" id="mobileMenuBtn">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <nav class="mapraw-nav" id="mainNav">
+            <div class="mapraw-nav-item">
+                <a href="index.html" class="mapraw-nav-btn home-btn">
+                    <span>🏠 หน้าหลัก</span>
+                </a>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>📋 เครื่องมือสำรวจ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                    <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                    <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                    <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                    <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚙️ เครื่องมือประมวลผล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                    <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                    <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                    <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                    <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚖️ เครื่องมือกฎหมาย</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                    <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🧮 คำนวณเบื้องต้น</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🎯 เครื่องมืออื่นๆ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
 <body class="gradient-bg">
     <div class="main-container">
         <div class="card">
@@ -397,18 +772,6 @@
         </div>
     </div>
 
-    <!-- Fixed buttons -->
-    <div class="fixed-buttons">
-        <a href="index.html" class="home-button">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-        </a>
-        <a href="page3.html" class="landuse-button">
-            Calculate Landuse
-        </a>
-    </div>
-
     <!-- Column Mapping Modal -->
     <div id="columnModal" class="modal">
         <div class="modal-content">
@@ -429,6 +792,29 @@
     <script>
 const _0x42a0b2=_0x5325;(function(_0x3ac025,_0x243e0a){const _0x3c4f33=_0x5325,_0x39c2f6=_0x3ac025();while(!![]){try{const _0x2a2501=-parseInt(_0x3c4f33(0x1b6))/0x1*(-parseInt(_0x3c4f33(0x169))/0x2)+parseInt(_0x3c4f33(0x1ba))/0x3*(-parseInt(_0x3c4f33(0x15d))/0x4)+parseInt(_0x3c4f33(0x17b))/0x5*(parseInt(_0x3c4f33(0x1a6))/0x6)+parseInt(_0x3c4f33(0x18a))/0x7+parseInt(_0x3c4f33(0x14e))/0x8+parseInt(_0x3c4f33(0x152))/0x9*(-parseInt(_0x3c4f33(0x1a7))/0xa)+parseInt(_0x3c4f33(0x1ab))/0xb*(-parseInt(_0x3c4f33(0x1a1))/0xc);if(_0x2a2501===_0x243e0a)break;else _0x39c2f6['push'](_0x39c2f6['shift']());}catch(_0x507977){_0x39c2f6['push'](_0x39c2f6['shift']());}}}(_0x1219,0x45b3f));let fileData=null,columnMapping={},processedData=[];const requiredColumns=[_0x42a0b2(0x16b),'BL_USE',_0x42a0b2(0x1cc),'BL_NSTOREY',_0x42a0b2(0x1b1),'ACQYEAR',_0x42a0b2(0x1a8),_0x42a0b2(0x190)],validBLTypes=['1','2','3','4','5','6','7','8','98','99'],plBlockPatterns={'อย.':_0x42a0b2(0x179),'ย.1':_0x42a0b2(0x1ca),'ย.2':_0x42a0b2(0x1b0),'ย.3':_0x42a0b2(0x1ac),'ย.4':_0x42a0b2(0x14f),'ย.5':_0x42a0b2(0x151),'ย.6':'ย.6','ย.7':_0x42a0b2(0x156),'ย.8':_0x42a0b2(0x170),'พ.1':_0x42a0b2(0x186),'พ.2':_0x42a0b2(0x171),'พ.3':_0x42a0b2(0x17a),'พ.4':_0x42a0b2(0x154),'ขก.':_0x42a0b2(0x16a),'อ.1':_0x42a0b2(0x199),'อ.2':_0x42a0b2(0x1a4),'อ.3':_0x42a0b2(0x1cf),'อ.4':_0x42a0b2(0x1be),'ก.1':_0x42a0b2(0x1c6),'ก.2':_0x42a0b2(0x1b3),'ก.3':_0x42a0b2(0x1c2),'ก.4':_0x42a0b2(0x174),'ก.5':_0x42a0b2(0x1a9),'อก.':'อก.','ปก.':'ปก.','อท.':_0x42a0b2(0x15b),'ล.':'ล.','ลล.':_0x42a0b2(0x18e),'สล.':_0x42a0b2(0x158),'อป.':'อป.','ศษ.':'ศษ.','ลช.':'ลช.','ลส.':_0x42a0b2(0x1cb),'อศ.':_0x42a0b2(0x172),'ศน.':_0x42a0b2(0x18c),'ส.':'ส.'},reuse2Data={'1000':'10','1100':'10','1101':'10','1102':'10','1103':'10','1121':'10','1122':'10','1123':'10','1131':'10','1132':'10','1200':'10','1300':'10','1310':'10','1320':'10','1330':'10','1340':'10','1350':'10','1800':'90','2000':'20','2100':'20','2200':'20','2210':'20','2220':'20','2230':'20','2231':'20','2232':'20','2233':'20','2234':'20','2240':'20','2241':'20','2250':'20','2251':'20','2260':'20','2270':'20','2280':'20','2300':'20','2301':'20','2302':'20','2400':'20','2410':'20','2420':'20','2480':'20','2500':'20','2800':'20','3000':'30','3100':'30','3110':'30','3120':'30','3300':'33','3310':'33','3311':'33','3321':'33','3322':'33','3800':'30','4100':'41','4110':'41','4120':'41','4121':'41','4122':'41','4123':'41','4180':'41','4200':'30','4300':'30','5000':'90','5130':'90','5140':'90','5150':'90','5160':'90','5180':'90','5200':'90','5210':'90','5220':'90','5230':'90','5300':'90','5310':'90','5320':'90','5330':'90','5400':'90','5410':'90','5420':'90','5430':'90','5440':'90','5500':'90','5510':'90','5520':'90','5800':'90','6000':'90','6100':'90','6105':'90','6110':'90','6120':'90','6130':'90','6140':'90','6141':'90','6142':'90','6143':'90','6150':'90','6160':'90','6180':'90','6200':'90','6210':'90','6220':'90','6230':'90','6240':'90','6250':'90','6260':'90','6270':'90','6280':'90','6300':'90','6310':'90','6320':'90','6330':'90','6340':'90','6350':'90','6360':'90','6370':'90','6380':'90','6381':'90','6382':'90','6383':'90','6400':'90','6500':'90','6510':'90','6530':'90','6580':'90','6600':'90','6610':'90','6620':'90','6630':'90','6640':'90','6650':'90','6660':'90','6800':'90','6830':'90','6831':'90','7000':'90','7200':'90','7210':'90','7220':'90','7300':'90','7310':'90','7320':'90','7321':'90','7322':'90','7323':'90','7324':'90','7330':'90','7380':'90','8000':'80','8170':'80','8180':'80','8190':'80','8310':'80','8500':'80','9991':'90','9993':'90','9998':'90','9999':'90'};function _0x5325(_0x467676,_0x1f807e){const _0x1219d8=_0x1219();return _0x5325=function(_0x5325cd,_0x16b328){_0x5325cd=_0x5325cd-0x14d;let _0xaed3ac=_0x1219d8[_0x5325cd];return _0xaed3ac;},_0x5325(_0x467676,_0x1f807e);}function formatDecimal(_0x2f3cb1){const _0x4395e4=_0x42a0b2;if(_0x2f3cb1===null||_0x2f3cb1===undefined||isNaN(_0x2f3cb1))return 0x0;const _0x18aea3=parseFloat(_0x2f3cb1),_0x2c490e=_0x18aea3[_0x4395e4(0x188)](0xa);if(!_0x2c490e[_0x4395e4(0x15f)]('.'))return parseFloat(_0x18aea3[_0x4395e4(0x188)](0x2));const _0x23bce2=_0x2c490e['split']('.'),_0x127514=_0x23bce2[0x1][_0x4395e4(0x183)](/0+$/,'');if(_0x127514[_0x4395e4(0x16f)]===0x0)return parseFloat(_0x18aea3[_0x4395e4(0x188)](0x2));if(_0x127514[_0x4395e4(0x16f)]===0x1)return parseFloat(_0x18aea3[_0x4395e4(0x188)](0x2));if(_0x127514[_0x4395e4(0x16f)]===0x2)return parseFloat(_0x23bce2[0x0]+'.'+_0x127514);if(_0x127514[_0x4395e4(0x16f)]>0x2){const _0x200b7b=parseInt(_0x127514[0x2]),_0x4cea87=_0x127514[_0x4395e4(0x160)](0x0,0x2);if(_0x200b7b>=0x5){const _0x3a6aec=parseFloat(_0x23bce2[0x0]+'.'+_0x4cea87);return parseFloat((_0x3a6aec+0.01)[_0x4395e4(0x188)](0x2));}else return parseFloat(_0x23bce2[0x0]+'.'+_0x4cea87);}return parseFloat(_0x18aea3['toFixed'](0x2));}function validateRowData(_0x103b98,_0x37f103){const _0x54f316=_0x42a0b2,_0x294013=[],_0x392706=convertToText(_0x103b98[_0x54f316(0x16b)])[_0x54f316(0x181)]();if(!_0x392706||_0x392706===''||_0x392706==='null'||_0x392706===_0x54f316(0x1b2))_0x294013['push'](_0x54f316(0x162));else!validBLTypes[_0x54f316(0x15f)](_0x392706)&&_0x294013[_0x54f316(0x175)]('ข้อมูล\x20BL_TYPE\x20ไม่ถูกต้อง');const _0xe81db0=convertToText(_0x103b98[_0x54f316(0x1c7)])[_0x54f316(0x181)]();if(!_0xe81db0||_0xe81db0===''||_0xe81db0===_0x54f316(0x164)||_0xe81db0===_0x54f316(0x1b2))_0x294013['push'](_0x54f316(0x17e));else!reuse2Data[_0xe81db0]&&_0x294013[_0x54f316(0x175)]('ข้อมูล\x20BL_USE\x20ไม่ถูกต้อง');const _0x38d720=convertToText(_0x103b98[_0x54f316(0x1cc)])[_0x54f316(0x181)]();if(!_0x38d720||_0x38d720===''||_0x38d720===_0x54f316(0x164)||_0x38d720===_0x54f316(0x1b2))_0x294013[_0x54f316(0x175)]('ไม่มีข้อมูล\x20BL_AREA');else{const _0x473ec5=parseFloat(_0x38d720);(isNaN(_0x473ec5)||_0x473ec5<=0x0)&&_0x294013['push']('ข้อมูล\x20BL_AREA\x20ไม่ถูกต้อง');}const _0x2c8d20=convertToText(_0x103b98[_0x54f316(0x18f)])[_0x54f316(0x181)]();if(!_0x2c8d20||_0x2c8d20===''||_0x2c8d20===_0x54f316(0x164)||_0x2c8d20==='undefined')_0x294013[_0x54f316(0x175)](_0x54f316(0x18d));else{const _0x11ef69=parseFloat(_0x2c8d20);(isNaN(_0x11ef69)||_0x11ef69<=0x0)&&_0x294013[_0x54f316(0x175)](_0x54f316(0x14d));}if(_0x392706==='6'){const _0x321778=convertToText(_0x103b98[_0x54f316(0x1b1)])['trim']();if(!_0x321778||_0x321778===''||_0x321778===_0x54f316(0x164)||_0x321778===_0x54f316(0x1b2))_0x294013[_0x54f316(0x175)]('ไม่มีข้อมูล\x20BL_NUNIT');else{const _0x2ea9cd=parseFloat(_0x321778);(isNaN(_0x2ea9cd)||_0x2ea9cd<=0x0)&&_0x294013[_0x54f316(0x175)](_0x54f316(0x1bd));}}const _0x372ca4=convertToText(_0x103b98[_0x54f316(0x1a2)])[_0x54f316(0x181)]();if(!_0x372ca4||_0x372ca4===''||_0x372ca4===_0x54f316(0x164)||_0x372ca4===_0x54f316(0x1b2))_0x294013['push']('ไม่มีข้อมูล\x20ACQYEAR');else{const _0x5191a9=parseInt(_0x372ca4);(isNaN(_0x5191a9)||_0x5191a9<0x9ec||_0x5191a9>0xa28)&&_0x294013[_0x54f316(0x175)](_0x54f316(0x1b7));}const _0x10454f=convertToText(_0x103b98['PL_BLOCK'])[_0x54f316(0x181)]();(!_0x10454f||_0x10454f===''||_0x10454f==='null'||_0x10454f===_0x54f316(0x1b2))&&_0x294013[_0x54f316(0x175)]('ไม่มีข้อมูล\x20PL_BLOCK');const _0x3ea3e8=convertToText(_0x103b98[_0x54f316(0x190)])[_0x54f316(0x181)]();return(!_0x3ea3e8||_0x3ea3e8===''||_0x3ea3e8===_0x54f316(0x164)||_0x3ea3e8===_0x54f316(0x1b2))&&_0x294013[_0x54f316(0x175)](_0x54f316(0x182)),_0x294013['join'](',\x20');}function checkPLBlock(_0x3d658e){const _0x467a26=_0x42a0b2;if(!_0x3d658e)return'';_0x3d658e=_0x3d658e['toString']();for(const [_0x1d9a24,_0x3a3322]of Object['entries'](plBlockPatterns)){if(_0x3d658e[_0x467a26(0x15f)](_0x1d9a24))return _0x3a3322;}return'';}function checkPLBlockPattern(_0x1bdd02){const _0x290b8d=_0x42a0b2;if(!_0x1bdd02)return![];const _0x3f9441=/[ก-ฯa-zA-Z]+\.\d+-\d+/;return _0x3f9441[_0x290b8d(0x153)](_0x1bdd02);}function extractTextUpToPeriod(_0x193e59){const _0x49cbd5=_0x42a0b2;if(!_0x193e59)return'';const _0x3effaa=_0x193e59[_0x49cbd5(0x1ad)]('.');if(_0x3effaa===-0x1)return _0x193e59;return _0x193e59[_0x49cbd5(0x160)](0x0,_0x3effaa+0x1);}function convertToText(_0x57c449){const _0x5968f9=_0x42a0b2;if(_0x57c449===null||_0x57c449===undefined)return'';return _0x57c449[_0x5968f9(0x176)]();}function showError(_0x228275){const _0x13234a=_0x42a0b2,_0x3ce447=document[_0x13234a(0x1c1)](_0x13234a(0x1c8));_0x3ce447[_0x13234a(0x167)]=_0x228275,_0x3ce447[_0x13234a(0x1c0)][_0x13234a(0x163)]('d-none'),setTimeout(()=>{const _0xb415eb=_0x13234a;_0x3ce447['classList'][_0xb415eb(0x168)](_0xb415eb(0x193));},0x1388);}function updateFileName(_0x565ea5){const _0x3e5b73=_0x42a0b2,_0x13bbf0=document['getElementById'](_0x3e5b73(0x16c));_0x565ea5['files']&&_0x565ea5[_0x3e5b73(0x1d1)][0x0]?_0x13bbf0[_0x3e5b73(0x167)]=_0x565ea5[_0x3e5b73(0x1d1)][0x0][_0x3e5b73(0x17d)]:_0x13bbf0[_0x3e5b73(0x167)]='';}function showColumnModal(_0x51df6c){const _0xef65be=_0x42a0b2,_0x4b2a5b=document[_0xef65be(0x1c1)](_0xef65be(0x191)),_0x9155f0=document['getElementById'](_0xef65be(0x1ce));_0x9155f0[_0xef65be(0x1bc)]='',requiredColumns[_0xef65be(0x15a)](_0x269393=>{const _0x20ef7a=_0xef65be,_0x4f4687=document['createElement'](_0x20ef7a(0x194));_0x4f4687[_0x20ef7a(0x18b)]=_0x20ef7a(0x1c4);const _0x40e199=document['createElement'](_0x20ef7a(0x185));_0x40e199[_0x20ef7a(0x167)]=_0x269393,_0x4f4687['appendChild'](_0x40e199);const _0x5c5e0f=document[_0x20ef7a(0x177)](_0x20ef7a(0x15c));_0x5c5e0f[_0x20ef7a(0x17d)]=_0x269393;const _0x4a32d5=document[_0x20ef7a(0x177)](_0x20ef7a(0x1b4));_0x4a32d5[_0x20ef7a(0x1d0)]='',_0x4a32d5[_0x20ef7a(0x167)]=_0x20ef7a(0x1a0),_0x5c5e0f['appendChild'](_0x4a32d5),_0x51df6c[_0x20ef7a(0x15a)](_0x585cbc=>{const _0x454fd5=_0x20ef7a,_0x11f19e=document[_0x454fd5(0x177)](_0x454fd5(0x1b4));_0x11f19e[_0x454fd5(0x1d0)]=_0x585cbc,_0x11f19e[_0x454fd5(0x167)]=_0x585cbc,_0x585cbc['toUpperCase']()===_0x269393&&(_0x11f19e[_0x454fd5(0x166)]=!![]),_0x5c5e0f[_0x454fd5(0x19f)](_0x11f19e);}),_0x4f4687[_0x20ef7a(0x19f)](_0x5c5e0f),_0x9155f0[_0x20ef7a(0x19f)](_0x4f4687);}),_0x4b2a5b[_0xef65be(0x1cd)][_0xef65be(0x19c)]=_0xef65be(0x1a5);}function closeColumnModal(){const _0x4cdccd=_0x42a0b2;document['getElementById'](_0x4cdccd(0x191))[_0x4cdccd(0x1cd)][_0x4cdccd(0x19c)]=_0x4cdccd(0x1b5);}function getColumnMapping(){const _0x2dd722=_0x42a0b2,_0x42bef2={},_0x4a9f7a=document[_0x2dd722(0x196)](_0x2dd722(0x1b9));let _0x57923a=!![];return _0x4a9f7a['forEach'](_0x12ebbe=>{const _0x40580f=_0x2dd722;_0x12ebbe[_0x40580f(0x1d0)]?_0x42bef2[_0x12ebbe[_0x40580f(0x17d)]]=_0x12ebbe['value']:_0x57923a=![];}),{'mapping':_0x42bef2,'isValid':_0x57923a};}function processExcel(){const _0x2c2f65=_0x42a0b2,_0x327b75=document[_0x2c2f65(0x1c1)]('excelFile'),_0x137905=_0x327b75['files'][0x0];if(!_0x137905){showError(_0x2c2f65(0x198));return;}const _0x1d5386=new FileReader();_0x1d5386[_0x2c2f65(0x157)]=function(_0x2fa29d){const _0x299794=_0x2c2f65,_0x5150ed=new Uint8Array(_0x2fa29d[_0x299794(0x155)][_0x299794(0x15e)]),_0x81afba=XLSX[_0x299794(0x1b8)](_0x5150ed,{'type':'array'}),_0x39cc55=_0x81afba['SheetNames'][0x0],_0x38df4f=_0x81afba[_0x299794(0x16d)][_0x39cc55],_0x5ee9ec=XLSX['utils'][_0x299794(0x19e)](_0x38df4f);if(_0x5ee9ec[_0x299794(0x16f)]===0x0){showError(_0x299794(0x19a));return;}fileData=_0x5ee9ec;const _0x1ade9b=Object[_0x299794(0x189)](_0x5ee9ec[0x0]),_0x180ab2=requiredColumns[_0x299794(0x197)](_0xbbf9f5=>!_0x1ade9b[_0x299794(0x19b)](_0x25059c=>_0x25059c[_0x299794(0x1a3)]()===_0xbbf9f5));_0x180ab2[_0x299794(0x16f)]===0x0?processData(_0x5ee9ec):showColumnModal(_0x1ade9b);},_0x1d5386[_0x2c2f65(0x159)](_0x137905);}function processWithMapping(){const _0x59733a=_0x42a0b2,{mapping:_0x2fd33d,isValid:_0x1a3b69}=getColumnMapping();if(!_0x1a3b69){showError(_0x59733a(0x150));return;}columnMapping=_0x2fd33d,closeColumnModal();const _0xaf52a6=fileData[_0x59733a(0x192)](_0x3fe7f8=>{const _0x4d83c7=_0x59733a,_0x5cfcd2={};return Object[_0x4d83c7(0x189)](columnMapping)[_0x4d83c7(0x15a)](_0x1aeace=>{_0x5cfcd2[_0x1aeace]=_0x3fe7f8[columnMapping[_0x1aeace]];}),Object['keys'](_0x3fe7f8)['forEach'](_0x1744d5=>{const _0x5ab996=_0x4d83c7;!Object[_0x5ab996(0x178)](columnMapping)[_0x5ab996(0x15f)](_0x1744d5)&&(_0x5cfcd2[_0x1744d5]=_0x3fe7f8[_0x1744d5]);}),_0x5cfcd2;});processData(_0xaf52a6);}function processData(_0x5cc284){const _0x388bb8=_0x42a0b2,_0x132447=document[_0x388bb8(0x1c1)]('progressBar'),_0x27fd27=document[_0x388bb8(0x1c1)](_0x388bb8(0x184));_0x27fd27[_0x388bb8(0x1c0)]['remove'](_0x388bb8(0x193));let _0x4dbedd=_0x5cc284[_0x388bb8(0x192)]((_0x47248e,_0x348f8f)=>{const _0x4ebc52=_0x388bb8,_0xf720ac=Math[_0x4ebc52(0x1aa)]((_0x348f8f+0x1)/_0x5cc284[_0x4ebc52(0x16f)]*0x32);_0x132447['style'][_0x4ebc52(0x187)]=_0xf720ac+'%',_0x132447['setAttribute'](_0x4ebc52(0x17c),_0xf720ac),_0x132447[_0x4ebc52(0x167)]=_0xf720ac+'%';const _0x28b147={..._0x47248e};_0x28b147[_0x4ebc52(0x16b)]=convertToText(_0x47248e[_0x4ebc52(0x16b)]),_0x28b147[_0x4ebc52(0x1c7)]=convertToText(_0x47248e[_0x4ebc52(0x1c7)]),_0x28b147[_0x4ebc52(0x1a2)]=convertToText(_0x47248e[_0x4ebc52(0x1a2)]),_0x28b147[_0x4ebc52(0x1a8)]=convertToText(_0x47248e['PL_BLOCK']),_0x28b147['PL_USE']=convertToText(_0x47248e[_0x4ebc52(0x190)]);const _0x47b779=_0x47248e[_0x4ebc52(0x1b1)];return _0x47b779!==null&&_0x47b779!==undefined?_0x28b147[_0x4ebc52(0x1b1)]=Math['round'](parseFloat(_0x47b779)):_0x28b147['BL_NUNIT']=0x0,_0x28b147[_0x4ebc52(0x1ae)]=checkPLBlock(_0x47248e[_0x4ebc52(0x1a8)]),_0x28b147[_0x4ebc52(0x195)]=validateRowData(_0x28b147,_0x348f8f),_0x28b147;});const _0x3d137a=_0x4dbedd[_0x388bb8(0x19b)](_0x4ad08b=>_0x4ad08b['PL_BLOCK2']&&_0x4ad08b['PL_BLOCK2'][_0x388bb8(0x181)]()!=='');_0x3d137a?processedData=_0x4dbedd[_0x388bb8(0x192)]((_0xe1fa6a,_0x564025)=>{const _0x33b237=_0x388bb8,_0x2abaf1=Math[_0x33b237(0x1aa)](0x32+(_0x564025+0x1)/_0x4dbedd[_0x33b237(0x16f)]*0x32);_0x132447[_0x33b237(0x1cd)]['width']=_0x2abaf1+'%',_0x132447[_0x33b237(0x1c9)](_0x33b237(0x17c),_0x2abaf1),_0x132447[_0x33b237(0x167)]=_0x2abaf1+'%';!_0xe1fa6a[_0x33b237(0x1ae)]&&_0xe1fa6a[_0x33b237(0x1a8)]&&(_0xe1fa6a['PL_BLOCK2']=extractTextUpToPeriod(_0xe1fa6a[_0x33b237(0x1a8)]));_0xe1fa6a['PL_USE_O']=_0xe1fa6a[_0x33b237(0x190)];checkPLBlockPattern(_0xe1fa6a['PL_BLOCK'])&&(_0xe1fa6a[_0x33b237(0x190)]=_0xe1fa6a['PL_USE_O']+'-'+_0xe1fa6a[_0x33b237(0x1ae)]);const _0x1de491=parseFloat(_0xe1fa6a['BL_AREA'])||0x0,_0x194103=parseFloat(_0xe1fa6a[_0x33b237(0x18f)])||0x0,_0x5b03e1=parseInt(_0xe1fa6a[_0x33b237(0x1b1)])||0x0,_0x82e3da=_0x1de491*_0x194103;return _0xe1fa6a['พื้นที่การใช้ประโยชน์อาคารรวม']=formatDecimal(_0x82e3da),_0xe1fa6a['RE_BL_USE']=reuse2Data[_0xe1fa6a[_0x33b237(0x1c7)]]||'',_0xe1fa6a[_0x33b237(0x1c3)]=determineCode({..._0xe1fa6a,'BL_AREA':formatDecimal(_0x1de491),'BL_NSTOREY':_0x194103,'BL_NUNIT':_0x5b03e1}),_0xe1fa6a[_0x33b237(0x1cc)]=formatDecimal(_0x1de491),_0xe1fa6a;}):processedData=_0x4dbedd[_0x388bb8(0x192)]((_0x25233a,_0x229fe0)=>{const _0x172ab9=_0x388bb8,_0x4b386b=Math[_0x172ab9(0x1aa)](0x32+(_0x229fe0+0x1)/_0x4dbedd[_0x172ab9(0x16f)]*0x32);_0x132447[_0x172ab9(0x1cd)][_0x172ab9(0x187)]=_0x4b386b+'%',_0x132447[_0x172ab9(0x1c9)](_0x172ab9(0x17c),_0x4b386b),_0x132447[_0x172ab9(0x167)]=_0x4b386b+'%';const _0x58e2a0=parseFloat(_0x25233a[_0x172ab9(0x1cc)])||0x0,_0x1aaf36=parseFloat(_0x25233a[_0x172ab9(0x18f)])||0x0,_0x4f0497=parseInt(_0x25233a[_0x172ab9(0x1b1)])||0x0,_0x143ab8=_0x58e2a0*_0x1aaf36;return _0x25233a[_0x172ab9(0x1bf)]=formatDecimal(_0x143ab8),_0x25233a[_0x172ab9(0x16e)]=reuse2Data[_0x25233a['BL_USE']]||'',_0x25233a[_0x172ab9(0x1c3)]=determineCode({..._0x25233a,'BL_AREA':formatDecimal(_0x58e2a0),'BL_NSTOREY':_0x1aaf36,'BL_NUNIT':_0x4f0497}),_0x25233a[_0x172ab9(0x1cc)]=formatDecimal(_0x58e2a0),_0x25233a;}),document[_0x388bb8(0x1c1)](_0x388bb8(0x1bb))['classList'][_0x388bb8(0x163)]('d-none');}function determineCode(_0x35cb74){const _0xdf0de2=_0x42a0b2,{RE_BL_USE:_0x44e821,BL_TYPE:_0xaf3e25,BL_NSTOREY:_0x2e0ef4}=_0x35cb74,_0x1bf08e=parseFloat(_0x35cb74['BL_AREA'])||0x0,_0x4e4aad=_0x35cb74[_0xdf0de2(0x1bf)];if(_0x4e4aad>=0x7d0){if(_0x44e821==='10'&&_0x1bf08e>=0x65&&_0x1bf08e<=0x190)return 0x4;if(_0x44e821==='10'&&_0x1bf08e>=0x191)return 0x5;if(_0x44e821==='20'&&_0x1bf08e>=0x65&&_0x1bf08e<=0x190)return 0x2;if(_0x44e821==='20'&&_0x1bf08e>=0x191)return 0x3;if(_0x44e821==='41'&&_0x1bf08e>=0x65&&_0x1bf08e<=0x190)return 0x2;if(_0x44e821==='41'&&_0x1bf08e>=0x191)return 0x3;}if(_0x4e4aad>=0x3e8&&_0x2e0ef4>=0x5){if(_0x44e821==='10'&&_0x1bf08e>=0x65&&_0x1bf08e<=0x190)return 0x4;if(_0x44e821==='10'&&_0x1bf08e>=0x191)return 0x5;if(_0x44e821==='20'&&_0x1bf08e>=0x65&&_0x1bf08e<=0x190)return 0x2;if(_0x44e821==='20'&&_0x1bf08e>=0x191)return 0x3;if(_0x44e821==='41'&&_0x1bf08e>=0x65&&_0x1bf08e<=0x190)return 0x2;if(_0x44e821==='41'&&_0x1bf08e>=0x191)return 0x3;}if(_0x2e0ef4>=0x8){if(_0x44e821==='10'&&_0x1bf08e>=0x65&&_0x1bf08e<=0x190)return 0x4;if(_0x44e821==='10'&&_0x1bf08e>=0x191)return 0x5;if(_0x44e821==='20'&&_0x1bf08e>=0x65&&_0x1bf08e<=0x190)return 0x2;if(_0x44e821==='20'&&_0x1bf08e>=0x191)return 0x3;if(_0x44e821==='41'&&_0x1bf08e>=0x65&&_0x1bf08e<=0x190)return 0x2;if(_0x44e821==='41'&&_0x1bf08e>=0x191)return 0x3;}if(_0x44e821==='10'){if(_0xaf3e25==='1'||_0xaf3e25==='2')return 0x1;if(_0xaf3e25==='3'||_0xaf3e25==='4'||_0xaf3e25==='5')return 0x2;if(_0xaf3e25==='6'||_0xaf3e25==='7'||_0xaf3e25==='8'||_0xaf3e25==='98')return 0x3;}if(_0x44e821==='20'||_0x44e821==='41')return 0x1;if(_0x44e821==='30'){if(_0x1bf08e<=0xc8)return 0x1;if(_0x1bf08e>0xc8&&_0x1bf08e<=0x1f4)return 0x2;if(_0x1bf08e>0x1f4&&_0x1bf08e<=0x3e8)return 0x3;if(_0x1bf08e>0x3e8)return 0x4;}if(_0x44e821==='33'){if(_0x1bf08e<=0x64)return 0x1;if(_0x1bf08e>0x64&&_0x1bf08e<=0x1f4)return 0x2;if(_0x1bf08e>0x1f4)return 0x3;}if(_0x44e821==='80'||_0x44e821==='90')return 0x1;return 0x0;}function exportToExcel(){const _0x12ecb2=_0x42a0b2,_0x4ac094=XLSX[_0x12ecb2(0x173)]['json_to_sheet'](processedData),_0x1b5326=XLSX[_0x12ecb2(0x173)][_0x12ecb2(0x17f)]();XLSX['utils']['book_append_sheet'](_0x1b5326,_0x4ac094,_0x12ecb2(0x180)),XLSX[_0x12ecb2(0x19d)](_0x1b5326,_0x12ecb2(0x165));}document['getElementById'](_0x42a0b2(0x161))[_0x42a0b2(0x1af)](_0x42a0b2(0x1c5),processExcel),document['getElementById'](_0x42a0b2(0x1bb))[_0x42a0b2(0x1af)](_0x42a0b2(0x1c5),exportToExcel);function _0x1219(){const _0x20b49b=['width','toFixed','keys','3815931AuzXZE','className','ศน.','ไม่มีข้อมูล\x20BL_NSTOREY','ลล.','BL_NSTOREY','PL_USE','columnModal','map','d-none','div','REMARKS','querySelectorAll','filter','กรุณาเลือกไฟล์\x20Excel','อ.1','ไฟล์\x20Excel\x20ไม่มีข้อมูล','some','display','writeFile','sheet_to_json','appendChild','--\x20เลือกคอลัมน์\x20--','24eNuwWN','ACQYEAR','toUpperCase','อ.2','block','145938oGhNOI','173050WGMlcQ','PL_BLOCK','ก.5','round','5171023oWKbcN','ย.3','indexOf','PL_BLOCK2','addEventListener','ย.2','BL_NUNIT','undefined','ก.2','option','none','5mRMSgb','ข้อมูล\x20ACQYEAR\x20ไม่ถูกต้อง','read','#columnMappingList\x20select','2472dtncWp','exportButton','innerHTML','ไม่มีข้อมูล\x20BL_NUNIT','อ.4','พื้นที่การใช้ประโยชน์อาคารรวม','classList','getElementById','ก.3','RE_BL_AREA','column-mapping','click','ก.1','BL_USE','errorMessage','setAttribute','ย.1','ลส.','BL_AREA','style','columnMappingList','อ.3','value','files','ข้อมูล\x20BL_NSTOREY\x20ไม่ถูกต้อง','1583144TRCcnA','ย.4','กรุณาเลือกคอลัมน์ให้ครบทุกรายการ','ย.5','18lJyMuu','test','พ.4','target','ย.7','onload','สล.','readAsArrayBuffer','forEach','อท.','select','1636skSkyE','result','includes','substring','processButton','ไม่มีข้อมูล\x20BL_TYPE','remove','null','bldg_reclass.xlsx','selected','textContent','add','117944AvIYQo','ขก.','BL_TYPE','fileName','Sheets','RE_BL_USE','length','ย.8','พ.2','อศ.','utils','ก.4','push','toString','createElement','values','อย.','พ.3','115Qnghxc','aria-valuenow','name','ไม่มีข้อมูล\x20BL_USE','book_new','ProcessedData','trim','ไม่มีข้อมูล\x20PL_USE','replace','progressContainer','label','พ.1'];_0x1219=function(){return _0x20b49b;};return _0x1219();}
     </script>
+    <script>
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const nav = document.getElementById('mainNav');
+
+    menuBtn.addEventListener('click', () => {
+        menuBtn.classList.toggle('active');
+        nav.classList.toggle('active');
+    });
+
+    function toggleMobileDropdown(element) {
+        if (window.innerWidth <= 1200) {
+            element.classList.toggle('active');
+        }
+    }
+    
+    // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
+    document.addEventListener('click', (e) => {
+        if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
+            nav.classList.remove('active');
+            menuBtn.classList.remove('active');
+        }
+    });
+</script>
     <script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script> 
 </body>
 </html>
