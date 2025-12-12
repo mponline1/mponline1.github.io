@@ -3,10 +3,294 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>CAPTURE MAP</title>
+  <title>CAPTURE MAP (+GeoJSON)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css">
   <style>
+
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --text-white: #ffffff;
+        --text-yellow: #ffeb3b;
+        --bg-glass: rgba(255, 255, 255, 0.1);
+        --bg-glass-hover: rgba(255, 255, 255, 0.25);
+        --header-height: 70px;
+    }
+    
+    body {
+        margin: 0;
+        padding-top: var(--header-height);
+    }
+
+    /* Header Structure */
+    .mapraw-header {
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        font-family: 'Prompt', sans-serif;
+        height: var(--header-height);
+    }
+    
+    .mapraw-header-content {
+        max-width: 100%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        height: 100%;
+    }
+    
+    /* Logo Section */
+    .mapraw-logo-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-shrink: 0;
+        padding-right: 15px;
+    }
+    
+    .mapraw-logo-main {
+        color: var(--text-white);
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    
+    .mapraw-logo-main span {
+        color: var(--text-yellow);
+        text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+    }
+    
+    .mapraw-page-title {
+        color: #e3f2fd;
+        font-size: 1rem;
+        font-weight: 400;
+        margin: 2px 0 0 0;
+        white-space: nowrap;
+    }
+    
+    /* Navigation Section */
+    .mapraw-nav {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        height: 100%;
+    }
+    
+    .mapraw-nav-item {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Buttons */
+    .mapraw-nav-btn {
+        background: var(--bg-glass);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Prompt', sans-serif;
+        white-space: nowrap;
+    }
+    
+    .mapraw-nav-btn:hover {
+        background: var(--bg-glass-hover);
+        transform: translateY(-1px);
+    }
+    
+    .mapraw-nav-btn.home-btn {
+        background: rgba(255, 235, 59, 0.15);
+        border-color: #ffeb3b;
+        color: #ffeb3b;
+    }
+    
+    .mapraw-nav-btn.home-btn:hover {
+        background: #ffeb3b;
+        color: #1565c0;
+    }
+
+    /* Dropdown */
+    .mapraw-dropdown {
+        position: absolute;
+        top: calc(100% - 10px);
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        min-width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        padding: 5px 0;
+        z-index: 1001;
+    }
+    
+    /* Hover Logic for Desktop */
+    @media (min-width: 1201px) {
+        .mapraw-nav-item:hover .mapraw-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+    
+    .mapraw-dropdown-item {
+        display: block;
+        padding: 10px 20px;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+        white-space: nowrap;
+    }
+    
+    .mapraw-dropdown-item:hover {
+        background: #f1f8ff;
+        color: #1565c0;
+    }
+
+    /* Hamburger Menu Toggle */
+    .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        z-index: 1002;
+    }
+    
+    .bar {
+        display: block;
+        width: 25px;
+        height: 3px;
+        margin: 5px auto;
+        background-color: white;
+        transition: all 0.3s ease-in-out;
+        border-radius: 2px;
+    }
+
+    /* ==== Responsive Styles ==== */
+    
+    @media (max-width: 1400px) {
+        .mapraw-nav-btn {
+            padding: 6px 8px;
+            font-size: 0.8rem;
+        }
+        .mapraw-nav {
+            gap: 4px;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .mobile-menu-toggle {
+            display: block;
+        }
+
+        .mapraw-nav {
+            position: fixed;
+            top: var(--header-height);
+            right: -100%;
+            width: 280px;
+            height: calc(100vh - var(--header-height));
+            background: white;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            padding: 10px 0;
+            transition: right 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .mapraw-nav.active {
+            right: 0;
+        }
+
+        .mapraw-nav-item {
+            height: auto;
+            flex-direction: column;
+            width: 100%;
+            display: block;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mapraw-nav-btn {
+            background: white;
+            color: #333;
+            border: none;
+            border-radius: 0;
+            padding: 15px 20px;
+            font-size: 1rem;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mapraw-nav-btn:hover {
+            background: #f5f5f5;
+            color: #1565c0;
+            transform: none;
+        }
+
+        .mapraw-dropdown {
+            position: static;
+            transform: none;
+            visibility: visible;
+            opacity: 1;
+            box-shadow: none;
+            min-width: 100%;
+            background: #f9f9f9;
+            display: none;
+            padding: 0;
+        }
+        
+        .mapraw-nav-item.active .mapraw-dropdown {
+            display: block;
+        }
+
+        .mapraw-dropdown-item {
+            padding-left: 40px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .mobile-menu-toggle.active .bar:nth-child(2) {
+            opacity: 0;
+        }
+        .mobile-menu-toggle.active .bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .mobile-menu-toggle.active .bar:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .mapraw-logo-main { font-size: 1rem; }
+        .mapraw-page-title { font-size: 0.75rem; }
+    }
+
     html, body, #viewDiv {
       padding: 0;
       margin: 0;
@@ -125,6 +409,12 @@
       border-radius: 4px;
     }
 
+    /* Custom input type file */
+    input[type="file"] {
+        padding: 5px;
+        background: #f9f9f9;
+    }
+
     .image-list {
       max-height: 300px;
       overflow-y: auto;
@@ -191,14 +481,12 @@
       font-size: 13px;
     }
 
-    /* เมนูเพิ่มสำหรับรองรับหน้าจอเล็ก */
     @media (max-width: 768px) {
       .panel {
         width: 280px;
       }
     }
     
-    /* ตัวระบบสำหรับการแสดงผลขณะประมวลผล */
     .processing-overlay {
       position: absolute;
       top: 0;
@@ -237,7 +525,6 @@
       100% { transform: rotate(360deg); }
     }
     
-    /* ป้ายแสดงระบบพิกัด */
     .coordinate-badge {
       position: absolute;
       bottom: 10px;
@@ -256,7 +543,6 @@
       font-weight: bold;
     }
     
-    /* สไตล์เพิ่มเติมสำหรับปุ่มค้นหา */
     #getCapabilitiesBtn {
       background-color: #2196F3;
     }
@@ -281,22 +567,118 @@
       padding: 5px;
     }
     
-    /* สไตล์เพิ่มเติมสำหรับตัวเลือก WMS */
     .wms-option {
       margin-top: 5px;
+    }
+
+    /* สไตล์สำหรับปุ่มนำเข้า GeoJSON */
+    #addGeoJsonBtn {
+        background-color: #9c27b0;
+    }
+    #addGeoJsonBtn:hover {
+        background-color: #7b1fa2;
     }
   </style>
 </head>
 
 <body>
+  <header class="mapraw-header">
+    <div class="mapraw-header-content">
+        <div class="mapraw-logo-section">
+            <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+            <p class="mapraw-page-title">CAPTURE MAP</p>
+        </div>
+        
+        <button class="mobile-menu-toggle" id="mobileMenuBtn">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <nav class="mapraw-nav" id="mainNav">
+            <div class="mapraw-nav-item">
+                <a href="index.html" class="mapraw-nav-btn home-btn">
+                    <span>🏠 หน้าหลัก</span>
+                </a>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>📋 เครื่องมือสำรวจ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                    <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                    <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                    <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                    <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚙️ เครื่องมือประมวลผล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                    <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                    <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                    <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                    <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚖️ เครื่องมือกฎหมาย</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                    <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🧮 คำนวณเบื้องต้น</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🎯 เครื่องมืออื่นๆ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
   <div id="viewDiv"></div>
   
-  <!-- ป้ายแสดงระบบพิกัด -->
   <div class="coordinate-badge">
     ระบบพิกัด: <span>EPSG:4326 (WGS84)</span>
   </div>
   
-  <!-- Processing Overlay -->
   <div id="processingOverlay" class="processing-overlay">
     <div class="processing-content">
       <div class="spinner"></div>
@@ -304,7 +686,6 @@
     </div>
   </div>
   
-  <!-- Map Tools Panel -->
   <div class="panel" id="toolsPanel">
     <div class="panel-header">
       <div class="panel-title">แผนที่และเครื่องมือ</div>
@@ -341,7 +722,6 @@
     </div>
   </div>
   
-  <!-- Layers Panel -->
   <div class="panel layers-panel" id="layersPanel">
     <div class="panel-header">
       <div class="panel-title">ชั้นข้อมูล</div>
@@ -370,12 +750,9 @@
             <i class="fas fa-search"></i> ค้นหาชั้นข้อมูล
           </button>
         </div>
-        <div style="font-size: 11px; color: #666; margin-top: 2px;" id="urlHelpText">
-          
-        </div>
+        <div style="font-size: 11px; color: #666; margin-top: 2px;" id="urlHelpText"></div>
       </div>
       
-      <!-- ส่วนของตัวเลือก WMS ที่ปรับปรุงแล้ว -->
       <div class="form-group" id="wmsLayerOptions">
         <label for="wmsLayers">ชื่อชั้นข้อมูล WMS (คั่นด้วยเครื่องหมาย ,):</label>
         <input type="text" id="wmsLayers" placeholder="layer1,layer2">
@@ -403,24 +780,28 @@
           <input type="checkbox" id="wmsTransparent" checked style="width: auto; margin-right: 8px;">
           <label for="wmsTransparent">เปิดใช้งานความโปร่งใส (transparent)</label>
         </div>
-        
-        <div style="font-size: 11px; color: #666; margin-top: 10px;">
-          หากไม่ระบุชื่อชั้นข้อมูล ระบบจะพยายามใช้ชั้นข้อมูลทั้งหมดที่มีใน URL
-        </div>
       </div>
       
       <button id="addLayerBtn">เพิ่มชั้นข้อมูล</button>
+
+      <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+        <label for="geoJsonInput">นำเข้า GeoJSON / JSON:</label>
+        <div style="display: flex;">
+          <input type="file" id="geoJsonInput" accept=".json,.geojson" style="flex: 1; margin-right: 5px;">
+          <button id="addGeoJsonBtn" style="width: auto; padding: 5px 10px;">
+            <i class="fas fa-file-upload"></i> นำเข้า
+          </button>
+        </div>
+      </div>
       
       <div id="layersList" style="margin-top: 10px;">
         <h4>ชั้นข้อมูลที่เพิ่ม:</h4>
         <div id="loadedLayers">
-          <!-- Layers will be listed here -->
-        </div>
+          </div>
       </div>
     </div>
   </div>
   
-  <!-- Images Panel -->
   <div class="panel" id="imagesPanel" style="top: 250px; right: 10px;">
     <div class="panel-header">
       <div class="panel-title">รายการภาพ</div>
@@ -430,9 +811,7 @@
     </div>
     <div class="panel-content">
       <div id="noImagesMessage">ยังไม่มีภาพ</div>
-      <div class="image-list" id="imagesList" style="display: none;">
-        <!-- Images will be listed here -->
-      </div>
+      <div class="image-list" id="imagesList" style="display: none;"></div>
       <div class="select-all" id="selectAllContainer" style="display: none;">
         <label>
           <input type="checkbox" id="selectAllCheckbox"> เลือกทั้งหมด
@@ -442,7 +821,6 @@
     </div>
   </div>
   
-  <!-- Grid Processing Status -->
   <div class="grid-status" id="gridStatus">
     <div id="statusText">กำลังประมวลผลกริด...</div>
     <div class="progress-bar">
@@ -450,13 +828,11 @@
     </div>
   </div>
 
-  <!-- Load scripts at the end -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://js.arcgis.com/4.25/"></script>
   
   <script>
-    // Global variables
     let view, esriMap, graphicsLayer, sketchViewModel, gridLayer;
     let generatedImages = [];
     let selectedGraphic = null;
@@ -466,11 +842,9 @@
     let addedLayers = [];
     let allPanels = [];
     
-    // Panel toggle functionality
     function togglePanel(panelId) {
       const panel = document.getElementById(panelId);
       panel.classList.toggle("collapsed");
-      
       const icon = panel.querySelector(".panel-toggle i");
       if (panel.classList.contains("collapsed")) {
         icon.className = "fas fa-chevron-down";
@@ -479,7 +853,6 @@
       }
     }
     
-    // Function to hide all panels
     function hideAllPanels() {
       allPanels.forEach(panel => {
         panel.style.opacity = "0";
@@ -487,7 +860,6 @@
       });
     }
     
-    // Function to show all panels
     function showAllPanels() {
       allPanels.forEach(panel => {
         panel.style.opacity = "1";
@@ -495,7 +867,6 @@
       });
     }
     
-    // Show processing overlay
     function showProcessingOverlay(message) {
       const overlay = document.getElementById("processingOverlay");
       const messageElement = document.getElementById("processingMessage");
@@ -503,13 +874,11 @@
       overlay.style.display = "flex";
     }
     
-    // Hide processing overlay
     function hideProcessingOverlay() {
       const overlay = document.getElementById("processingOverlay");
       overlay.style.display = "none";
     }
     
-    // Initialize ArcGIS JavaScript API
     require([
       "esri/Map",
       "esri/views/MapView",
@@ -525,42 +894,35 @@
       "esri/layers/WMSLayer",
       "esri/layers/TileLayer",
       "esri/layers/WebTileLayer",
+      "esri/layers/GeoJSONLayer", // เพิ่ม GeoJSONLayer
       "esri/geometry/support/webMercatorUtils"
     ], function(
       Map, MapView, GraphicsLayer, Sketch, Polygon, Extent, geometryEngine, 
       Graphic, MapImageLayer, FeatureLayer, ImageryLayer, 
-      WMSLayer, TileLayer, WebTileLayer, webMercatorUtils
+      WMSLayer, TileLayer, WebTileLayer, GeoJSONLayer, webMercatorUtils
     ) {
-      // Store all panels for later use
       allPanels = [
         document.getElementById("toolsPanel"),
         document.getElementById("layersPanel"),
         document.getElementById("imagesPanel")
       ];
       
-      // Set up panel toggle event listeners
       document.getElementById("toolsPanelToggle").addEventListener("click", function() {
         togglePanel("toolsPanel");
       });
-      
       document.getElementById("layersPanelToggle").addEventListener("click", function() {
         togglePanel("layersPanel");
       });
-      
       document.getElementById("imagesPanelToggle").addEventListener("click", function() {
         togglePanel("imagesPanel");
       });
       
-      // Show/hide layer options based on layer type selection
       document.getElementById("layerTypeSelect").addEventListener("change", function() {
         const wmsOptions = document.getElementById("wmsLayerOptions");
         const getCapabilitiesBtn = document.getElementById("getCapabilitiesBtn");
         const helpText = document.getElementById("urlHelpText");
-        
-        // Reset help text
         helpText.innerHTML = "";
         
-        // Handle different layer types
         switch(this.value) {
           case "wms":
             wmsOptions.style.display = "block";
@@ -576,33 +938,27 @@
             getCapabilitiesBtn.style.display = "none";
         }
       });
-      
-      // Trigger the change event initially to set correct state
       document.getElementById("layerTypeSelect").dispatchEvent(new Event('change'));
       
-      // Toggle select all images
       document.getElementById("selectAllCheckbox").addEventListener("click", function() {
         const selectAll = this.checked;
         const checkboxes = document.querySelectorAll(".image-checkbox");
-        
         checkboxes.forEach(checkbox => {
           checkbox.checked = selectAll;
         });
       });
       
-      // Initialize the map and view
       graphicsLayer = new GraphicsLayer();
       gridLayer = new GraphicsLayer();
       
       esriMap = new Map({
         basemap: "streets-vector"
-        // Don't add layers here, we'll add them explicitly later with proper ordering
       });
       
       view = new MapView({
         container: "viewDiv",
         map: esriMap,
-        center: [100.523186, 13.736717], // Bangkok, Thailand
+        center: [100.523186, 13.736717],
         zoom: 10,
         popup: {
           dockEnabled: true,
@@ -613,19 +969,13 @@
         }
       });
       
-      // Wait for the view to be ready then add the graphics layers in proper order
       view.when(function() {
-        // Add the grid layer first (lower z-index)
         esriMap.add(gridLayer);
-        
-        // Add the graphics layer for user drawings last (highest z-index)
         esriMap.add(graphicsLayer);
-        
         console.log("Map view is ready to use");
         hideProcessingOverlay();
       });
       
-      // Create sketch widget for drawing
       const sketch = new Sketch({
         view: view,
         layer: graphicsLayer,
@@ -634,52 +984,40 @@
       
       sketchViewModel = sketch.viewModel;
       
-      // Event listeners for sketch
       sketchViewModel.on("create", function(event) {
         if (event.state === "complete") {
           selectedGraphic = event.graphic;
           document.getElementById("processBtn").disabled = false;
-          
-          // Make sure the graphics layer is on top
           ensureGraphicsLayerOnTop();
         }
       });
       
-      // Function to ensure graphics layer is on top
       function ensureGraphicsLayerOnTop() {
-        // Ensure proper layer ordering by removing and re-adding graphic layers
         if (esriMap.layers.includes(graphicsLayer)) {
           esriMap.layers.remove(graphicsLayer);
         }
-        
         if (esriMap.layers.includes(gridLayer)) {
           esriMap.layers.remove(gridLayer);
         }
-        
-        // Add back in correct order (grid first, then graphics on top)
         esriMap.add(gridLayer);
         esriMap.add(graphicsLayer);
       }
       
-      // Function to change basemap
       function changeBasemap() {
         const basemapValue = document.getElementById("basemapSelect").value;
         esriMap.basemap = basemapValue;
       }
       
-      // Function to activate polygon draw tool
       function activatePolygonDrawTool() {
         clearGraphics();
         sketchViewModel.create("polygon");
       }
       
-      // Function to activate rectangle draw tool
       function activateRectangleDrawTool() {
         clearGraphics();
         sketchViewModel.create("rectangle");
       }
       
-      // Function to clear graphics
       function clearGraphics() {
         graphicsLayer.removeAll();
         gridLayer.removeAll();
@@ -687,7 +1025,6 @@
         document.getElementById("processBtn").disabled = true;
       }
       
-      // Set up button event listeners
       document.getElementById("basemapSelect").addEventListener("change", changeBasemap);
       document.getElementById("drawPolygonBtn").addEventListener("click", activatePolygonDrawTool);
       document.getElementById("drawRectangleBtn").addEventListener("click", activateRectangleDrawTool);
@@ -696,31 +1033,142 @@
       document.getElementById("addLayerBtn").addEventListener("click", addLayer);
       document.getElementById("downloadAllBtn").addEventListener("click", downloadSelectedImages);
       document.getElementById("getCapabilitiesBtn").addEventListener("click", function() {
-        // ตรวจสอบว่าเลือกประเภทเป็น WMS หรือไม่
         const layerType = document.getElementById("layerTypeSelect").value;
         if (layerType !== "wms") {
-          // หากไม่ใช่ WMS ให้เปลี่ยนเป็น WMS ก่อน
           document.getElementById("layerTypeSelect").value = "wms";
           document.getElementById("wmsLayerOptions").style.display = "block";
           document.getElementById("layerTypeSelect").dispatchEvent(new Event('change'));
         }
-        
-        // เรียกฟังก์ชันค้นหาชั้นข้อมูล WMS
         getWMSCapabilities();
       });
-      
-      // Function to test XYZ Tiles URL format and provide feedback
+
+      // ----- ฟังก์ชันสำหรับ GeoJSON (ใหม่) -----
+      document.getElementById("addGeoJsonBtn").addEventListener("click", function() {
+        const fileInput = document.getElementById("geoJsonInput");
+        if (fileInput.files.length === 0) {
+            alert("กรุณาเลือกไฟล์ GeoJSON หรือ JSON");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const fileName = file.name;
+
+        // สร้าง Blob URL จากไฟล์ที่เลือก
+        const url = URL.createObjectURL(file);
+
+        showProcessingOverlay("กำลังนำเข้า GeoJSON...");
+
+        // สร้าง GeoJSONLayer
+        const geojsonLayer = new GeoJSONLayer({
+            url: url,
+            title: fileName,
+            // ไม่ระบุ renderer เพื่อให้ระบบสุ่มสีให้ หรือใช้ default ของ API
+            // หากต้องการกำหนดเองสามารถใส่ renderer: { ... } ได้
+        });
+
+        // จัดการเมื่อโหลดสำเร็จ
+        geojsonLayer.when(function() {
+            // Zoom ไปที่ขอบเขตของข้อมูล GeoJSON
+            view.goTo(geojsonLayer.fullExtent);
+            hideProcessingOverlay();
+            console.log("GeoJSON loaded:", fileName);
+        }, function(error) {
+            hideProcessingOverlay();
+            console.error("GeoJSON Error:", error);
+            alert("ไม่สามารถอ่านไฟล์ GeoJSON ได้: " + error.message);
+            esriMap.remove(geojsonLayer); // ลบออกถ้าพัง
+        });
+
+        // ใช้ logic เดียวกับ addLayer เพื่อจัดการ Layer Ordering และ UI
+        const layerId = "geojson_" + layerCounter++;
+        geojsonLayer.id = layerId;
+
+        // แทรก layer ก่อน grid และ graphic เพื่อไม่ให้บังเส้นวาด
+        esriMap.layers.remove(gridLayer);
+        esriMap.layers.remove(graphicsLayer);
+        
+        esriMap.add(geojsonLayer);
+        
+        esriMap.add(gridLayer);
+        esriMap.add(graphicsLayer);
+
+        // เพิ่มลงใน UI List
+        addLayerToUIList(layerId, "GeoJSON File", fileName, geojsonLayer);
+        
+        // Reset input
+        fileInput.value = "";
+      });
+
+      // แยกฟังก์ชันเพิ่ม UI รายการ Layer ออกมาเพื่อใช้ซ้ำ
+      function addLayerToUIList(layerId, typeText, urlOrName, layerObj) {
+        const layersDiv = document.getElementById("loadedLayers");
+        const layerItem = document.createElement("div");
+        layerItem.style.display = "flex";
+        layerItem.style.justifyContent = "space-between";
+        layerItem.style.alignItems = "center";
+        layerItem.style.padding = "5px 0";
+        layerItem.style.borderBottom = "1px solid #eee";
+        
+        const displayName = urlOrName.length > 50 ? urlOrName.substring(0, 47) + "..." : urlOrName;
+        
+        layerItem.innerHTML = `
+          <div>
+            <div><strong>${typeText}</strong></div>
+            <div style="font-size: 12px; word-break: break-all;" title="${urlOrName}">${displayName}</div>
+          </div>
+          <div>
+            <button class="layer-visibility-btn" data-id="${layerId}" data-visible="true" style="background-color: #4CAF50; padding: 4px 8px; font-size: 12px; margin-right: 5px;">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="remove-layer-btn" data-id="${layerId}" style="background-color: #f44336; padding: 4px 8px; font-size: 12px;">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        `;
+        
+        layersDiv.appendChild(layerItem);
+        
+        layerItem.querySelector(".remove-layer-btn").addEventListener("click", function() {
+          const id = this.getAttribute("data-id");
+          const layerToRemove = esriMap.findLayerById(id);
+          if (layerToRemove) {
+            esriMap.remove(layerToRemove);
+            this.parentElement.parentElement.remove();
+          }
+        });
+        
+        layerItem.querySelector(".layer-visibility-btn").addEventListener("click", function() {
+          const id = this.getAttribute("data-id");
+          const isVisible = this.getAttribute("data-visible") === "true";
+          const layerToToggle = esriMap.findLayerById(id);
+          
+          if (layerToToggle) {
+            layerToToggle.visible = !isVisible;
+            if (!isVisible) {
+              this.style.backgroundColor = "#4CAF50";
+              this.innerHTML = '<i class="fas fa-eye"></i>';
+              this.setAttribute("data-visible", "true");
+            } else {
+              this.style.backgroundColor = "#ff9800";
+              this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+              this.setAttribute("data-visible", "false");
+            }
+          }
+        });
+        
+        addedLayers.push({
+          id: layerId,
+          layer: layerObj
+        });
+      }
+
       function isValidXYZTilesURL(url) {
-        // ตรวจสอบว่า URL มีรูปแบบที่ถูกต้องสำหรับ XYZ Tiles
-        // ต้องมี {x}, {y}, และ {z} ในรูปแบบที่ถูกต้อง
         const hasXParam = url.includes("{x}");
         const hasYParam = url.includes("{y}");
         const hasZParam = url.includes("{z}");
-        
         return hasXParam && hasYParam && hasZParam;
       }
       
-      // Function to add layer
       function addLayer() {
         const layerType = document.getElementById("layerTypeSelect").value;
         const url = document.getElementById("layerURL").value.trim();
@@ -736,86 +1184,48 @@
         try {
           switch (layerType) {
             case "mapService":
-              newLayer = new MapImageLayer({
-                url: url,
-                id: layerId
-              });
+              newLayer = new MapImageLayer({ url: url, id: layerId });
               break;
             case "featureService":
-              newLayer = new FeatureLayer({
-                url: url,
-                id: layerId
-              });
+              newLayer = new FeatureLayer({ url: url, id: layerId });
               break;
             case "imageService":
-              newLayer = new ImageryLayer({
-                url: url,
-                id: layerId
-              });
+              newLayer = new ImageryLayer({ url: url, id: layerId });
               break;
             case "wms":
-              // ดึงค่าชั้นข้อมูลจาก input field
               let wmsLayers = document.getElementById("wmsLayers").value;
-              
-              // ถ้าไม่ได้ระบุชั้นข้อมูล ให้ตรวจสอบจาก URL แทน
               if (!wmsLayers || wmsLayers.trim() === "") {
-                // พยายามดึงค่า LAYERS parameter จาก URL โดยตรง
                 const urlObj = new URL(url);
                 const params = new URLSearchParams(urlObj.search);
-                
-                // ตรวจสอบพารามิเตอร์ LAYERS (ใช้ทั้งตัวใหญ่และตัวเล็ก)
                 wmsLayers = params.get("LAYERS") || params.get("layers") || "";
-                
-                if (wmsLayers) {
-                  console.log("Found LAYERS in URL:", wmsLayers);
-                  // อัพเดตค่าใน input field
-                  document.getElementById("wmsLayers").value = wmsLayers;
-                }
+                if (wmsLayers) document.getElementById("wmsLayers").value = wmsLayers;
               }
-              
-              // แยกชื่อชั้นข้อมูลที่คั่นด้วยเครื่องหมาย ,
               const layerNames = wmsLayers.split(",").map(item => item.trim()).filter(item => item !== "");
-              
-              // ตรวจสอบว่าเป็น URL ที่มี API key หรือไม่
               let wmsUrl = url;
-              // ถ้าไม่พบพารามิเตอร์ GetMap หรือ REQUEST ใน URL
               if (!url.includes("GetMap") && !url.includes("REQUEST=GetMap") && !url.includes("request=GetMap")) {
-                // ตรวจสอบว่ามีเครื่องหมาย ? อยู่แล้วหรือไม่
                 if (url.includes("?")) {
-                  // มีพารามิเตอร์อื่นๆ อยู่แล้ว (เช่น API key)
                   wmsUrl = `${url}&SERVICE=WMS&REQUEST=GetMap`;
                 } else {
-                  // ยังไม่มีพารามิเตอร์
                   wmsUrl = `${url}?SERVICE=WMS&REQUEST=GetMap`;
                 }
               }
-              
-              // ดึงค่าการตั้งค่า WMS จากฟอร์ม
               const wmsVersion = document.getElementById("wmsVersion").value;
               const wmsFormat = document.getElementById("wmsFormat").value;
               const wmsTransparent = document.getElementById("wmsTransparent").checked;
               
-              // สร้าง WMS layer ด้วยการตั้งค่าที่ปรับปรุงแล้ว
               if (layerNames.length > 0) {
                 newLayer = new WMSLayer({
                   url: wmsUrl,
-                  sublayers: layerNames.map(function(layerName) {
-                    return { name: layerName };
-                  }),
+                  sublayers: layerNames.map(layerName => ({ name: layerName })),
                   id: layerId,
                   format: wmsFormat,
                   transparent: wmsTransparent,
-                  imageTransparency: false, // ปิดการโปร่งแสงของรูปภาพ
-                  imageFormat: wmsFormat,   // ใช้รูปแบบที่รองรับความโปร่งใส
-                  version: wmsVersion,      // ใช้เวอร์ชั่น WMS ที่ผู้ใช้เลือก
-                  customParameters: {      
-                    transparent: wmsTransparent ? "true" : "false",  // เปิดใช้งาน transparent ใน WMS request
-                    format: "image/" + wmsFormat                     // กำหนดรูปแบบภาพที่ร้องขอ
-                  }
+                  imageTransparency: false,
+                  imageFormat: wmsFormat,
+                  version: wmsVersion,
+                  customParameters: { transparent: wmsTransparent ? "true" : "false", format: "image/" + wmsFormat }
                 });
               } else {
-                // ถ้าไม่ได้ระบุชั้นข้อมูล ให้ลองสร้างโดยไม่ระบุ sublayers
-                console.log("Creating WMS layer without specified sublayers. Will try to load all available layers.");
                 newLayer = new WMSLayer({
                   url: wmsUrl,
                   id: layerId,
@@ -824,145 +1234,56 @@
                   imageTransparency: false,
                   imageFormat: wmsFormat,
                   version: wmsVersion,
-                  customParameters: {
-                    transparent: wmsTransparent ? "true" : "false",
-                    format: "image/" + wmsFormat
-                  }
+                  customParameters: { transparent: wmsTransparent ? "true" : "false", format: "image/" + wmsFormat }
                 });
               }
               break;
             case "tileLayer":
-              newLayer = new TileLayer({
-                url: url,
-                id: layerId
-              });
+              newLayer = new TileLayer({ url: url, id: layerId });
               break;
             case "xyzTiles":
-              // ตรวจสอบรูปแบบ URL ก่อนสร้าง WebTileLayer
               if (!isValidXYZTilesURL(url)) {
-                throw new Error("URL ไม่ถูกต้องสำหรับ XYZ Tiles ต้องมี {x}, {y}, และ {z} ในรูปแบบที่ถูกต้อง เช่น https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}");
+                throw new Error("URL ไม่ถูกต้องสำหรับ XYZ Tiles ต้องมี {x}, {y}, และ {z}");
               }
-              
-              // สร้าง WebTileLayer สำหรับชั้นข้อมูล XYZ Tiles
               newLayer = new WebTileLayer({
                 urlTemplate: url,
                 id: layerId,
-                // กำหนดคุณสมบัติเพิ่มเติมให้เหมาะสมกับการใช้งาน
-                subDomains: ["a", "b", "c"], // ในกรณีที่ URL มีการระบุ subdomain เช่น {subDomain}
+                subDomains: ["a", "b", "c"],
                 copyright: "XYZ Tiles Layer"
               });
               break;
           }
           
-          // แสดงข้อความกำลังโหลด
           showProcessingOverlay("กำลังโหลดชั้นข้อมูล...");
           
-          // สำคัญ: แทนที่จะเพิ่มเลยให้ใช้ insertBefore เพื่อให้อยู่ใต้ graphic layers
-          esriMap.layers.remove(gridLayer);    // ลบชั่วคราวเพื่อให้สามารถเรียงลำดับได้
+          esriMap.layers.remove(gridLayer);
           esriMap.layers.remove(graphicsLayer);
-          
-          // เพิ่มเลเยอร์ใหม่ก่อน
           esriMap.add(newLayer);
-          
-          // แล้วเพิ่ม grid layer และ graphics layer กลับเข้าไปอีกครั้ง (จะได้อยู่บนสุด)
           esriMap.add(gridLayer);
           esriMap.add(graphicsLayer);
           
-          // ให้โหลดหลังจากเพิ่มชั้นข้อมูลแล้ว
           newLayer.when(function() {
             hideProcessingOverlay();
-            console.log("Layer loaded successfully:", newLayer);
-            
-            // ถ้าเป็น WMS และไม่ได้ระบุชั้นข้อมูล ให้แสดงรายการชั้นข้อมูลที่มี
             if (layerType === "wms" && newLayer.sublayers && newLayer.sublayers.length > 0) {
               const availableLayers = newLayer.sublayers.map(sublayer => sublayer.name).join(", ");
               if (document.getElementById("wmsLayers").value.trim() === "") {
                 document.getElementById("wmsLayers").value = availableLayers;
               }
             }
-            
           }, function(error) {
             hideProcessingOverlay();
             console.error("Error loading layer:", error);
             alert("ไม่สามารถโหลดชั้นข้อมูลได้: " + error.message);
-            
-            // ลบชั้นข้อมูลที่เพิ่มไปแล้ว
             esriMap.remove(newLayer);
           });
           
-          // Add to layer management list
-          const layersDiv = document.getElementById("loadedLayers");
-          const layerItem = document.createElement("div");
-          layerItem.style.display = "flex";
-          layerItem.style.justifyContent = "space-between";
-          layerItem.style.alignItems = "center";
-          layerItem.style.padding = "5px 0";
-          layerItem.style.borderBottom = "1px solid #eee";
-          
-          // Get layer type and URL for display
           const layerTypeText = document.getElementById("layerTypeSelect").options[
             document.getElementById("layerTypeSelect").selectedIndex
           ].text;
           
-          // แสดง URL แบบย่อ
-          const shortUrl = url.length > 50 ? url.substring(0, 47) + "..." : url;
+          // ใช้ฟังก์ชัน Helper ที่สร้างขึ้นใหม่
+          addLayerToUIList(layerId, layerTypeText, url, newLayer);
           
-          layerItem.innerHTML = `
-            <div>
-              <div><strong>${layerTypeText}</strong></div>
-              <div style="font-size: 12px; word-break: break-all;" title="${url}">${shortUrl}</div>
-            </div>
-            <div>
-              <button class="layer-visibility-btn" data-id="${layerId}" data-visible="true" style="background-color: #4CAF50; padding: 4px 8px; font-size: 12px; margin-right: 5px;">
-                <i class="fas fa-eye"></i>
-              </button>
-              <button class="remove-layer-btn" data-id="${layerId}" style="background-color: #f44336; padding: 4px 8px; font-size: 12px;">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          `;
-          
-          layersDiv.appendChild(layerItem);
-          
-          // Add event listener to remove button
-          layerItem.querySelector(".remove-layer-btn").addEventListener("click", function() {
-            const layerId = this.getAttribute("data-id");
-            const layerToRemove = esriMap.findLayerById(layerId);
-            if (layerToRemove) {
-              esriMap.remove(layerToRemove);
-              this.parentElement.parentElement.remove();
-            }
-          });
-          
-          // Add event listener to visibility toggle button
-          layerItem.querySelector(".layer-visibility-btn").addEventListener("click", function() {
-            const layerId = this.getAttribute("data-id");
-            const isVisible = this.getAttribute("data-visible") === "true";
-            const layerToToggle = esriMap.findLayerById(layerId);
-            
-            if (layerToToggle) {
-              // Toggle visibility
-              layerToToggle.visible = !isVisible;
-              
-              // Update button state
-              if (!isVisible) {
-                this.style.backgroundColor = "#4CAF50";
-                this.innerHTML = '<i class="fas fa-eye"></i>';
-                this.setAttribute("data-visible", "true");
-              } else {
-                this.style.backgroundColor = "#ff9800";
-                this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-                this.setAttribute("data-visible", "false");
-              }
-            }
-          });
-          
-          addedLayers.push({
-            id: layerId,
-            layer: newLayer
-          });
-          
-          // Clear input fields (ไม่ต้องล้างค่าของ wmsLayers เพื่อความสะดวกในการใช้งาน)
           document.getElementById("layerURL").value = "";
           
         } catch (error) {
@@ -972,25 +1293,16 @@
         }
       }
       
-      // Function to get WMS capabilities
       function getWMSCapabilities() {
         const wmsUrl = document.getElementById("layerURL").value.trim();
-        
         if (!wmsUrl) {
           alert("กรุณาใส่ URL ของ WMS Service");
           return;
         }
-        
-        // แสดงข้อความกำลังโหลด
         showProcessingOverlay("กำลังดึงข้อมูลชั้นข้อมูล WMS...");
-        
         try {
-          // สร้าง URL สำหรับดึงข้อมูล Capabilities
           let getCapabilitiesUrl = wmsUrl;
-          
-          // ตรวจสอบว่ามีเครื่องหมาย ? อยู่แล้วหรือไม่
           if (getCapabilitiesUrl.includes("?")) {
-            // มีพารามิเตอร์อื่นๆ อยู่แล้ว (เช่น API key)
             if (!getCapabilitiesUrl.includes("SERVICE=") && !getCapabilitiesUrl.includes("service=")) {
               getCapabilitiesUrl += "&SERVICE=WMS";
             }
@@ -998,34 +1310,21 @@
               getCapabilitiesUrl += "&REQUEST=GetCapabilities";
             }
           } else {
-            // ยังไม่มีพารามิเตอร์
             getCapabilitiesUrl += "?SERVICE=WMS&REQUEST=GetCapabilities";
           }
-          
-          // ใช้ CORS Proxy ถ้าจำเป็น (ไม่ได้ใส่ code จริงเพราะต้องมี server รองรับ)
-          // getCapabilitiesUrl = "https://your-cors-proxy/" + encodeURIComponent(getCapabilitiesUrl);
-          
-          // เรียก API เพื่อดึงข้อมูล Capabilities
           fetch(getCapabilitiesUrl)
             .then(response => {
-              if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-              }
+              if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
               return response.text();
             })
             .then(data => {
-              // แปลง XML เป็น Document object
               const parser = new DOMParser();
               const xmlDoc = parser.parseFromString(data, "application/xml");
-              
-              // ดึงรายการชั้นข้อมูล
               const layers = [];
               const layerElements = xmlDoc.getElementsByTagName("Layer");
-              
               for (let i = 0; i < layerElements.length; i++) {
                 const nameElement = layerElements[i].getElementsByTagName("Name")[0];
                 const titleElement = layerElements[i].getElementsByTagName("Title")[0];
-                
                 if (nameElement && nameElement.textContent) {
                   layers.push({
                     name: nameElement.textContent,
@@ -1033,21 +1332,14 @@
                   });
                 }
               }
-              
-              // กรองเฉพาะชั้นข้อมูลที่มีชื่อ
               const availableLayers = layers.filter(layer => layer.name.trim() !== "");
-              
               if (availableLayers.length > 0) {
-                // นำชื่อชั้นข้อมูลมาใส่ในกล่องข้อความ
                 const layerNames = availableLayers.map(layer => layer.name).join(", ");
                 document.getElementById("wmsLayers").value = layerNames;
-                
-                // แสดงข้อความว่าพบชั้นข้อมูลกี่ชั้น
                 alert(`พบชั้นข้อมูลทั้งหมด ${availableLayers.length} ชั้น`);
               } else {
                 alert("ไม่พบชั้นข้อมูลใน WMS Service นี้");
               }
-              
               hideProcessingOverlay();
             })
             .catch(error => {
@@ -1062,66 +1354,33 @@
         }
       }
       
-      // Function to capture viewport as image - ปรับปรุงใหม่ให้ซ่อนกริดในระหว่างการบันทึกภาพ
       async function captureViewportAsImage(polygon) {
         try {
           showProcessingOverlay("กำลังบันทึกภาพพื้นที่ที่เลือก...");
-          
-          // ซ่อนเส้นกริดก่อนจับภาพ
           gridLayer.visible = false;
-          
-          // ซ่อนกราฟิกที่วาดเพื่อไม่ให้ปรากฏในภาพที่บันทึก
           graphicsLayer.visible = false;
-          
-          // Zoom to polygon with padding for better context
           await view.goTo({
             target: polygon,
-            padding: {
-              top: 50,
-              bottom: 50,
-              left: 50,
-              right: 50
-            }
-          }, {
-            duration: 1000,
-            easing: "ease-in-out"
-          });
-          
-          // รอให้แผนที่โหลดเสร็จและเสถียร (ปรับเวลาให้นานขึ้นเพื่อรองรับ XYZ Tiles)
+            padding: { top: 50, bottom: 50, left: 50, right: 50 }
+          }, { duration: 1000, easing: "ease-in-out" });
           await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          // ใช้ API ของ ArcGIS โดยตรงในการจับภาพ
           const screenshot = await view.takeScreenshot({
-            format: "png",
-            quality: 100,
-            width: view.width,
-            height: view.height
+            format: "png", quality: 100, width: view.width, height: view.height
           });
-          
-          // แสดงเส้นกริดและกราฟิกอีกครั้งหลังจากการบันทึกภาพ
           gridLayer.visible = true;
           graphicsLayer.visible = true;
-          
-          // สำคัญ: แปลงขอบเขตจาก Web Mercator เป็น WGS84 (EPSG:4326)
           const viewExtent = view.extent;
           const wgs84Extent = webMercatorUtils.webMercatorToGeographic(viewExtent);
-          
           console.log("Captured image with EPSG:4326 extent:", wgs84Extent);
-          
-          // แปลงข้อมูลรูปภาพเป็น ArrayBuffer
           const response = await fetch(screenshot.dataUrl);
           const blob = await response.blob();
           const arrayBuffer = await blob.arrayBuffer();
-          
           hideProcessingOverlay();
-          
-          // สร้างข้อความแสดงขอบเขตพื้นที่
           const extentText = `MinX: ${wgs84Extent.xmin.toFixed(6)}, MinY: ${wgs84Extent.ymin.toFixed(6)}, MaxX: ${wgs84Extent.xmax.toFixed(6)}, MaxY: ${wgs84Extent.ymax.toFixed(6)}`;
-          
           return {
             data: arrayBuffer,
             dataUrl: screenshot.dataUrl,
-            extent: wgs84Extent,         // ใช้ค่าพิกัด WGS84 (EPSG:4326)
+            extent: wgs84Extent,
             width: screenshot.data.width,
             height: screenshot.data.height,
             extentText: extentText
@@ -1133,29 +1392,15 @@
         }
       }
       
-      // Create a georeferenced PNG with improved world file calculations
       function createGeoreferencedPNG(imageDataUrl, extent, width, height) {
         try {
-          // Ensure we have valid extent and dimensions
           if (!extent || !width || !height || width <= 0 || height <= 0) {
             throw new Error("Invalid extent or dimensions for georeferencing");
           }
-          
-          // Create world file content (for georeferencing)
-          // World file format for PNG (.pgw):
-          // Line 1: pixel size in the x-direction in map units/pixel
-          // Line 2: rotation about y-axis (typically 0)
-          // Line 3: rotation about x-axis (typically 0)
-          // Line 4: pixel size in the y-direction in map units/pixel (negative value)
-          // Line 5: x-coordinate of the center of the upper left pixel
-          // Line 6: y-coordinate of the center of the upper left pixel
-          
           const xPixelSize = (extent.xmax - extent.xmin) / width;
           const yPixelSize = (extent.ymax - extent.ymin) / height;
           const xCenter = extent.xmin + (xPixelSize / 2);
           const yCenter = extent.ymax - (yPixelSize / 2);
-          
-          // Format with high precision to ensure accuracy
           const worldFileContent = 
             `${xPixelSize.toFixed(15)}\n` +
             `0.0000000000\n` +
@@ -1163,8 +1408,6 @@
             `${(-yPixelSize).toFixed(15)}\n` +
             `${xCenter.toFixed(15)}\n` +
             `${yCenter.toFixed(15)}`;
-          
-          // XML metadata content for coordinate system (EPSG:4326)
           const metadataContent = 
             `<?xml version="1.0" encoding="UTF-8"?>
 <metadata>
@@ -1182,8 +1425,6 @@
     <PixelSizeY>${yPixelSize.toFixed(15)}</PixelSizeY>
   </DatasetDescription>
 </metadata>`;
-          
-          // Also create a prj file (another common georeferencing format)
           const prjFileContent = 
             `GEOGCS["WGS 84",
     DATUM["WGS_1984",
@@ -1195,8 +1436,6 @@
     UNIT["degree",0.0174532925199433,
         AUTHORITY["EPSG","9122"]],
     AUTHORITY["EPSG","4326"]]`;
-          
-          // สร้างไฟล์ข้อมูลขอบเขตพื้นที่เพิ่มเติม
           const extentInfoContent = 
             `Coordinate System: WGS84 (EPSG:4326)
 Extent Information:
@@ -1211,7 +1450,6 @@ Extent Information:
 Image Dimensions:
   Width: ${width} pixels
   Height: ${height} pixels`;
-          
           return {
             imageDataUrl: imageDataUrl,
             worldFile: worldFileContent,
@@ -1225,32 +1463,20 @@ Image Dimensions:
         }
       }
       
-      // Process the selected area
       function processSelectedArea() {
         if (!selectedGraphic) {
           alert("กรุณาเลือกพื้นที่ก่อน");
           return;
         }
-        
-        // Show processing status and hide all panels before processing
         document.getElementById("gridStatus").style.display = "block";
         hideAllPanels();
-        
         const selectedPolygon = selectedGraphic.geometry;
-        
-        // ให้ graphics และ grid layers อยู่บนสุดตลอดเวลา
         ensureGraphicsLayerOnTop();
-        
-        // First, capture the entire selected area
         captureViewportAsImage(selectedPolygon).then((imageInfo) => {
-          // Add to generated images list
           const timestamp = new Date().getTime();
           const imageName = "full_area_" + timestamp + ".png";
-          
-          // Convert image data URL to PNG with world file
           const blobUrl = URL.createObjectURL(new Blob([imageInfo.data], { type: "image/png" }));
           const geoInfo = createGeoreferencedPNG(blobUrl, imageInfo.extent, imageInfo.width, imageInfo.height);
-          
           generatedImages.push({
             name: imageName,
             type: "full",
@@ -1265,36 +1491,24 @@ Image Dimensions:
             extentInfo: geoInfo.extentInfo,
             extentText: imageInfo.extentText
           });
-          
-          // Update UI
           updateImagesList();
-          
-          // Then create grid and process each cell
           createAndProcessGrid(selectedPolygon);
         }).catch(error => {
           console.error("Error capturing full area:", error);
           alert("เกิดข้อผิดพลาดในการบันทึกภาพพื้นที่เต็ม: " + (error.message || error));
-          // Show panels again on error
           showAllPanels();
           document.getElementById("gridStatus").style.display = "none";
         });
       }
       
-      // Create a grid and process each cell
       function createAndProcessGrid(polygon) {
-        // Create a grid with 500x500 meter cells
-        const gridSize = 500; // in meters
+        const gridSize = 500; 
         const geodesicBuffer = geometryEngine.geodesicBuffer(polygon, 0, "meters");
         const extent = geodesicBuffer.extent;
-        
-        // Calculate grid dimensions
         const width = extent.width;
         const height = extent.height;
-        
         const cols = Math.ceil(width / gridSize);
         const rows = Math.ceil(height / gridSize);
-        
-        // Create grid cells
         const gridCells = [];
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
@@ -1302,124 +1516,63 @@ Image Dimensions:
             const ymin = extent.ymin + row * gridSize;
             const xmax = Math.min(extent.xmin + (col + 1) * gridSize, extent.xmax);
             const ymax = Math.min(extent.ymin + (row + 1) * gridSize, extent.ymax);
-            
             const cellExtent = new Extent({
-              xmin: xmin,
-              ymin: ymin,
-              xmax: xmax,
-              ymax: ymax,
+              xmin: xmin, ymin: ymin, xmax: xmax, ymax: ymax,
               spatialReference: extent.spatialReference
             });
-            
             const cellPolygon = Polygon.fromExtent(cellExtent);
-            
-            // Only include cells that intersect with the selected polygon
             if (geometryEngine.intersects(cellPolygon, polygon)) {
               gridCells.push(cellPolygon);
-              
-              // Add grid cell graphic
               const gridGraphic = new Graphic({
                 geometry: cellPolygon,
                 symbol: {
                   type: "simple-fill",
                   color: [0, 0, 255, 0.1],
-                  outline: {
-                    color: [0, 0, 255, 0.5],
-                    width: 1
-                  }
+                  outline: { color: [0, 0, 255, 0.5], width: 1 }
                 }
               });
-              
               gridLayer.add(gridGraphic);
             }
           }
         }
-        
-        // Update UI for grid processing
         totalGrids = gridCells.length;
         processedCount = 0;
         updateProgressUI();
-        
-        // Process grid cells one by one
         processNextGridCell(gridCells, 0);
       }
       
-      // Process grid cells sequentially with improved error handling and layer visibility
       async function processNextGridCell(gridCells, index) {
         if (index >= gridCells.length) {
-          // All cells processed
           document.getElementById("gridStatus").style.display = "none";
           hideProcessingOverlay();
-          // Show panels again when complete
           showAllPanels();
-          
-          // Make sure graphics and grid are visible and on top after processing
           gridLayer.visible = true;
           graphicsLayer.visible = true;
           ensureGraphicsLayerOnTop();
-          
           return;
         }
-        
         const cellPolygon = gridCells[index];
-        
         try {
-          // Update processing message
           showProcessingOverlay(`กำลังประมวลผลกริด ${index + 1} จาก ${gridCells.length}...`);
-          
-          // ซ่อนกริดทั้งหมดในระหว่างการบันทึกภาพ
           gridLayer.visible = false;
-          
-          // ซ่อน graphicsLayer ที่มีพื้นที่เลือกหลัก
           graphicsLayer.visible = false;
-          
-          // Zoom to the grid cell with padding
           await view.goTo({
             target: cellPolygon,
-            padding: {
-              top: 20,
-              bottom: 20,
-              left: 20,
-              right: 20
-            }
-          }, {
-            duration: 500,
-            easing: "ease-in-out"
-          });
-          
-          // รอให้แผนที่โหลดเสร็จและเสถียร (ปรับเวลาให้นานขึ้นเพื่อรองรับ XYZ Tiles)
+            padding: { top: 20, bottom: 20, left: 20, right: 20 }
+          }, { duration: 500, easing: "ease-in-out" });
           await new Promise(resolve => setTimeout(resolve, 2500));
-          
-          // ใช้ API ของ ArcGIS โดยตรงในการจับภาพ
-          const screenshot = await view.takeScreenshot({
-            format: "png",
-            quality: 100
-          });
-          
-          // แสดงเส้นกริดและกราฟิกอีกครั้งหลังจากบันทึกภาพเสร็จแล้ว
+          const screenshot = await view.takeScreenshot({ format: "png", quality: 100 });
           gridLayer.visible = true;
           graphicsLayer.visible = true;
-          
-          // Convert to WGS84 for georeferencing
           const viewExtent = view.extent;
           const wgs84Extent = webMercatorUtils.webMercatorToGeographic(viewExtent);
-          
-          // แปลงข้อมูลรูปภาพเป็น ArrayBuffer สำหรับเก็บบันทึก
           const response = await fetch(screenshot.dataUrl);
           const blob = await response.blob();
           const arrayBuffer = await blob.arrayBuffer();
-          
-          // Create georeferenced PNG
           const blobUrl = URL.createObjectURL(blob);
           const geoInfo = createGeoreferencedPNG(blobUrl, wgs84Extent, screenshot.data.width, screenshot.data.height);
-          
-          // สร้างข้อความแสดงขอบเขตพื้นที่
           const extentText = `MinX: ${wgs84Extent.xmin.toFixed(6)}, MinY: ${wgs84Extent.ymin.toFixed(6)}, MaxX: ${wgs84Extent.xmax.toFixed(6)}, MaxY: ${wgs84Extent.ymax.toFixed(6)}`;
-          
-          // Create a timestamp for unique naming
           const timestamp = new Date().getTime();
-          
-          // Add to generated images list
           const imageName = `grid_${index}_${timestamp}.png`;
           generatedImages.push({
             name: imageName,
@@ -1435,79 +1588,45 @@ Image Dimensions:
             extentInfo: geoInfo.extentInfo,
             extentText: extentText
           });
-          
-          // Update UI
           processedCount++;
           updateProgressUI();
           updateImagesList();
-          
-          // Process next cell with a delay to give browser breathing room
-          setTimeout(() => {
-            processNextGridCell(gridCells, index + 1);
-          }, 500);
+          setTimeout(() => { processNextGridCell(gridCells, index + 1); }, 500);
         } catch (error) {
           console.error(`Error processing grid cell ${index}:`, error);
-          
-          // Continue with next cell despite error
           processedCount++;
           updateProgressUI();
-          
-          setTimeout(() => {
-            processNextGridCell(gridCells, index + 1);
-          }, 500);
+          setTimeout(() => { processNextGridCell(gridCells, index + 1); }, 500);
         }
       }
       
-      // Update progress UI
       function updateProgressUI() {
         const statusElement = document.getElementById("gridStatus");
         statusElement.style.display = "block";
-        
         const statusText = document.getElementById("statusText");
         statusText.textContent = `กำลังประมวลผลกริด... ${processedCount}/${totalGrids}`;
-        
         const progressFill = document.getElementById("progressFill");
         const percentage = totalGrids > 0 ? (processedCount / totalGrids) * 100 : 0;
         progressFill.style.width = percentage + "%";
       }
       
-      // Download a single image - global function - improved version
       function downloadSingleImage(index) {
         const image = generatedImages[index];
         if (image) {
           try {
-            // Show processing
             showProcessingOverlay("กำลังสร้างไฟล์สำหรับดาวน์โหลด...");
-            
-            // Create a zip file with PNG and world file
             const zip = new JSZip();
-            
-            // Add PNG file
             zip.file(image.name, new Blob([image.data], { type: "image/png" }));
-            
-            // Add world file (.pgw for PNG)
             const worldFileName = image.name.replace('.png', '.pgw');
             zip.file(worldFileName, image.worldFile);
-            
-            // Add metadata xml file
             const metadataFileName = image.name.replace('.png', '.xml');
             zip.file(metadataFileName, image.metadata);
-            
-            // Add .prj file for better compatibility with GIS software
             const prjFileName = image.name.replace('.png', '.prj');
             zip.file(prjFileName, image.prjFile);
-            
-            // Add extent info file
             const extentInfoFileName = image.name.replace('.png', '_extent_info.txt');
             zip.file(extentInfoFileName, image.extentInfo || "");
-            
-            // Add text file with EPSG information for clarity
             const epsgInfoFileName = image.name.replace('.png', '_epsg_info.txt');
-            zip.file(epsgInfoFileName, `Coordinate System: WGS84 (EPSG:4326)
-Geographic Coordinate System (Longitude/Latitude)
-Extent: ${image.extentText || ""}`);
-            
-            // Generate and download the zip
+            zip.file(epsgInfoFileName, `Coordinate System: WGS84 (EPSG:4326)\nGeographic Coordinate System (Longitude/Latitude)\nExtent: ${image.extentText || ""}`);
             zip.generateAsync({ type: "blob" }).then(function(content) {
               hideProcessingOverlay();
               saveAs(content, image.name.replace('.png', '') + "_EPSG4326.zip");
@@ -1524,36 +1643,22 @@ Extent: ${image.extentText || ""}`);
         }
       }
       
-      // Global function to download selected images - improved version
       function downloadSelectedImages() {
         const checkboxes = document.querySelectorAll(".image-checkbox:checked");
-        
         if (checkboxes.length === 0) {
           alert("กรุณาเลือกภาพที่ต้องการดาวน์โหลด");
           return;
         }
-        
         try {
           if (checkboxes.length === 1) {
-            // Download single file
             const index = parseInt(checkboxes[0].getAttribute("data-index"));
             downloadSingleImage(index);
           } else {
-            // Show processing
             showProcessingOverlay("กำลังเตรียมไฟล์สำหรับดาวน์โหลด...");
-            
-            // Create zip file with multiple images
             const zip = new JSZip();
             const mainFolder = zip.folder("georeferenced_images_EPSG4326");
-            
-            const selectedIndices = Array.from(checkboxes).map(checkbox => 
-              parseInt(checkbox.getAttribute("data-index"))
-            );
-            
-            // Process each image
+            const selectedIndices = Array.from(checkboxes).map(checkbox => parseInt(checkbox.getAttribute("data-index")));
             let processed = 0;
-            
-            // Create a promise for each image
             const promises = selectedIndices.map((index, i) => {
               return new Promise((resolve, reject) => {
                 setTimeout(() => {
@@ -1561,37 +1666,19 @@ Extent: ${image.extentText || ""}`);
                     const image = generatedImages[index];
                     if (image) {
                       const imageFolder = mainFolder.folder(image.name.replace('.png', ''));
-                      
-                      // Add PNG file
                       imageFolder.file(image.name, new Blob([image.data], { type: "image/png" }));
-                      
-                      // Add world file (.pgw for PNG)
                       const worldFileName = image.name.replace('.png', '.pgw');
                       imageFolder.file(worldFileName, image.worldFile);
-                      
-                      // Add metadata xml file
                       const metadataFileName = image.name.replace('.png', '.xml');
                       imageFolder.file(metadataFileName, image.metadata);
-                      
-                      // Add .prj file
                       const prjFileName = image.name.replace('.png', '.prj');
                       imageFolder.file(prjFileName, image.prjFile);
-                      
-                      // Add extent info file
                       const extentInfoFileName = image.name.replace('.png', '_extent_info.txt');
                       imageFolder.file(extentInfoFileName, image.extentInfo || "");
-                      
-                      // Add EPSG info file
                       const epsgInfoFileName = image.name.replace('.png', '_epsg_info.txt');
-                      imageFolder.file(epsgInfoFileName, `Coordinate System: WGS84 (EPSG:4326)
-Geographic Coordinate System (Longitude/Latitude)
-Extent: ${image.extentText || ""}`);
-                      
-                      // Update progress
+                      imageFolder.file(epsgInfoFileName, `Coordinate System: WGS84 (EPSG:4326)\nGeographic Coordinate System (Longitude/Latitude)\nExtent: ${image.extentText || ""}`);
                       processed++;
-                      document.getElementById("processingMessage").textContent = 
-                        `กำลังเตรียมไฟล์... ${processed}/${selectedIndices.length}`;
-                      
+                      document.getElementById("processingMessage").textContent = `กำลังเตรียมไฟล์... ${processed}/${selectedIndices.length}`;
                       resolve();
                     } else {
                       reject(new Error(`ไม่พบภาพที่ index ${index}`));
@@ -1602,8 +1689,6 @@ Extent: ${image.extentText || ""}`);
                 }, 0);
               });
             });
-            
-            // When all images are processed, generate and download the zip
             Promise.all(promises)
               .then(() => {
                 document.getElementById("processingMessage").textContent = "กำลังสร้างไฟล์ ZIP...";
@@ -1626,25 +1711,18 @@ Extent: ${image.extentText || ""}`);
         }
       }
       
-      // Update images list in UI with improved display
       function updateImagesList() {
         const imagesList = document.getElementById("imagesList");
         const noImagesMessage = document.getElementById("noImagesMessage");
         const selectAllContainer = document.getElementById("selectAllContainer");
-        
         if (generatedImages.length > 0) {
           imagesList.style.display = "block";
           noImagesMessage.style.display = "none";
           selectAllContainer.style.display = "flex";
-          
-          // Clear list
           imagesList.innerHTML = "";
-          
-          // Add each image
           generatedImages.forEach((image, index) => {
             const imageItem = document.createElement("div");
             imageItem.className = "image-item";
-            
             imageItem.innerHTML = `
               <div class="image-info">
                 <div class="mini-preview" style="background-image: url('${image.thumbnail}')"></div>
@@ -1663,7 +1741,6 @@ Extent: ${image.extentText || ""}`);
                 </button>
               </div>
             `;
-            
             imagesList.appendChild(imageItem);
           });
         } else {
@@ -1673,16 +1750,37 @@ Extent: ${image.extentText || ""}`);
         }
       }
       
-      // Make downloadSingleImage available globally
       window.downloadSingleImage = downloadSingleImage;
       
-      // Wait for view to be ready
       view.when(function() {
         console.log("Map view is ready to use");
         hideProcessingOverlay();
       });
     });
   </script>
+  <script>
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const nav = document.getElementById('mainNav');
+
+    menuBtn.addEventListener('click', () => {
+        menuBtn.classList.toggle('active');
+        nav.classList.toggle('active');
+    });
+
+    function toggleMobileDropdown(element) {
+        if (window.innerWidth <= 1200) {
+            element.classList.toggle('active');
+        }
+    }
+    
+    // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
+    document.addEventListener('click', (e) => {
+        if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
+            nav.classList.remove('active');
+            menuBtn.classList.remove('active');
+        }
+    });
+</script>
   <script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
