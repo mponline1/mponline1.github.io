@@ -3,11 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Open Space Ratio Web App</title>
+  <title>Open Space Ratio Web App (UTM Zone 47N/48N)</title>
+  
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  
   <style>
     html, body, #mapDiv {
       padding: 0;
@@ -73,6 +76,7 @@
     .field-selector {
       margin-top: 10px;
       width: 100%;
+      padding: 5px;
     }
     .result-info {
       margin-top: 15px;
@@ -99,6 +103,15 @@
       width: 0%;
       transition: width 0.3s;
     }
+    .panel-header {
+      margin-bottom: 15px;
+    }
+    .panel-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
     .layer-item {
       margin-bottom: 8px;
       display: flex;
@@ -108,45 +121,33 @@
       margin-right: 8px;
     }
     .layer-label {
-      font-size: 14px;
       cursor: pointer;
+      flex: 1;
     }
     .attribute-table {
-      margin-top: 15px;
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: 12px;
+      margin-top: 10px;
     }
-    .attribute-table th, .attribute-table td {
+    .attribute-table th,
+    .attribute-table td {
       border: 1px solid #ddd;
       padding: 6px;
       text-align: left;
     }
     .attribute-table th {
-      background-color: #f2f2f2;
+      background-color: #0079c1;
+      color: white;
+      font-weight: bold;
+    }
+    .attribute-table tr:nth-child(even) {
+      background-color: #f9f9f9;
     }
     .attribute-panel {
-      margin-top: 15px;
-      padding: 8px;
-      background-color: #f8f8f8;
-      border-radius: 4px;
-      max-height: 300px;
+      max-height: 400px;
       overflow-y: auto;
-    }
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .panel-title {
-      font-weight: bold;
-      margin: 0;
-    }
-    hr {
-      margin: 15px 0;
-      border: 0;
-      border-top: 1px solid #ddd;
+      margin-top: 10px;
     }
     .info-popup {
       max-height: 200px;
@@ -160,9 +161,11 @@
       display: flex;
       justify-content: space-between;
       gap: 10px;
+      flex-wrap: wrap;
     }
     .export-button {
       flex: 1;
+      min-width: 100px;
     }
     .home-button {
       position: absolute;
@@ -263,6 +266,55 @@
     input:checked + .toggle-slider:before {
       transform: translateX(20px);
     }
+    .file-type-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .file-type-btn {
+      flex: 1;
+      padding: 8px 12px;
+      background-color: #f0f0f0;
+      color: #333;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .file-type-btn:hover {
+      background-color: #e0e0e0;
+    }
+    .file-type-btn.active {
+      background-color: #0079c1;
+      color: white;
+      border-color: #0079c1;
+    }
+    .file-input-label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #333;
+      font-size: 14px;
+    }
+    .file-status {
+      margin-top: 5px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+    }
+    .file-status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .file-status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
   </style>
 </head>
 <body>
@@ -279,25 +331,43 @@
       </div>
     </div>
     
+    <!-- UTM Zone Selector -->
     <div class="crs-selector">
-      <label for="coordSystem">Coordinate Reference System:</label>
+      <label for="coordSystem">UTM Coordinate System:</label>
       <select id="coordSystem" class="field-selector">
-        <option value="EPSG:4326">EPSG:4326 (WGS84)</option>
         <option value="EPSG:32647">EPSG:32647 (UTM Zone 47N)</option>
         <option value="EPSG:32648">EPSG:32648 (UTM Zone 48N)</option>
       </select>
     </div>
     
+    <!-- Building File Input -->
     <div class="file-input-container">
-      <label for="buildingFile">1. Upload Building GeoJSON:</label>
-      <input type="file" id="buildingFile" accept=".geojson,.json">
-      <div id="buildingStatus"></div>
+      <label class="file-input-label">1. Upload Building Data:</label>
+      
+      <div class="file-type-selector">
+        <button class="file-type-btn active" id="btnBuildingGeoJSON" type="button">GeoJSON</button>
+        <button class="file-type-btn" id="btnBuildingShapefile" type="button">Shapefile (ZIP)</button>
+      </div>
+      
+      <input type="file" id="buildingFile" accept=".geojson,.json" style="display:block;">
+      <input type="file" id="buildingShapefileFile" accept=".zip" style="display:none;">
+      
+      <div id="buildingStatus" class="file-status"></div>
     </div>
     
+    <!-- Parcel File Input -->
     <div class="file-input-container">
-      <label for="parcelFile">2. Upload Land Parcel GeoJSON:</label>
-      <input type="file" id="parcelFile" accept=".geojson,.json">
-      <div id="parcelStatus"></div>
+      <label class="file-input-label">2. Upload Land Parcel Data:</label>
+      
+      <div class="file-type-selector">
+        <button class="file-type-btn active" id="btnParcelGeoJSON" type="button">GeoJSON</button>
+        <button class="file-type-btn" id="btnParcelShapefile" type="button">Shapefile (ZIP)</button>
+      </div>
+      
+      <input type="file" id="parcelFile" accept=".geojson,.json" style="display:block;">
+      <input type="file" id="parcelShapefileFile" accept=".zip" style="display:none;">
+      
+      <div id="parcelStatus" class="file-status"></div>
     </div>
     
     <div id="fieldSelectorContainer" style="display:none;">
@@ -305,7 +375,7 @@
       <select id="parcelFieldSelector" class="field-selector"></select>
     </div>
     
-    <button id="processStep1" class="button" disabled>3.1 Calculate Open Space</button>
+    <button id="processStep1" class="button" disabled>3.1 Calculate Parcel Area</button>
     <div id="step1Result" class="result-info" style="display:none;"></div>
     
     <button id="processStep2" class="button" disabled>3.2 Extract Parcel Information</button>
@@ -318,9 +388,12 @@
     <div id="step4Result" class="result-info" style="display:none;"></div>
     
     <div class="export-options">
-      <button id="exportButton" class="button export-button" disabled>4.1 Export as GeoJSON</button>
-      <button id="exportExcelButton" class="button export-button" disabled>4.2 Export as Excel</button>
+      <button id="exportButton" class="button export-button" disabled>Export GeoJSON</button>
+      <button id="exportExcelButton" class="button export-button" disabled>Export Excel</button>
+      <button id="exportShapefileButton" class="button export-button" disabled>Export Shapefile</button>
     </div>
+    
+    <button id="runAllSteps" class="button" style="background-color: #28a745;" disabled>Run All Steps</button>
     
     <div id="loadingIndicator" class="loading">
       <i class="fas fa-cog fa-spin"></i> Processing...<span id="processingStatus"></span>
@@ -354,7 +427,6 @@
       <h3 class="panel-title">Map Layers</h3>
     </div>
     <div id="layerList">
-      <!-- Layer toggles will be added here dynamically -->
       <div class="layer-item">
         <span class="layer-label">No layers available</span>
       </div>
@@ -364,35 +436,35 @@
   <!-- Processing Configuration Panel -->
   <div id="processingConfigPanel">
     <div class="panel-header">
-      <h3 class="panel-title">Processing Settings</h3>
-      <button id="toggleLogButton" class="button" style="width: auto; padding: 4px 8px; margin: 0;">
-        <i class="fas fa-list"></i>
-      </button>
+      <h3 class="panel-title">Processing Options</h3>
     </div>
     
     <div class="config-item">
       <label class="toggle-label">
-        <span class="toggle-switch">
+        <div class="toggle-switch">
           <input type="checkbox" id="useWebWorkers" checked>
           <span class="toggle-slider"></span>
-        </span>
-        Use Web Workers
+        </div>
+        <span>Use Web Workers (faster)</span>
       </label>
     </div>
     
     <div class="config-item">
-      <label for="batchSize" class="config-label">Batch Size:</label>
-      <input type="number" id="batchSize" min="10" max="500" value="100" class="field-selector">
+      <label class="config-label">Batch Size:</label>
+      <input type="number" id="batchSize" value="100" min="10" max="1000" style="width: 100%; padding: 5px;">
     </div>
     
     <div class="config-item">
-      <label for="processingDelay" class="config-label">Processing Delay (ms):</label>
-      <input type="number" id="processingDelay" min="0" max="1000" value="10" class="field-selector">
-      <small>Delay between batches to allow UI updates</small>
+      <label class="config-label">Processing Delay (ms):</label>
+      <input type="number" id="processingDelay" value="10" min="0" max="1000" style="width: 100%; padding: 5px;">
     </div>
     
+    <hr>
+    
     <div class="config-item">
-      <button id="runAllSteps" class="button">Run All Steps</button>
+      <button id="toggleLogButton" class="button" style="background-color: #6c757d;">
+        <i class="fas fa-list"></i> Toggle Log
+      </button>
     </div>
     
     <div id="logContainer" class="log-container" style="display: none;">
@@ -401,97 +473,86 @@
   </div>
 
   <!-- Leaflet JS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <!-- Turf.js for geometry operations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  
+  <!-- Turf.js for geospatial analysis -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
-  <!-- Proj4js for coordinate transformations -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
-  <!-- Proj4Leaflet for CRS handling in Leaflet -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.min.js"></script>
-  <!-- Esri Leaflet for ESRI basemaps -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/esri-leaflet/3.0.10/esri-leaflet.js"></script>
-  <!-- SheetJS (XLSX) for Excel export -->
+  
+  <!-- SheetJS for Excel export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   
-  <!-- Web Worker Script (Created dynamically) -->
+  <!-- Libraries for Shapefile processing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shpjs/3.6.3/shp.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+  
+  <script>
+    // Define UTM projections for Thailand
+    proj4.defs([
+      ['EPSG:32647', '+proj=utm +zone=47 +datum=WGS84 +units=m +no_defs'],
+      ['EPSG:32648', '+proj=utm +zone=48 +datum=WGS84 +units=m +no_defs']
+    ]);
+  </script>
+
+  <!-- Web Worker Script -->
   <script id="workerScript" type="text/worker-script">
-    // Import libraries via importScripts
+    // Import libraries
     importScripts('https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js');
     importScripts('https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js');
     
-    // Define UTM zone projections
+    // Define UTM projections
     proj4.defs("EPSG:32647", "+proj=utm +zone=47 +datum=WGS84 +units=m +no_defs");
     proj4.defs("EPSG:32648", "+proj=utm +zone=48 +datum=WGS84 +units=m +no_defs");
     
-    // Function to transform coordinates between CRS
-    function transformCoords(coords, fromCRS, toCRS) {
-      if (fromCRS === toCRS) {
-        return coords;
-      }
-      return proj4(fromCRS, toCRS, coords);
-    }
-    
-    // Shoelace formula for calculating polygon area
+    // Shoelace formula for polygon area calculation
     function polygonArea(coords) {
       let area = 0;
       const numPoints = coords.length;
       
-      if (numPoints < 3) {
-        return 0;
-      }
+      if (numPoints < 3) return 0;
       
       for (let i = 0; i < numPoints - 1; i++) {
         area += coords[i][0] * coords[i+1][1] - coords[i+1][0] * coords[i][1];
       }
       
-      // Close the polygon
       area += coords[numPoints-1][0] * coords[0][1] - coords[0][0] * coords[numPoints-1][1];
       
-      // Return absolute value of area
       return Math.abs(area / 2);
     }
     
-    // Function to calculate area in UTM coordinates
-    function calculateAreaUTM(geometry, crs) {
-      // For UTM coordinates, we can calculate area directly
+    // Calculate area in UTM coordinates
+    function calculateAreaUTM(geometry) {
       let area = 0;
       
       if (geometry.type === 'Polygon') {
-        // Calculate polygon area using Shoelace formula (Gauss's Area formula)
         area = polygonArea(geometry.coordinates[0]);
+        // Subtract holes
+        for (let i = 1; i < geometry.coordinates.length; i++) {
+          area -= polygonArea(geometry.coordinates[i]);
+        }
       } else if (geometry.type === 'MultiPolygon') {
-        // Calculate area for each polygon and sum them
         for (const polygon of geometry.coordinates) {
-          area += polygonArea(polygon[0]); // Outer ring
-          
-          // Subtract area of inner rings (holes)
+          area += polygonArea(polygon[0]);
           for (let i = 1; i < polygon.length; i++) {
             area -= polygonArea(polygon[i]);
           }
         }
       }
       
-      return Math.abs(area); // Ensure positive area
+      return Math.abs(area);
     }
     
-    // Process batches of features for step 1
-    function processOpenSpaceBatch(batchData) {
-      const { 
-        parcelBatch, 
-        buildingGeojson, 
-        selectedCRS, 
-        startIndex, 
-        endIndex
-      } = batchData;
-      
-      const openSpaceFeatures = [];
+    // Process parcel area batch
+    function processParcelAreaBatch(batchData) {
+      const { parcelBatch, selectedCRS, startIndex, endIndex, originalGeometries } = batchData;
+      const processedParcels = [];
       
       for (let i = 0; i < parcelBatch.length; i++) {
         try {
           const parcel = parcelBatch[i];
           const parcelIndex = startIndex + i;
           
-          // Log progress
           self.postMessage({
             type: 'progress',
             message: `Processing parcel ${parcelIndex + 1}/${endIndex}`,
@@ -499,152 +560,44 @@
             total: endIndex
           });
           
-          let parcelArea;
+          // Calculate area using UTM calculation (parcel มีพิกัด UTM)
+          const area = calculateAreaUTM(parcel.geometry);
           
-          // Calculate area using appropriate method based on CRS
-          if (selectedCRS === 'EPSG:4326') {
-            // For WGS84, use Turf.js area calculation (uses Haversine)
-            parcelArea = turf.area(parcel);
-          } else {
-            // For UTM, use native area calculation (much more accurate for projected coordinates)
-            parcelArea = calculateAreaUTM(parcel.geometry, selectedCRS);
-          }
-          parcelArea = Math.abs(parcelArea);
+          // ใช้ originalGeometries (WGS84) สำหรับแสดงผล
+          const geometryToUse = originalGeometries ? originalGeometries[i] : parcel.geometry;
           
-          // Create a copy of the parcel for intersection operations
-          let openSpaceGeometry = JSON.parse(JSON.stringify(parcel.geometry));
-          let buildingFootprintArea = 0;
-          let buildingFootprints = [];
-          
-          // For each building, check if it intersects with the parcel and calculate the intersection area
-          for (const building of buildingGeojson.features) {
-            try {
-              // Check if building intersects parcel using turf.js
-              const isIntersecting = turf.booleanIntersects(parcel, building);
-              
-              if (isIntersecting) {
-                // Get the intersection of building and parcel
-                const intersection = turf.intersect(parcel, building);
-                if (intersection) {
-                  // Calculate the area of the intersection
-                  let intersectionArea;
-                  if (selectedCRS === 'EPSG:4326') {
-                    intersectionArea = turf.area(intersection);
-                  } else {
-                    intersectionArea = calculateAreaUTM(intersection.geometry, selectedCRS);
-                  }
-                  buildingFootprintArea += intersectionArea;
-                  
-                  // Store building footprint for difference operation
-                  buildingFootprints.push(intersection);
-                }
-              }
-            } catch (e) {
-              self.postMessage({
-                type: 'log',
-                level: 'warning',
-                message: `Error checking building intersection: ${e.message}`
-              });
-            }
-          }
-          
-          // Calculate open space by subtracting building footprint area from parcel area
-          let openSpaceArea = parcelArea - buildingFootprintArea;
-          
-          // Ensure positive values
-          openSpaceArea = Math.max(0, openSpaceArea);
-          
-          self.postMessage({
-            type: 'log',
-            level: 'info',
-            message: `Parcel ${parcelIndex}: Parcel Area = ${parcelArea.toFixed(2)} sq.m, Building Footprint Area = ${buildingFootprintArea.toFixed(2)} sq.m, Open Space Area = ${openSpaceArea.toFixed(2)} sq.m`
-          });
-          
-          // Calculate the open space geometry by subtracting building footprints
-          let openSpaceFeature = {
+          const processedParcel = {
             type: "Feature",
             properties: {
               ...parcel.properties,
-              parcelArea: Math.round(parcelArea * 100) / 100,
-              buildingFootprintArea: Math.round(buildingFootprintArea * 100) / 100,
-              openSpaceArea: Math.round(openSpaceArea * 100) / 100,
-              openSpacePercentage: Math.round((openSpaceArea / parcelArea) * 10000) / 100
+              parcelArea: Math.round(area * 100) / 100
             },
-            geometry: openSpaceGeometry // Start with the full parcel geometry
+            geometry: geometryToUse
           };
           
-          // If there are buildings, perform difference operations to get actual open space geometry
-          if (buildingFootprints.length > 0) {
-            try {
-              // Create a polygon feature from the parcel geometry
-              const parcelFeature = {
-                type: "Feature",
-                properties: {},
-                geometry: openSpaceGeometry
-              };
-              
-              // Perform difference operations for each building footprint
-              let result = parcelFeature;
-              
-              for (const footprint of buildingFootprints) {
-                // Skip if result is null or not a valid feature
-                if (!result || !result.geometry) continue;
-                
-                // Perform difference operation
-                result = turf.difference(result, footprint);
-                
-                // If the difference failed, break the loop
-                if (!result) break;
-              }
-              
-              // If we have a valid result, use its geometry
-              if (result && result.geometry) {
-                openSpaceFeature.geometry = result.geometry;
-              }
-            } catch (error) {
-              self.postMessage({
-                type: 'log',
-                level: 'warning',
-                message: `Error computing open space geometry for parcel ${parcelIndex}: ${error.message}`
-              });
-              // Fall back to using the original parcel geometry
-            }
-          }
-          
-          openSpaceFeatures.push(openSpaceFeature);
+          processedParcels.push(processedParcel);
         } catch (error) {
           self.postMessage({
             type: 'log',
             level: 'error',
-            message: `Error processing parcel batch: ${error.message}`
+            message: `Error processing parcel ${startIndex + i}: ${error.message}`
           });
         }
       }
       
-      // Return the processed features
-      return openSpaceFeatures;
+      return processedParcels;
     }
     
-    // Process buildings to points for step 2
+    // Process building points batch
     function processBuildingPointsBatch(batchData) {
-      const {
-        buildingBatch,
-        parcelGeojson,
-        selectedField,
-        startIndex,
-        endIndex
-      } = batchData;
-      
+      const { buildingBatch, parcelGeojson, selectedField, startIndex, endIndex } = batchData;
       const buildingPoints = [];
-      let errorCount = 0;
-      let successCount = 0;
       
       for (let i = 0; i < buildingBatch.length; i++) {
         try {
           const building = buildingBatch[i];
           const buildingIndex = startIndex + i;
           
-          // Log progress
           self.postMessage({
             type: 'progress',
             message: `Processing building ${buildingIndex + 1}/${endIndex}`,
@@ -652,15 +605,12 @@
             total: endIndex
           });
           
-          // Get coordinates of building center
           let centerCoords;
           
           if (building.geometry.type === "Polygon") {
-            // Calculate centroid using turf.js
             const centroid = turf.centroid(building);
             centerCoords = centroid.geometry.coordinates;
           } else if (building.geometry.type === "MultiPolygon") {
-            // For multipolygon, use the first polygon's centroid
             const firstPolygon = {
               type: "Feature",
               properties: {},
@@ -675,7 +625,6 @@
             throw new Error(`Unsupported geometry type: ${building.geometry.type}`);
           }
           
-          // Create a point feature
           const pointFeature = {
             type: "Feature",
             properties: {
@@ -691,11 +640,8 @@
             }
           };
           
-          // Find which parcel this building belongs to
           for (const parcel of parcelGeojson.features) {
-            // Check if point is within the parcel
             if (turf.booleanPointInPolygon(pointFeature.geometry.coordinates, parcel.geometry)) {
-              // Add parcel information to the building point
               pointFeature.properties.parcelId = parcel.properties[selectedField];
               pointFeature.properties.parcelName = parcel.properties[selectedField];
               break;
@@ -703,37 +649,21 @@
           }
           
           buildingPoints.push(pointFeature);
-          successCount++;
         } catch (error) {
           self.postMessage({
             type: 'log',
             level: 'warning',
             message: `Error creating point for building ${startIndex + i}: ${error.message}`
           });
-          errorCount++;
         }
       }
-      
-      self.postMessage({
-        type: 'log',
-        level: 'info',
-        message: `Batch processed. Success: ${successCount}, Failed: ${errorCount}`
-      });
       
       return buildingPoints;
     }
     
-    // Process building areas by parcel for step 3
+    // Process building areas batch
     function processBuildingAreasBatch(batchData) {
-      const {
-        parcelBatch,
-        buildingGeojson,
-        selectedField,
-        startIndex,
-        endIndex,
-        openSpaceResults
-      } = batchData;
-      
+      const { parcelBatch, buildingGeojson, selectedField, startIndex, endIndex } = batchData;
       const processedParcels = [];
       
       for (let i = 0; i < parcelBatch.length; i++) {
@@ -741,7 +671,6 @@
           const parcel = parcelBatch[i];
           const parcelIndex = startIndex + i;
           
-          // Log progress
           self.postMessage({
             type: 'progress',
             message: `Processing parcel ${parcelIndex + 1}/${endIndex}`,
@@ -750,16 +679,12 @@
           });
           
           const parcelId = parcel.properties[selectedField];
-          let totalBuildingArea = 0;
+          let totalBuildingOneFloor = 0;  // BL_AREA only
+          let totalBuildingAllFloor = 0;  // BL_AREA * BL_NSTOREY
           let buildingCount = 0;
-          let buildingList = [];
           
-          // Find all buildings within this parcel
-          for (let j = 0; j < buildingGeojson.features.length; j++) {
-            const building = buildingGeojson.features[j];
-            
+          for (const building of buildingGeojson.features) {
             try {
-              // Get building center
               let center;
               
               if (building.geometry.type === "Polygon") {
@@ -777,91 +702,31 @@
                 const centroid = turf.centroid(firstPolygon);
                 center = centroid.geometry.coordinates;
               } else {
-                continue; // Skip this building due to unsupported geometry
+                continue;
               }
               
-              // Check if this building is within the parcel
               if (turf.booleanPointInPolygon(center, parcel.geometry)) {
-                // Get building properties with proper validation
-                let area = 0;
-                let storeys = 1;
+                const buildingArea = typeof building.properties.BL_AREA === 'number' ? building.properties.BL_AREA : 0;
+                const buildingStoreys = typeof building.properties.BL_NSTOREY === 'number' ? building.properties.BL_NSTOREY : 1;
                 
-                if (typeof building.properties.BL_AREA === 'number') {
-                  area = building.properties.BL_AREA;
-                } else if (typeof building.properties.BL_AREA === 'string') {
-                  area = parseFloat(building.properties.BL_AREA) || 0;
-                }
-                
-                if (typeof building.properties.BL_NSTOREY === 'number') {
-                  storeys = building.properties.BL_NSTOREY;
-                } else if (typeof building.properties.BL_NSTOREY === 'string') {
-                  storeys = parseInt(building.properties.BL_NSTOREY) || 1;
-                }
-                
-                // Make sure we have valid values (not NaN, not negative)
-                area = isNaN(area) || area < 0 ? 0 : area;
-                storeys = isNaN(storeys) || storeys < 1 ? 1 : storeys;
-                
-                const buildingTotalArea = area * storeys;
-                
-                // Add to totals
-                totalBuildingArea += buildingTotalArea;
+                // คำนวณทั้งสองแบบ
+                totalBuildingOneFloor += buildingArea;  // BL_AREA only
+                totalBuildingAllFloor += buildingArea * buildingStoreys;  // BL_AREA * BL_NSTOREY
                 buildingCount++;
-                
-                // Add to building details
-                buildingList.push({
-                  id: j,
-                  area: area,
-                  storeys: storeys,
-                  totalArea: buildingTotalArea
-                });
               }
-            } catch (error) {
-              self.postMessage({
-                type: 'log',
-                level: 'warning', message: `Error processing building ${j} for parcel ${parcelIndex}: ${error.message}`
-              });
+            } catch (err) {
+              // Skip this building
             }
           }
           
-          // Round to 2 decimal places for display
-          totalBuildingArea = Math.round(totalBuildingArea * 100) / 100;
-          
-          // Find open space data from step 1 results
-          let openSpaceArea = 0;
-          let parcelArea = 0;
-          
-          if (openSpaceResults && openSpaceResults.features) {
-            const openSpaceFeature = openSpaceResults.features.find(f => 
-              f.properties[selectedField] === parcelId
-            );
-            
-            if (openSpaceFeature) {
-              openSpaceArea = openSpaceFeature.properties.openSpaceArea || 0;
-              parcelArea = openSpaceFeature.properties.parcelArea || 0;
-            }
-          }
-          
-          // Create calculation details string
-          let calculationDetails = "Buildings calculation details:\n";
-          buildingList.forEach(building => {
-            calculationDetails += `Building ${building.id}: ${building.area} sq.m × ${building.storeys} floors = ${building.totalArea} sq.m\n`;
-          });
-          
-          if (buildingList.length === 0) {
-            calculationDetails = "No buildings found in this parcel";
-          }
-          
-          // Create processed parcel with all the data
           const processedParcel = {
             type: "Feature",
             properties: {
               ...parcel.properties,
-              totalBuildingArea: totalBuildingArea,
-              buildingCount: buildingCount,
-              openSpaceArea: openSpaceArea,
-              parcelArea: parcelArea,
-              calculationDetails: calculationDetails
+              parcelArea: parcel.properties.parcelArea, // เก็บ parcelArea จาก step1
+              totalBuildingOneFloor: Math.round(totalBuildingOneFloor * 100) / 100,
+              totalBuildingAllFloor: Math.round(totalBuildingAllFloor * 100) / 100,
+              buildingCount: buildingCount
             },
             geometry: parcel.geometry
           };
@@ -871,7 +736,7 @@
           self.postMessage({
             type: 'log',
             level: 'error',
-            message: `Error processing parcel ${startIndex + i} for building areas: ${error.message}`
+            message: `Error processing parcel ${startIndex + i}: ${error.message}`
           });
         }
       }
@@ -879,105 +744,72 @@
       return processedParcels;
     }
     
-    // Calculate OSR for parcels in step 4
+    // Calculate OSR batch
     function calculateOSRBatch(batchData) {
-      const {
-        parcelBatch,
-        startIndex,
-        endIndex
-      } = batchData;
-      
+      const { parcelBatch, startIndex, endIndex } = batchData;
       const processedParcels = [];
       
       for (let i = 0; i < parcelBatch.length; i++) {
-        try {
-          const parcel = parcelBatch[i];
-          const parcelIndex = startIndex + i;
-          
-          // Log progress
-          self.postMessage({
-            type: 'progress',
-            message: `Calculating OSR for parcel ${parcelIndex + 1}/${endIndex}`,
-            index: parcelIndex,
-            total: endIndex
-          });
-          
-          const openSpaceArea = parcel.properties.openSpaceArea || 0;
-          const totalBuildingArea = parcel.properties.totalBuildingArea || 0;
-          
-          // Calculate OSR as per the formula
-          let osr = 0;
-          if (totalBuildingArea > 0) {
-            osr = (openSpaceArea / totalBuildingArea) * 100;
-          }
-          
-          // Round values for display
-          osr = Math.round(osr * 100) / 100;
-          
-          // Create processed parcel with OSR
-          const processedParcel = {
-            type: "Feature",
-            properties: {
-              ...parcel.properties,
-              OSR: osr
-            },
-            geometry: parcel.geometry
-          };
-          
-          processedParcels.push(processedParcel);
-        } catch (error) {
-          self.postMessage({
-            type: 'log',
-            level: 'error',
-            message: `Error calculating OSR for parcel ${startIndex + i}: ${error.message}`
-          });
+        const parcel = parcelBatch[i];
+        const totalBuildingOneFloor = parcel.properties.totalBuildingOneFloor || 0;
+        const totalBuildingAllFloor = parcel.properties.totalBuildingAllFloor || 0;
+        const parcelArea = parcel.properties.parcelArea || 0;
+        
+        // คำนวณ Open Space Area = Parcel Area - Total Building One Floor
+        const openSpaceArea = parcelArea - totalBuildingOneFloor;
+        
+        // คำนวณ OSR = (Open Space Area / Total Building All Floor) × 100
+        let osr = 0;
+        if (totalBuildingAllFloor > 0) {
+          osr = (openSpaceArea / totalBuildingAllFloor) * 100;
         }
+        
+        processedParcels.push({
+          type: "Feature",
+          properties: {
+            ...parcel.properties,
+            openSpaceArea: Math.round(openSpaceArea * 100) / 100,
+            OSR: Math.round(osr * 100) / 100
+          },
+          geometry: parcel.geometry
+        });
       }
       
       return processedParcels;
     }
     
-    // Listen for messages from the main thread
+    // Main worker message handler
     self.onmessage = function(e) {
-      const data = e.data;
+      const { command } = e.data;
+      let result;
       
       try {
-        if (data.command === 'processOpenSpace') {
-          const result = processOpenSpaceBatch(data);
-          self.postMessage({
-            type: 'result',
-            features: result,
-            batchIndex: data.batchIndex,
-            totalBatches: data.totalBatches
-          });
+        switch(command) {
+          case 'processParcelArea':
+            result = processParcelAreaBatch(e.data);
+            break;
+          case 'processBuildingPoints':
+            result = processBuildingPointsBatch(e.data);
+            break;
+          case 'processBuildingAreas':
+            result = processBuildingAreasBatch(e.data);
+            break;
+          case 'calculateOSR':
+            result = calculateOSRBatch(e.data);
+            break;
+          default:
+            self.postMessage({ 
+              type: 'error', 
+              message: 'Unknown command type' 
+            });
+            return;
         }
-        else if (data.command === 'processBuildingPoints') {
-          const result = processBuildingPointsBatch(data);
-          self.postMessage({
-            type: 'result',
-            features: result,
-            batchIndex: data.batchIndex,
-            totalBatches: data.totalBatches
-          });
-        }
-        else if (data.command === 'processBuildingAreas') {
-          const result = processBuildingAreasBatch(data);
-          self.postMessage({
-            type: 'result',
-            features: result,
-            batchIndex: data.batchIndex,
-            totalBatches: data.totalBatches
-          });
-        }
-        else if (data.command === 'calculateOSR') {
-          const result = calculateOSRBatch(data);
-          self.postMessage({
-            type: 'result',
-            features: result,
-            batchIndex: data.batchIndex,
-            totalBatches: data.totalBatches
-          });
-        }
+        
+        self.postMessage({
+          type: 'result',
+          batchIndex: e.data.batchIndex,
+          features: result
+        });
       } catch (error) {
         self.postMessage({
           type: 'error',
@@ -986,11 +818,2049 @@
       }
     };
   </script>
-  
+
   <script>
-const _0x4b8452=_0x12dc;(function(_0x1f3edf,_0x365bf4){const _0x520fd9=_0x12dc,_0x37ae61=_0x1f3edf();while(!![]){try{const _0x4863e9=-parseInt(_0x520fd9(0xe9))/0x1+-parseInt(_0x520fd9(0x1bd))/0x2*(-parseInt(_0x520fd9(0x16c))/0x3)+-parseInt(_0x520fd9(0x15f))/0x4*(parseInt(_0x520fd9(0x14d))/0x5)+-parseInt(_0x520fd9(0x1d7))/0x6*(parseInt(_0x520fd9(0x11e))/0x7)+parseInt(_0x520fd9(0xe2))/0x8*(-parseInt(_0x520fd9(0x187))/0x9)+parseInt(_0x520fd9(0x168))/0xa*(parseInt(_0x520fd9(0x125))/0xb)+parseInt(_0x520fd9(0x172))/0xc;if(_0x4863e9===_0x365bf4)break;else _0x37ae61['push'](_0x37ae61['shift']());}catch(_0x400051){_0x37ae61['push'](_0x37ae61['shift']());}}}(_0x271b,0xa35c4));let map,buildingLayer,parcelLayer,resultLayer,buildingGeojson,parcelGeojson,resultGeojson,parcelFields=[],currentCRS=_0x4b8452(0x1a1),parcelOriginalShapes=null,basemapLayer,allLayers=[],layerData={},isProcessing=![],processFlags={'step1':![],'step2':![],'step3':![],'step4':![]},workers=[],maxWorkers=0x4,useWebWorkers=!![];function createWorkers(){const _0x3a28c9=_0x4b8452;terminateWorkers();if(window['Worker']&&document[_0x3a28c9(0x16f)](_0x3a28c9(0x1ec))[_0x3a28c9(0x1d1)]){useWebWorkers=!![];const _0x5b1e0d=new Blob([document[_0x3a28c9(0x15e)](_0x3a28c9(0xba))[_0x3a28c9(0xb9)]],{'type':_0x3a28c9(0x12b)}),_0x2c5ab7=URL[_0x3a28c9(0x1b6)](_0x5b1e0d);for(let _0x1549a5=0x0;_0x1549a5<maxWorkers;_0x1549a5++){const _0xb8e5d7=new Worker(_0x2c5ab7);_0xb8e5d7['onmessage']=handleWorkerMessage,_0xb8e5d7[_0x3a28c9(0x161)]=function(_0x481bd8){const _0xdb70c8=_0x3a28c9;console['error'](_0xdb70c8(0x1b7),_0x481bd8),logMessage(_0xdb70c8(0x166)+_0x481bd8[_0xdb70c8(0x137)],_0xdb70c8(0x1c9));},workers['push'](_0xb8e5d7);}logMessage('Created\x20'+workers[_0x3a28c9(0x115)]+_0x3a28c9(0x1db),_0x3a28c9(0x1b0));}else useWebWorkers=![],logMessage(_0x3a28c9(0x1c5),_0x3a28c9(0x1b0));}function terminateWorkers(){const _0x35a7f9=_0x4b8452;workers[_0x35a7f9(0x1d4)](_0x1fbfa4=>_0x1fbfa4[_0x35a7f9(0x131)]()),workers=[];}function handleWorkerMessage(_0x340565){const _0x5b825b=_0x4b8452,_0x4afd2a=_0x340565[_0x5b825b(0x1e7)];if(_0x4afd2a[_0x5b825b(0x1cf)]==='progress')updateProgress(_0x4afd2a[_0x5b825b(0x181)],_0x4afd2a[_0x5b825b(0x110)],_0x4afd2a[_0x5b825b(0x137)]);else{if(_0x4afd2a[_0x5b825b(0x1cf)]==='log')logMessage(_0x4afd2a['message'],_0x4afd2a[_0x5b825b(0xfb)]);else{if(_0x4afd2a[_0x5b825b(0x1cf)]===_0x5b825b(0x160))processBatchResult(_0x4afd2a);else _0x4afd2a[_0x5b825b(0x1cf)]===_0x5b825b(0x1c9)&&(console[_0x5b825b(0x1c9)](_0x5b825b(0x1b7),_0x4afd2a[_0x5b825b(0x137)]),logMessage('Processing\x20error:\x20'+_0x4afd2a['message'],_0x5b825b(0x1c9)),hideLoadingIndicator());}}}proj4[_0x4b8452(0x17c)]('EPSG:32647',_0x4b8452(0x173)),proj4['defs'](_0x4b8452(0xf2),'+proj=utm\x20+zone=48\x20+datum=WGS84\x20+units=m\x20+no_defs');const crs={'EPSG:4326':L[_0x4b8452(0x1e6)][_0x4b8452(0xf4)],'EPSG:32647':new L['Proj'][(_0x4b8452(0x1e6))](_0x4b8452(0x1ae),proj4[_0x4b8452(0x17c)](_0x4b8452(0x1ae)),{'resolutions':[0x100,0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1,0.5,0.25],'origin':[0x0,0x0]}),'EPSG:32648':new L['Proj'][(_0x4b8452(0x1e6))]('EPSG:32648',proj4['defs'](_0x4b8452(0xf2)),{'resolutions':[0x100,0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1,0.5,0.25],'origin':[0x0,0x0]})};let batchResults=[],currentBatch=0x0,totalBatches=0x0,batchSize=0x64,processingDelay=0xa,currentStep='',batchStats={'startTime':0x0,'endTime':0x0,'featureCount':0x0};function initMap(){const _0x279826=_0x4b8452,_0x3a9dc5=document[_0x279826(0x16f)](_0x279826(0x138))[_0x279826(0x164)];currentCRS=_0x3a9dc5,map&&map[_0x279826(0x1d8)](),map=L['map'](_0x279826(0x1a0),{'crs':crs[_0x3a9dc5]})[_0x279826(0x1a2)]([13.7,100.5],0xa),_0x3a9dc5===_0x279826(0x1a1)?(basemapLayer=L[_0x279826(0x159)][_0x279826(0xe7)]('Imagery',{'detectRetina':!![]})['addTo'](map),L['esri'][_0x279826(0xe7)](_0x279826(0x118))[_0x279826(0x179)](map)):(basemapLayer=L[_0x279826(0x1e9)]([[-0x5a,-0xb4],[0x5a,0xb4]],{'color':_0x279826(0x1d2),'weight':0x1,'fillColor':_0x279826(0x1d2),'fillOpacity':0x1})[_0x279826(0x179)](map),L[_0x279826(0x123)][_0x279826(0x184)]({'prefix':_0x279826(0x151)})[_0x279826(0x179)](map)),logMessage(_0x279826(0x167)+_0x3a9dc5,'info'),reloadLayers();}function reloadLayers(){const _0x2cf67f=_0x4b8452;buildingLayer&&map['hasLayer'](buildingLayer)&&map['removeLayer'](buildingLayer);parcelLayer&&map[_0x2cf67f(0x141)](parcelLayer)&&map[_0x2cf67f(0xd2)](parcelLayer);resultLayer&&map[_0x2cf67f(0x141)](resultLayer)&&map[_0x2cf67f(0xd2)](resultLayer);buildingGeojson&&addGeoJSONToMap(buildingGeojson,'building',_0x2cf67f(0x111));parcelGeojson&&addGeoJSONToMap(parcelGeojson,_0x2cf67f(0x16d),_0x2cf67f(0x13d));if(resultGeojson){let _0x58c372='finalResult',_0x63cb2f=_0x2cf67f(0xfd);if(resultGeojson['features'][_0x2cf67f(0x115)]>0x0){const _0x5bbf95=resultGeojson['features'][0x0][_0x2cf67f(0xc6)];if(_0x5bbf95['OSR']!==undefined)_0x58c372=_0x2cf67f(0x126),_0x63cb2f=_0x2cf67f(0xfd);else{if(_0x5bbf95['totalBuildingArea']!==undefined)_0x58c372=_0x2cf67f(0x9f),_0x63cb2f=_0x2cf67f(0x120);else _0x5bbf95[_0x2cf67f(0x14f)]!==undefined&&(_0x58c372=_0x2cf67f(0xb7),_0x63cb2f=_0x2cf67f(0xfc));}}addGeoJSONToMap(resultGeojson,_0x58c372,_0x63cb2f);}}function checkCRS(_0x72b169){const _0x253de6=_0x4b8452,_0x2ca905=document[_0x253de6(0x16f)](_0x253de6(0x138))['value'];if(!_0x72b169||!_0x72b169[_0x253de6(0xdb)]||_0x72b169[_0x253de6(0xdb)][_0x253de6(0x115)]===0x0)return![];const _0x1a5c75=_0x72b169[_0x253de6(0xdb)][0x0];let _0x402ab9=[];if(_0x1a5c75[_0x253de6(0xd0)]['type']===_0x253de6(0x19c))_0x402ab9=_0x1a5c75[_0x253de6(0xd0)][_0x253de6(0x1c2)];else{if(_0x1a5c75[_0x253de6(0xd0)][_0x253de6(0x1cf)]===_0x253de6(0x17e)||_0x1a5c75[_0x253de6(0xd0)]['type']===_0x253de6(0x119))_0x402ab9=_0x1a5c75[_0x253de6(0xd0)]['coordinates'][0x0];else{if(_0x1a5c75[_0x253de6(0xd0)][_0x253de6(0x1cf)]===_0x253de6(0xc9)||_0x1a5c75[_0x253de6(0xd0)][_0x253de6(0x1cf)]===_0x253de6(0x18e))_0x402ab9=_0x1a5c75[_0x253de6(0xd0)][_0x253de6(0x1c2)][0x0][0x0];else _0x1a5c75[_0x253de6(0xd0)][_0x253de6(0x1cf)]===_0x253de6(0xa3)&&(_0x402ab9=_0x1a5c75[_0x253de6(0xd0)][_0x253de6(0x1c2)][0x0][0x0][0x0]);}}if(_0x402ab9[_0x253de6(0x115)]<0x2)return![];const _0x39bd3d=_0x402ab9[0x0],_0x5636b0=_0x402ab9[0x1];return _0x2ca905===_0x253de6(0x1a1)?_0x39bd3d>=-0xb4&&_0x39bd3d<=0xb4&&_0x5636b0>=-0x5a&&_0x5636b0<=0x5a:_0x39bd3d>0x186a0&&_0x5636b0>0x186a0;}function addGeoJSONToMap(_0x31d502,_0x437c4a,_0xe6e3af){const _0x2f5491=_0x4b8452,_0x196f2c=document[_0x2f5491(0x16f)](_0x2f5491(0x138))[_0x2f5491(0x164)];let _0x1093e9=JSON[_0x2f5491(0xa5)](JSON['stringify'](_0x31d502));const _0x1d73b5={'color':_0x437c4a===_0x2f5491(0x19f)?_0x2f5491(0x11f):'#00ff00','weight':0x1,'opacity':0x1,'fillOpacity':0.5};if(_0x437c4a==='openSpace')_0x1d73b5['color']=_0x2f5491(0xe1),_0x1d73b5[_0x2f5491(0x1c6)]='#00cc00';else{if(_0x437c4a===_0x2f5491(0x9f))_0x1d73b5[_0x2f5491(0x1a5)]=_0x2f5491(0x1bc);else _0x437c4a==='finalResult'&&(_0x1d73b5[_0x2f5491(0x1a5)]=_0x2f5491(0x1bc));}let _0x9ec4bb;if(_0x437c4a===_0x2f5491(0x126)){function _0x4b3cc6(_0x20641e){const _0x220ce0=_0x2f5491;return _0x20641e<0x19?'#ff0000':_0x20641e<0x32?_0x220ce0(0xb8):_0x20641e<0x64?_0x220ce0(0x1e0):_0x220ce0(0x1cd);}_0x9ec4bb=L[_0x2f5491(0xc8)](_0x1093e9,{'coordsToLatLng':function(_0x1c11a8){const _0x5b6521=_0x2f5491;if(_0x196f2c!=='EPSG:4326'){const _0x2e238b=proj4(_0x196f2c,_0x5b6521(0x1a1),_0x1c11a8);return new L['LatLng'](_0x2e238b[0x1],_0x2e238b[0x0]);}return new L[(_0x5b6521(0x132))](_0x1c11a8[0x1],_0x1c11a8[0x0]);},'style':function(_0x241332){const _0x2ba8c2=_0x2f5491;return{'fillColor':_0x4b3cc6(_0x241332[_0x2ba8c2(0xc6)]['OSR']),'weight':0x1,'opacity':0x1,'color':_0x2ba8c2(0x1bc),'fillOpacity':0.7};},'onEachFeature':function(_0x315809,_0x2859bf){const _0x128d0a=_0x2f5491,_0x1aed1e=document[_0x128d0a(0x16f)](_0x128d0a(0x180))['value']||'ID',_0xa02d84=_0x128d0a(0x1f4)+_0x1aed1e+_0x128d0a(0xae)+_0x315809[_0x128d0a(0xc6)][_0x1aed1e]+_0x128d0a(0x108)+_0x315809[_0x128d0a(0xc6)][_0x128d0a(0x1b9)]+'\x20sq.m<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>Open\x20Space\x20Area:</strong>\x20'+_0x315809[_0x128d0a(0xc6)]['openSpaceArea']+_0x128d0a(0xce)+_0x315809[_0x128d0a(0xc6)][_0x128d0a(0x1de)]+'\x20sq.m<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>OSR:</strong>\x20'+_0x315809[_0x128d0a(0xc6)][_0x128d0a(0x157)]+_0x128d0a(0x195)+(_0x315809[_0x128d0a(0xc6)][_0x128d0a(0x10d)]||0x0)+_0x128d0a(0x116)+(_0x315809[_0x128d0a(0xc6)]['calculationDetails']?_0x128d0a(0x1ac)+_0x315809[_0x128d0a(0xc6)]['calculationDetails']+'</pre>':'')+_0x128d0a(0x102);_0x2859bf['bindPopup'](_0xa02d84);}})['addTo'](map);}else{if(_0x437c4a===_0x2f5491(0x9f)){function _0x42dfa7(_0x523521){const _0x36402d=_0x2f5491;return _0x523521<0x3e8?_0x36402d(0x1e0):_0x523521<0x1388?_0x36402d(0x1dd):_0x523521<0x2710?_0x36402d(0x124):_0x36402d(0x11f);}_0x9ec4bb=L['geoJSON'](_0x1093e9,{'coordsToLatLng':function(_0x39ee){const _0x1782f9=_0x2f5491;if(_0x196f2c!==_0x1782f9(0x1a1)){const _0x52e72a=proj4(_0x196f2c,_0x1782f9(0x1a1),_0x39ee);return new L[(_0x1782f9(0x132))](_0x52e72a[0x1],_0x52e72a[0x0]);}return new L['LatLng'](_0x39ee[0x1],_0x39ee[0x0]);},'style':function(_0x5016db){const _0x784e3c=_0x2f5491;return{'fillColor':_0x42dfa7(_0x5016db[_0x784e3c(0xc6)][_0x784e3c(0x1de)]),'weight':0x1,'opacity':0x1,'color':'#000000','fillOpacity':0.7};},'onEachFeature':function(_0x5c78ef,_0x14fe74){const _0x245685=_0x2f5491,_0x8c2b25=document[_0x245685(0x16f)](_0x245685(0x180))[_0x245685(0x164)]||'ID',_0x421162='\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22info-popup\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>'+_0x8c2b25+_0x245685(0xae)+_0x5c78ef[_0x245685(0xc6)][_0x8c2b25]+_0x245685(0x199)+(_0x5c78ef[_0x245685(0xc6)]['buildingCount']||0x0)+'<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>Total\x20Building\x20Area:</strong>\x20'+_0x5c78ef[_0x245685(0xc6)][_0x245685(0x1de)]+_0x245685(0x191)+(_0x5c78ef['properties'][_0x245685(0x1e5)]?_0x245685(0x1ac)+_0x5c78ef[_0x245685(0xc6)][_0x245685(0x1e5)]+_0x245685(0x117):'')+_0x245685(0x102);_0x14fe74['bindPopup'](_0x421162);}})[_0x2f5491(0x179)](map);}else{if(_0x437c4a==='openSpace')_0x9ec4bb=L[_0x2f5491(0xc8)](_0x1093e9,{'coordsToLatLng':function(_0x22e1e0){const _0x3b5ade=_0x2f5491;if(_0x196f2c!==_0x3b5ade(0x1a1)){const _0x42a7a9=proj4(_0x196f2c,'EPSG:4326',_0x22e1e0);return new L['LatLng'](_0x42a7a9[0x1],_0x42a7a9[0x0]);}return new L['LatLng'](_0x22e1e0[0x1],_0x22e1e0[0x0]);},'style':function(_0x1bb6ff){const _0x358efd=_0x2f5491;return{'fillColor':_0x358efd(0x1e4),'weight':0x1,'opacity':0x1,'color':_0x358efd(0xe1),'fillOpacity':0.7};},'onEachFeature':function(_0x158365,_0x5281fd){const _0x592188=_0x2f5491,_0x5aab13=document['getElementById']('parcelFieldSelector')[_0x592188(0x164)]||'ID',_0x46b67c=_0x592188(0x1f4)+_0x5aab13+_0x592188(0xae)+_0x158365['properties'][_0x5aab13]+_0x592188(0x108)+_0x158365['properties']['parcelArea']+_0x592188(0x170)+_0x158365[_0x592188(0xc6)][_0x592188(0x14f)]+'\x20sq.m\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20';_0x5281fd[_0x592188(0x1df)](_0x46b67c);}})[_0x2f5491(0x179)](map);else _0x437c4a===_0x2f5491(0x1f3)?_0x9ec4bb=L[_0x2f5491(0xc8)](_0x1093e9,{'coordsToLatLng':function(_0xddb750){const _0x1d595f=_0x2f5491;if(_0x196f2c!==_0x1d595f(0x1a1)){const _0x35aab0=proj4(_0x196f2c,'EPSG:4326',_0xddb750);return new L['LatLng'](_0x35aab0[0x1],_0x35aab0[0x0]);}return new L[(_0x1d595f(0x132))](_0xddb750[0x1],_0xddb750[0x0]);},'pointToLayer':function(_0x44712b,_0x3ced74){const _0x1f8453=_0x2f5491;return L[_0x1f8453(0x185)](_0x3ced74,{'radius':0x6,'fillColor':_0x1f8453(0x11f),'color':_0x1f8453(0x197),'weight':0x1,'opacity':0x1,'fillOpacity':0.8});},'onEachFeature':function(_0x1987ba,_0x2e526f){const _0x135dfc=_0x2f5491;let _0x4ae95d='<div\x20class=\x22info-popup\x22>';for(const _0x5626f0 in _0x1987ba['properties']){_0x4ae95d+=_0x135dfc(0xa8)+_0x5626f0+_0x135dfc(0xae)+_0x1987ba[_0x135dfc(0xc6)][_0x5626f0]+_0x135dfc(0xec);}_0x4ae95d+=_0x135dfc(0x171),_0x2e526f[_0x135dfc(0x1df)](_0x4ae95d);}})[_0x2f5491(0x179)](map):_0x9ec4bb=L['geoJSON'](_0x1093e9,{'coordsToLatLng':function(_0xd36b57){const _0xfe46a7=_0x2f5491;if(_0x196f2c!==_0xfe46a7(0x1a1)){const _0x348acc=proj4(_0x196f2c,'EPSG:4326',_0xd36b57);return new L['LatLng'](_0x348acc[0x1],_0x348acc[0x0]);}return new L[(_0xfe46a7(0x132))](_0xd36b57[0x1],_0xd36b57[0x0]);},'style':_0x1d73b5,'onEachFeature':function(_0x1fbc31,_0x3e2518){const _0x4a4ec5=_0x2f5491;let _0x22c24a=_0x4a4ec5(0x19d);for(const _0x53eeaf in _0x1fbc31[_0x4a4ec5(0xc6)]){_0x22c24a+=_0x4a4ec5(0xa8)+_0x53eeaf+_0x4a4ec5(0xae)+_0x1fbc31[_0x4a4ec5(0xc6)][_0x53eeaf]+_0x4a4ec5(0xec);}_0x22c24a+='</div>',_0x3e2518['bindPopup'](_0x22c24a);}})[_0x2f5491(0x179)](map);}}if(_0x437c4a===_0x2f5491(0x19f))buildingLayer=_0x9ec4bb;else _0x437c4a===_0x2f5491(0x16d)?parcelLayer=_0x9ec4bb:resultLayer=_0x9ec4bb;addLayerToControl(_0x9ec4bb,_0x437c4a,_0xe6e3af,_0x1093e9);try{map[_0x2f5491(0x147)](_0x9ec4bb['getBounds']());}catch(_0x170729){logMessage(_0x2f5491(0xe3)+_0x170729[_0x2f5491(0x137)],'warning');}return _0x9ec4bb;}function addLayerToControl(_0x2c58f6,_0x123064,_0x1153db,_0x62f57f){const _0xc9390c=_0x4b8452;if(layerData[_0x123064]){const _0x387cdb=allLayers['indexOf'](layerData[_0x123064][_0xc9390c(0x156)]);_0x387cdb>-0x1&&allLayers[_0xc9390c(0xc7)](_0x387cdb,0x1);}allLayers[_0xc9390c(0x1f0)](_0x2c58f6),layerData[_0x123064]={'layer':_0x2c58f6,'title':_0x1153db,'geojson':_0x62f57f};const _0x5f343d=document['getElementById']('layerSelect');let _0x4d35b2=![];for(let _0xbf212b=0x0;_0xbf212b<_0x5f343d['options'][_0xc9390c(0x115)];_0xbf212b++){if(_0x5f343d['options'][_0xbf212b][_0xc9390c(0x164)]===_0x123064){_0x4d35b2=!![];break;}}if(!_0x4d35b2){const _0xa886a6=document[_0xc9390c(0x165)]('option');_0xa886a6[_0xc9390c(0x164)]=_0x123064,_0xa886a6[_0xc9390c(0xb9)]=_0x1153db,_0x5f343d[_0xc9390c(0x11b)](_0xa886a6);}updateLayerControlPanel();}function _0x12dc(_0x26f61f,_0x434fb5){const _0x271bbd=_0x271b();return _0x12dc=function(_0x12dc85,_0x510750){_0x12dc85=_0x12dc85-0x9f;let _0x4f6854=_0x271bbd[_0x12dc85];return _0x4f6854;},_0x12dc(_0x26f61f,_0x434fb5);}function updateLayerControlPanel(){const _0x51bb8b=_0x4b8452,_0x3b4455=document['getElementById']('layerList');_0x3b4455[_0x51bb8b(0x142)]='',Object[_0x51bb8b(0xe0)](layerData)[_0x51bb8b(0x12a)]()[_0x51bb8b(0x1d4)](_0x58dda6=>{const _0x3d801e=_0x51bb8b,_0x42e5a5=layerData[_0x58dda6],_0x4a3cc7=document[_0x3d801e(0x165)](_0x3d801e(0x193));_0x4a3cc7[_0x3d801e(0x148)]='layer-item';const _0xa78be8=document['createElement'](_0x3d801e(0x192));_0xa78be8[_0x3d801e(0x1cf)]=_0x3d801e(0xc4),_0xa78be8['className']='layer-toggle',_0xa78be8['checked']=map[_0x3d801e(0x141)](_0x42e5a5['layer']),_0xa78be8[_0x3d801e(0x162)][_0x3d801e(0xc1)]=_0x58dda6,_0xa78be8['addEventListener'](_0x3d801e(0x14b),function(){const _0x5825ee=_0x3d801e;this[_0x5825ee(0x1d1)]?!map[_0x5825ee(0x141)](_0x42e5a5['layer'])&&map['addLayer'](_0x42e5a5[_0x5825ee(0x156)]):map[_0x5825ee(0x141)](_0x42e5a5[_0x5825ee(0x156)])&&map['removeLayer'](_0x42e5a5[_0x5825ee(0x156)]);});const _0xc7fb28=document[_0x3d801e(0x165)](_0x3d801e(0x104));_0xc7fb28['className']=_0x3d801e(0x198),_0xc7fb28[_0x3d801e(0xb9)]=_0x42e5a5[_0x3d801e(0x121)],_0x4a3cc7[_0x3d801e(0x11b)](_0xa78be8),_0x4a3cc7[_0x3d801e(0x11b)](_0xc7fb28),_0x3b4455[_0x3d801e(0x11b)](_0x4a3cc7);});}function displayAttributes(_0x4fe899){const _0xf484c5=_0x4b8452,_0x3844f7=document[_0xf484c5(0x16f)](_0xf484c5(0x11c)),_0x3ac4a4=document[_0xf484c5(0x16f)](_0xf484c5(0x127));if(!_0x4fe899||!layerData[_0x4fe899]){_0x3844f7['style'][_0xf484c5(0xcb)]=_0xf484c5(0xee);return;}const _0x53ccca=layerData[_0x4fe899],_0x5edeb8=_0x53ccca['geojson'];if(!_0x5edeb8||!_0x5edeb8[_0xf484c5(0xdb)]||_0x5edeb8['features'][_0xf484c5(0x115)]===0x0){_0x3ac4a4[_0xf484c5(0x142)]=_0xf484c5(0x1d6),_0x3844f7['style'][_0xf484c5(0xcb)]='block';return;}let _0x28d608='<h4>'+_0x53ccca[_0xf484c5(0x121)]+_0xf484c5(0x150);_0x28d608+=_0xf484c5(0xcf);const _0x19314c={},_0x50cd14=document[_0xf484c5(0x16f)]('parcelFieldSelector')[_0xf484c5(0x164)]||'ID';_0x19314c[_0xf484c5(0x16d)]=[_0xf484c5(0x13c),_0x50cd14],_0x19314c[_0xf484c5(0x19f)]=[_0xf484c5(0x13c),_0xf484c5(0xe6),_0xf484c5(0xdf)],_0x19314c[_0xf484c5(0x1f3)]=[_0xf484c5(0x169),_0xf484c5(0x1da),_0xf484c5(0x176),_0xf484c5(0x144)],_0x19314c[_0xf484c5(0xb7)]=[_0x50cd14,_0xf484c5(0x14f),_0xf484c5(0x1b9)],_0x19314c[_0xf484c5(0x9f)]=[_0x50cd14,'totalBuildingArea',_0xf484c5(0x14f)],_0x19314c[_0xf484c5(0x126)]=[_0x50cd14,_0xf484c5(0x1b9),_0xf484c5(0x14f),'totalBuildingArea',_0xf484c5(0x157)];let _0x6a765a=[];_0x19314c[_0x4fe899]?_0x6a765a=_0x19314c[_0x4fe899]:_0x5edeb8[_0xf484c5(0xdb)][_0xf484c5(0x1d4)](_0x9124ac=>{const _0xb11da4=_0xf484c5;_0x9124ac[_0xb11da4(0xc6)]&&Object[_0xb11da4(0xe0)](_0x9124ac[_0xb11da4(0xc6)])[_0xb11da4(0x1d4)](_0x25c704=>{const _0x45b93e=_0xb11da4;!_0x6a765a[_0x45b93e(0x174)](_0x25c704)&&_0x6a765a[_0x45b93e(0x1f0)](_0x25c704);});}),_0x28d608+=_0xf484c5(0x15a),_0x28d608+='<th>FID</th>',_0x6a765a['forEach'](_0x25d132=>{const _0xdc45b7=_0xf484c5;_0x28d608+='<th>'+_0x25d132+_0xdc45b7(0xe5);}),_0x28d608+=_0xf484c5(0x1c3),_0x5edeb8['features'][_0xf484c5(0x1d4)]((_0x31bbd2,_0x1bc3e9)=>{const _0x66a1c2=_0xf484c5;_0x28d608+=_0x66a1c2(0x15a),_0x28d608+='<td>'+_0x1bc3e9+_0x66a1c2(0x15d),_0x6a765a[_0x66a1c2(0x1d4)](_0x422547=>{const _0x399a24=_0x66a1c2,_0x30f64d=_0x31bbd2[_0x399a24(0xc6)]?_0x31bbd2[_0x399a24(0xc6)][_0x422547]:'';_0x28d608+='<td>'+(_0x30f64d!==undefined&&_0x30f64d!==null?_0x30f64d:'')+_0x399a24(0x15d);}),_0x28d608+=_0x66a1c2(0x1c3);}),_0x28d608+=_0xf484c5(0xef),_0x3ac4a4[_0xf484c5(0x142)]=_0x28d608,_0x3844f7[_0xf484c5(0x1e1)][_0xf484c5(0xcb)]='block';}function _0x271b(){const _0x149636=['Calculating\x20building\x20areas\x20by\x20parcel','stringify','\x20floors\x20=\x20','processingStatus','toLocaleString','originalCRS','MultiLineString','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>OSR\x20calculated\x20for\x20','Starting\x20step\x201\x20processing\x20-\x20calculating\x20open\x20space\x20for\x20','\x20sq.m<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','input','div','step1Result','%<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>Building\x20Count:</strong>\x20','endTime','#000','layer-label','<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>Building\x20Count:</strong>\x20','OSR\x20(%)','CRS\x20used','Point','<div\x20class=\x22info-popup\x22>','Feature','building','mapDiv','EPSG:4326','setView','width','Processing\x20building\x20','color','step3','.xlsx','processStep3','reduce','processStep2','exportButton','<strong>Calculation\x20Details:</strong><br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<pre\x20style=\x22max-height:\x20100px;\x20overflow-y:\x20auto;\x22>','\x20loaded\x20(','EPSG:32647','Completed\x20processing\x20','info','Exported\x20GeoJSON\x20result\x20successfully','Building\x20Points','Starting\x20step\x203\x20processing\x20-\x20calculating\x20building\x20areas\x20for\x20','step4','storeys','createObjectURL','Worker\x20error:','parcelGeojson','parcelArea','</p>\x0a\x20\x20\x20\x20\x20\x20','processedWith','#000000','2YoZTHR','No\x20buildings\x20found\x20in\x20this\x20parcel','warning','onload','filter','coordinates','</tr>','FeatureCollection','Web\x20Workers\x20disabled\x20-\x20using\x20main\x20thread\x20processing','fillColor','Calculating\x20OSR\x20values','processStep4','error','exportExcelButton','sort','Calculating\x20open\x20space','#00ff00','<i\x20class=\x22fas\x20fa-check-circle\x22></i>\x20','type','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Open\x20space\x20calculated\x20for\x20','checked','#f8f8f8','\x20seconds','forEach','OSR\x20Analysis','<p>No\x20attribute\x20data\x20available\x20for\x20this\x20layer.</p>','6WxiVwg','remove','loadingIndicator','parcelName','\x20web\x20workers','</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Parcels\x20with\x20building\x20data:\x20','#ffaa00','totalBuildingArea','bindPopup','#ffff00','style','Maximum\x20OSR\x20(%)','logContent','#00cc00','calculationDetails','CRS','data','Error\x20processing\x20parcel\x20','rectangle','Application\x20initialized\x20successfully!','Please\x20complete\x20step\x204\x20first.','useWebWorkers','processOpenSpace','\x20for\x20building\x20areas:\x20','log-entry\x20log-','push','startIndex','booleanPointInPolygon','buildingPoints','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22info-popup\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>','parcelsBuildingAreas','step2Result','Minimum\x20OSR\x20(%)','openSpaceResults','MultiPolygon','items','parse','Buildings\x20calculation\x20details:\x0a','string','<strong>','step3Result','buildingBatch','option','\x20sq.m</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Overall\x20open\x20space\x20percentage:\x20','Please\x20upload\x20both\x20parcel\x20and\x20building\x20files\x20first.',':</strong>\x20','\x20buildings\x20to\x20points\x20in\x20','</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Total\x20buildings\x20processed:\x20','enabled','parcelStatus','ceil','PROCESSING\x20INFORMATION','now','processBuildingAreas','openSpace','#ffa500','textContent','#workerScript','Converting\x20buildings\x20to\x20points','click','addEventListener','postMessage','Unsupported\x20geometry\x20type:\x20','Building\x20','layerId','OSR_analysis_result.geojson','\x20sq.m</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Total\x20open\x20space:\x20','checkbox','concat','properties','splice','geoJSON','Polygon','Please\x20complete\x20step\x202\x20first.','display','removeChild','%</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p><strong>Maximum\x20OSR:</strong>\x20','\x20sq.m<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>Total\x20Building\x20Area:</strong>\x20','<table\x20class=\x22attribute-table\x22>','geometry','Starting\x20step\x204\x20processing\x20-\x20calculating\x20OSR\x20for\x20','removeLayer','Failed\x20to\x20calculate\x20open\x20space\x20for\x20any\x20parcels.','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Buildings\x20converted\x20to\x20points:\x20','scrollTop','processingDelay','json_to_sheet','Step\x201\x20has\x20already\x20been\x20completed.\x20Do\x20you\x20want\x20to\x20run\x20it\x20again?','batchIndex','step1','features','writeFile','parcelFile','\x20sq.m</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Total\x20building\x20footprint:\x20','BL_NSTOREY','keys','#007700','4426256vTffCu','Could\x20not\x20zoom\x20to\x20layer\x20bounds:\x20','buildingGeojson','</th>','BL_AREA','basemapLayer','\x20sq.m\x0a','943455UzqjSX','totalArea','parcelBatch','<br>','target','none','</table>','toggleLogButton','selectedCRS','EPSG:32648','\x20sq.m</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Total\x20building\x20area:\x20','EPSG3857','Error\x20combining\x20batch\x20results:','utils','Starting\x20building\x20conversion...','warn','disabled','runAllSteps','level','Open\x20Space','Final\x20Result\x20(OSR)','\x20parcels)','Completed\x20all\x20processing\x20steps\x20successfully!','processStep1','calculateOSR','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','\x20sq.m</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Formula:\x20Building\x20Area\x20×\x20Number\x20of\x20Floors\x20=\x20Total\x20Building\x20Area</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>CRS:\x20','label','block','Error\x20processing\x20batch:','\x20batches','<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>Parcel\x20Area:</strong>\x20','SUMMARY\x20STATISTICS','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Building\x20areas\x20calculated\x20for\x20','readAsText','onmessage','buildingCount','buildingFile','Average\x20OSR\x20(%)','total','Buildings','Failed\x20to\x20calculate\x20OSR\x20values\x20for\x20any\x20parcels.','Processing\x20already\x20in\x20progress,\x20please\x20wait','progressBar','length','<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','</pre>','ImageryLabels','MultiPoint','\x20parcels\x20from\x20','appendChild','attributePanel','Starting\x20OSR\x20calculation...','9295461eNVAgd','#ff0000','Parcels\x20with\x20Building\x20Areas','title','<i\x20class=\x22fas\x20fa-times\x22></i>','control','#ff5500','22KdymMs','finalResult','attributeContent','crs','toLocaleTimeString','reverse','application/javascript','<i\x20class=\x22fas\x20fa-list\x22></i>','body','map','name','min','terminate','LatLng','Please\x20select\x20a\x20parcel\x20field.','Processing\x20parcel\x20','book_new','\x20sq.m</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Average\x20open\x20space\x20per\x20parcel:\x20','message','coordSystem','log','finalResultGeojson','Error\x20processing\x20building\x20','OBJECTID','Land\x20Parcels','%)</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Parcel\x20identifier\x20used:\x20','centroid','abs','hasLayer','innerHTML','round','buildingStoreys','step2','</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Total\x20parcel\x20area:\x20','fitBounds','className','\x20parcels</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Parcels\x20containing\x20buildings:\x20','number','change','batchSize','25335TMWDHa','endIndex','openSpaceArea','\x20Attributes</h4>','Base\x20map\x20limited\x20in\x20UTM\x20projection.\x20Switch\x20to\x20EPSG:4326\x20for\x20full\x20basemap.','download','\x20parcels\x20in\x20','Exported\x20Excel\x20result\x20successfully','...','layer','OSR','featureCount','esri','<tr>','revokeObjectURL','startTime','</td>','querySelector','280LrKFqA','result','onerror','dataset','Error\x20calculating\x20OSR\x20for\x20parcel\x20','value','createElement','Worker\x20error:\x20','Map\x20initialized\x20with\x20CRS:\x20','660350cnHprc','parcelId','max','</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Total\x20building\x20area:\x20','1498815gRXRvV','parcel','Web\x20Workers\x20','getElementById','\x20sq.m<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>Open\x20Space\x20Area:</strong>\x20','</div>','38601588PBmyuT','+proj=utm\x20+zone=47\x20+datum=WGS84\x20+units=m\x20+no_defs','includes','%</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>CRS:\x20','buildingArea','Starting\x20building\x20area\x20calculation...','Error\x20parsing\x20GeoJSON:','addTo','Starting\x20open\x20space\x20calculation...','Step\x202\x20has\x20already\x20been\x20completed.\x20Do\x20you\x20want\x20to\x20run\x20it\x20again?','defs','step4Result','LineString','fieldSelectorContainer','parcelFieldSelector','index','difference','Loaded\x20','attribution','circleMarker','Step\x203\x20has\x20already\x20been\x20completed.\x20Do\x20you\x20want\x20to\x20run\x20it\x20again?','9WYYlFr'];_0x271b=function(){return _0x149636;};return _0x271b();}function handleFileUpload(_0x5ec403,_0x6708df){const _0x30dcf1=_0x4b8452,_0x185bf0=_0x5ec403['files'][0x0];if(!_0x185bf0)return;const _0x24e860=new FileReader();_0x24e860[_0x30dcf1(0x1c0)]=function(_0x5cee05){const _0x4f773f=_0x30dcf1,_0x1a56c1=_0x5cee05[_0x4f773f(0xed)][_0x4f773f(0x160)];try{const _0x522281=JSON[_0x4f773f(0xa5)](_0x1a56c1),_0x403145=checkCRS(_0x522281);if(!_0x403145){const _0x19edcb=confirm('WARNING:\x20The\x20coordinates\x20in\x20this\x20file\x20may\x20not\x20match\x20the\x20selected\x20coordinate\x20system\x20('+document[_0x4f773f(0x16f)](_0x4f773f(0x138))[_0x4f773f(0x164)]+').\x20Do\x20you\x20want\x20to\x20continue\x20anyway?\x20If\x20not,\x20please\x20change\x20the\x20coordinate\x20system\x20and\x20try\x20again.');if(!_0x19edcb)return;}if(_0x6708df===_0x4f773f(0x19f)&&buildingLayer)map[_0x4f773f(0xd2)](buildingLayer),delete layerData['building'];else _0x6708df===_0x4f773f(0x16d)&&parcelLayer&&(map['removeLayer'](parcelLayer),delete layerData[_0x4f773f(0x16d)]);if(_0x6708df===_0x4f773f(0x19f))buildingGeojson=_0x522281,document[_0x4f773f(0x16f)]('buildingStatus')[_0x4f773f(0x142)]='<i\x20class=\x22fas\x20fa-check-circle\x22></i>\x20'+_0x185bf0['name']+_0x4f773f(0x1ad)+_0x522281['features'][_0x4f773f(0x115)]+'\x20buildings)',logMessage(_0x4f773f(0x183)+_0x522281[_0x4f773f(0xdb)][_0x4f773f(0x115)]+'\x20buildings\x20from\x20'+_0x185bf0[_0x4f773f(0x12f)],_0x4f773f(0x1b0));else{if(_0x6708df===_0x4f773f(0x16d)){parcelGeojson=_0x522281,document[_0x4f773f(0x16f)](_0x4f773f(0xb2))['innerHTML']=_0x4f773f(0x1ce)+_0x185bf0[_0x4f773f(0x12f)]+_0x4f773f(0x1ad)+_0x522281[_0x4f773f(0xdb)]['length']+_0x4f773f(0xfe),logMessage('Loaded\x20'+_0x522281[_0x4f773f(0xdb)]['length']+_0x4f773f(0x11a)+_0x185bf0[_0x4f773f(0x12f)],'info');if(_0x522281['features']&&_0x522281['features'][_0x4f773f(0x115)]>0x0){const _0x446795=_0x522281[_0x4f773f(0xdb)][0x0][_0x4f773f(0xc6)];parcelFields=Object[_0x4f773f(0xe0)](_0x446795);const _0x127ff0=document['getElementById'](_0x4f773f(0x180));_0x127ff0['innerHTML']='',parcelFields[_0x4f773f(0x1d4)](_0x1b7332=>{const _0x206189=_0x4f773f,_0x2de964=document['createElement'](_0x206189(0xab));_0x2de964['value']=_0x1b7332,_0x2de964[_0x206189(0xb9)]=_0x1b7332,_0x127ff0[_0x206189(0x11b)](_0x2de964);}),document[_0x4f773f(0x16f)](_0x4f773f(0x17f))[_0x4f773f(0x1e1)][_0x4f773f(0xcb)]=_0x4f773f(0x105);}}}addGeoJSONToMap(_0x522281,_0x6708df,_0x6708df===_0x4f773f(0x19f)?_0x4f773f(0x111):_0x4f773f(0x13d)),buildingGeojson&&parcelGeojson&&(document[_0x4f773f(0x16f)]('processStep1')[_0x4f773f(0xf9)]=![],document[_0x4f773f(0x16f)]('runAllSteps')['disabled']=![]),resetProcessFlags();}catch(_0x38f5c7){console['error'](_0x4f773f(0x178),_0x38f5c7),logMessage('Error\x20parsing\x20GeoJSON\x20file:\x20'+_0x38f5c7['message'],_0x4f773f(0x1c9)),alert('Error\x20parsing\x20GeoJSON\x20file.\x20Please\x20check\x20the\x20file\x20format.');}},_0x24e860[_0x30dcf1(0x10b)](_0x185bf0);}function resetProcessFlags(){const _0x421a33=_0x4b8452;processFlags={'step1':![],'step2':![],'step3':![],'step4':![]},document[_0x421a33(0x16f)](_0x421a33(0x194))[_0x421a33(0x1e1)][_0x421a33(0xcb)]='none',document[_0x421a33(0x16f)]('step2Result')[_0x421a33(0x1e1)][_0x421a33(0xcb)]=_0x421a33(0xee),document[_0x421a33(0x16f)](_0x421a33(0xa9))[_0x421a33(0x1e1)][_0x421a33(0xcb)]=_0x421a33(0xee),document[_0x421a33(0x16f)](_0x421a33(0x17d))[_0x421a33(0x1e1)][_0x421a33(0xcb)]='none',document[_0x421a33(0x16f)](_0x421a33(0x1aa))[_0x421a33(0xf9)]=!![],document[_0x421a33(0x16f)]('processStep3')[_0x421a33(0xf9)]=!![],document[_0x421a33(0x16f)](_0x421a33(0x1c8))[_0x421a33(0xf9)]=!![],document[_0x421a33(0x16f)](_0x421a33(0x1ab))['disabled']=!![],document[_0x421a33(0x16f)]('exportExcelButton')[_0x421a33(0xf9)]=!![];}function transformCoords(_0x43eb06,_0x320288,_0x471b9a){if(_0x320288===_0x471b9a)return _0x43eb06;return proj4(_0x320288,_0x471b9a,_0x43eb06);}function transformGeoJSON(_0x4ac2d4,_0x3ff414,_0x43f7ae){const _0x3b5104=_0x4b8452;if(_0x3ff414===_0x43f7ae)return JSON[_0x3b5104(0xa5)](JSON['stringify'](_0x4ac2d4));const _0x3604ad={'type':_0x4ac2d4[_0x3b5104(0x1cf)],'features':[]};return _0x4ac2d4[_0x3b5104(0xdb)][_0x3b5104(0x1d4)](_0xbbb82a=>{const _0x30886c=_0x3b5104,_0x5397cf={'type':_0xbbb82a[_0x30886c(0x1cf)],'properties':{..._0xbbb82a[_0x30886c(0xc6)]},'geometry':{'type':_0xbbb82a['geometry']['type']}};if(_0xbbb82a[_0x30886c(0xd0)][_0x30886c(0x1cf)]===_0x30886c(0x19c))_0x5397cf[_0x30886c(0xd0)][_0x30886c(0x1c2)]=transformCoords(_0xbbb82a[_0x30886c(0xd0)][_0x30886c(0x1c2)],_0x3ff414,_0x43f7ae);else{if(_0xbbb82a[_0x30886c(0xd0)][_0x30886c(0x1cf)]==='LineString'||_0xbbb82a[_0x30886c(0xd0)][_0x30886c(0x1cf)]===_0x30886c(0x119))_0x5397cf[_0x30886c(0xd0)][_0x30886c(0x1c2)]=_0xbbb82a[_0x30886c(0xd0)][_0x30886c(0x1c2)][_0x30886c(0x12e)](_0x540796=>transformCoords(_0x540796,_0x3ff414,_0x43f7ae));else{if(_0xbbb82a['geometry']['type']==='Polygon'||_0xbbb82a[_0x30886c(0xd0)][_0x30886c(0x1cf)]===_0x30886c(0x18e))_0x5397cf[_0x30886c(0xd0)]['coordinates']=_0xbbb82a[_0x30886c(0xd0)][_0x30886c(0x1c2)][_0x30886c(0x12e)](_0x4a935a=>_0x4a935a[_0x30886c(0x12e)](_0x5b8bc6=>transformCoords(_0x5b8bc6,_0x3ff414,_0x43f7ae)));else _0xbbb82a['geometry'][_0x30886c(0x1cf)]===_0x30886c(0xa3)&&(_0x5397cf[_0x30886c(0xd0)]['coordinates']=_0xbbb82a['geometry'][_0x30886c(0x1c2)][_0x30886c(0x12e)](_0x2a7190=>_0x2a7190[_0x30886c(0x12e)](_0x12a8f6=>_0x12a8f6[_0x30886c(0x12e)](_0x40810b=>transformCoords(_0x40810b,_0x3ff414,_0x43f7ae)))));}}_0x3604ad['features']['push'](_0x5397cf);}),_0x3604ad;}function calculateAreaUTM(_0x31e4ea,_0x2140e5){const _0x3126af=_0x4b8452;let _0xfc3cd=0x0;if(_0x31e4ea[_0x3126af(0x1cf)]===_0x3126af(0xc9))_0xfc3cd=polygonArea(_0x31e4ea[_0x3126af(0x1c2)][0x0]);else{if(_0x31e4ea['type']===_0x3126af(0xa3))for(const _0x487320 of _0x31e4ea['coordinates']){_0xfc3cd+=polygonArea(_0x487320[0x0]);for(let _0x57ea55=0x1;_0x57ea55<_0x487320[_0x3126af(0x115)];_0x57ea55++){_0xfc3cd-=polygonArea(_0x487320[_0x57ea55]);}}}return Math['abs'](_0xfc3cd);}function polygonArea(_0x37a5fb){const _0x580486=_0x4b8452;let _0x49b284=0x0;const _0xcb5184=_0x37a5fb[_0x580486(0x115)];if(_0xcb5184<0x3)return 0x0;for(let _0x3d30c2=0x0;_0x3d30c2<_0xcb5184-0x1;_0x3d30c2++){_0x49b284+=_0x37a5fb[_0x3d30c2][0x0]*_0x37a5fb[_0x3d30c2+0x1][0x1]-_0x37a5fb[_0x3d30c2+0x1][0x0]*_0x37a5fb[_0x3d30c2][0x1];}return _0x49b284+=_0x37a5fb[_0xcb5184-0x1][0x0]*_0x37a5fb[0x0][0x1]-_0x37a5fb[0x0][0x0]*_0x37a5fb[_0xcb5184-0x1][0x1],Math['abs'](_0x49b284/0x2);}function processStep1(){const _0x4b3ad7=_0x4b8452;if(isProcessing){logMessage('Processing\x20already\x20in\x20progress,\x20please\x20wait',_0x4b3ad7(0x1bf));return;}if(processFlags[_0x4b3ad7(0xda)]){const _0x519f6c=confirm(_0x4b3ad7(0xd8));if(!_0x519f6c)return;}if(!parcelGeojson||!buildingGeojson){alert(_0x4b3ad7(0xad));return;}currentStep=_0x4b3ad7(0xda),batchSize=parseInt(document[_0x4b3ad7(0x16f)](_0x4b3ad7(0x14c))[_0x4b3ad7(0x164)])||0x64,processingDelay=parseInt(document[_0x4b3ad7(0x16f)](_0x4b3ad7(0xd6))[_0x4b3ad7(0x164)])||0xa;const _0x3b377c=JSON[_0x4b3ad7(0xa5)](JSON['stringify'](parcelGeojson)),_0x492520=JSON['parse'](JSON[_0x4b3ad7(0x189)](buildingGeojson));batchResults=[],currentBatch=0x0;const _0x48860f=_0x3b377c[_0x4b3ad7(0xdb)][_0x4b3ad7(0x115)];totalBatches=Math[_0x4b3ad7(0xb3)](_0x48860f/batchSize),showLoadingIndicator(_0x4b3ad7(0x1cc)),updateProgress(0x0,_0x48860f,_0x4b3ad7(0x17a)),logMessage(_0x4b3ad7(0x190)+_0x48860f+'\x20parcels\x20in\x20'+totalBatches+'\x20batches',_0x4b3ad7(0x1b0)),batchStats['startTime']=Date[_0x4b3ad7(0xb5)](),batchStats[_0x4b3ad7(0x158)]=_0x48860f,isProcessing=!![],processBatchesStep1(_0x3b377c,_0x492520);}function processBatchesStep1(_0x37ffd2,_0x5f2ad2){const _0x20354d=_0x4b8452;useWebWorkers&&workers[_0x20354d(0x115)]>0x0?processBatchesWithWorkers(_0x37ffd2['features'],_0x5f2ad2,_0x20354d(0x1ed)):processBatchesInMainThread(_0x37ffd2[_0x20354d(0xdb)],(_0x393b89,_0x4d2653,_0x127b63)=>{return processOpenSpaceBatch({'parcelBatch':_0x393b89,'buildingGeojson':_0x5f2ad2,'selectedCRS':currentCRS,'startIndex':_0x4d2653,'endIndex':_0x127b63});});}function processBatchesWithWorkers(_0x5c7c1a,_0x4575f5,_0x5328e5){const _0x7e245d=_0x4b8452,_0x40cc8e=[];for(let _0x23d225=0x0;_0x23d225<_0x5c7c1a['length'];_0x23d225+=batchSize){_0x40cc8e[_0x7e245d(0x1f0)]({'items':_0x5c7c1a['slice'](_0x23d225,_0x23d225+batchSize),'startIndex':_0x23d225,'endIndex':Math[_0x7e245d(0x130)](_0x23d225+batchSize,_0x5c7c1a['length'])});}let _0x4c585b=0x0;const _0x260ad5=assignBatchesToWorkers(_0x40cc8e);function _0x328c9c(_0x2e40fc){const _0x3a3c90=_0x7e245d;if(_0x260ad5[_0x2e40fc][_0x3a3c90(0x115)]===0x0)return null;return _0x260ad5[_0x2e40fc]['shift']();}for(let _0x4c4910=0x0;_0x4c4910<workers[_0x7e245d(0x115)];_0x4c4910++){_0x3656e3(_0x4c4910);}function _0x3656e3(_0xa6a71a){const _0x23deb3=_0x7e245d,_0x365b04=_0x328c9c(_0xa6a71a);if(!_0x365b04)return;const _0xf5123b=workers[_0xa6a71a],_0x177c84={'command':_0x5328e5,'batchIndex':_0x4c585b,'totalBatches':totalBatches};if(_0x5328e5===_0x23deb3(0x1ed))_0x177c84[_0x23deb3(0xeb)]=_0x365b04['items'],_0x177c84[_0x23deb3(0xe4)]=_0x4575f5,_0x177c84[_0x23deb3(0xf1)]=currentCRS,_0x177c84[_0x23deb3(0x1f1)]=_0x365b04[_0x23deb3(0x1f1)],_0x177c84[_0x23deb3(0x14e)]=_0x365b04[_0x23deb3(0x14e)];else{if(_0x5328e5==='processBuildingPoints')_0x177c84[_0x23deb3(0xaa)]=_0x365b04[_0x23deb3(0xa4)],_0x177c84[_0x23deb3(0x1b8)]=_0x4575f5,_0x177c84['selectedField']=document[_0x23deb3(0x16f)](_0x23deb3(0x180))['value'],_0x177c84[_0x23deb3(0x1f1)]=_0x365b04[_0x23deb3(0x1f1)],_0x177c84[_0x23deb3(0x14e)]=_0x365b04[_0x23deb3(0x14e)];else{if(_0x5328e5===_0x23deb3(0xb6))_0x177c84['parcelBatch']=_0x365b04[_0x23deb3(0xa4)],_0x177c84[_0x23deb3(0xe4)]=_0x4575f5,_0x177c84['selectedField']=document[_0x23deb3(0x16f)]('parcelFieldSelector')['value'],_0x177c84[_0x23deb3(0x1f1)]=_0x365b04[_0x23deb3(0x1f1)],_0x177c84[_0x23deb3(0x14e)]=_0x365b04[_0x23deb3(0x14e)],_0x177c84[_0x23deb3(0xa2)]=resultGeojson;else _0x5328e5===_0x23deb3(0x101)&&(_0x177c84['parcelBatch']=_0x365b04['items'],_0x177c84[_0x23deb3(0x1f1)]=_0x365b04['startIndex'],_0x177c84['endIndex']=_0x365b04[_0x23deb3(0x14e)]);}}_0xf5123b[_0x23deb3(0xbe)](_0x177c84);const _0x296416=_0xf5123b[_0x23deb3(0x10c)];_0xf5123b[_0x23deb3(0x10c)]=function(_0x5874ea){const _0x2b98bf=_0x23deb3;_0x5874ea[_0x2b98bf(0x1e7)][_0x2b98bf(0x1cf)]==='result'?(batchResults[_0x2b98bf(0x1f0)]({'batchIndex':_0x5874ea['data'][_0x2b98bf(0xd9)],'features':_0x5874ea[_0x2b98bf(0x1e7)]['features']}),_0x4c585b++,_0x4c585b===totalBatches?combineBatchResults():setTimeout(()=>{_0x3656e3(_0xa6a71a);},processingDelay),_0xf5123b['onmessage']=_0x296416):_0x296416(_0x5874ea);};}}function assignBatchesToWorkers(_0x2cfd8c){const _0x3e46ad=_0x4b8452,_0x3d8247={};for(let _0x2e6662=0x0;_0x2e6662<workers[_0x3e46ad(0x115)];_0x2e6662++){_0x3d8247[_0x2e6662]=[];}for(let _0x1dc463=0x0;_0x1dc463<_0x2cfd8c['length'];_0x1dc463++){const _0x42a768=_0x1dc463%workers[_0x3e46ad(0x115)];_0x3d8247[_0x42a768]['push'](_0x2cfd8c[_0x1dc463]);}return _0x3d8247;}function processBatchesInMainThread(_0x1e6a68,_0x14e011){const _0x9b6140=_0x4b8452,_0x408893=[];for(let _0x46fc21=0x0;_0x46fc21<_0x1e6a68[_0x9b6140(0x115)];_0x46fc21+=batchSize){_0x408893[_0x9b6140(0x1f0)]({'items':_0x1e6a68['slice'](_0x46fc21,_0x46fc21+batchSize),'startIndex':_0x46fc21,'endIndex':Math['min'](_0x46fc21+batchSize,_0x1e6a68[_0x9b6140(0x115)])});}function _0x269c5a(_0x4422b2){const _0x16e22c=_0x9b6140;if(_0x4422b2>=_0x408893[_0x16e22c(0x115)]){combineBatchResults();return;}const _0x329bcd=_0x408893[_0x4422b2];updateProgress(_0x329bcd['startIndex'],_0x1e6a68['length'],'Processing\x20batch\x20'+(_0x4422b2+0x1)+'/'+_0x408893[_0x16e22c(0x115)]+_0x16e22c(0x155));try{const _0x3b4051=_0x14e011(_0x329bcd[_0x16e22c(0xa4)],_0x329bcd[_0x16e22c(0x1f1)],_0x329bcd['endIndex']);batchResults[_0x16e22c(0x1f0)]({'batchIndex':_0x4422b2,'features':_0x3b4051}),setTimeout(()=>{_0x269c5a(_0x4422b2+0x1);},processingDelay);}catch(_0x599299){console['error'](_0x16e22c(0x106),_0x599299),logMessage('Error\x20processing\x20batch\x20'+_0x4422b2+':\x20'+_0x599299[_0x16e22c(0x137)],_0x16e22c(0x1c9)),isProcessing=![],hideLoadingIndicator();}}_0x269c5a(0x0);}function combineBatchResults(){const _0x2d75c8=_0x4b8452;try{batchResults[_0x2d75c8(0x1cb)]((_0x57923d,_0x550585)=>_0x57923d[_0x2d75c8(0xd9)]-_0x550585[_0x2d75c8(0xd9)]);let _0x1b8232=[];for(const _0x52bfbe of batchResults){_0x1b8232=_0x1b8232[_0x2d75c8(0xc5)](_0x52bfbe[_0x2d75c8(0xdb)]);}const _0x2ffcb2={'type':_0x2d75c8(0x1c4),'features':_0x1b8232};batchStats[_0x2d75c8(0x196)]=Date[_0x2d75c8(0xb5)]();const _0x1836cf=(batchStats[_0x2d75c8(0x196)]-batchStats['startTime'])/0x3e8;logMessage(_0x2d75c8(0x1af)+batchStats[_0x2d75c8(0x158)]+'\x20features\x20in\x20'+_0x1836cf['toFixed'](0x2)+_0x2d75c8(0x1d3),'info');if(currentStep===_0x2d75c8(0xda))finalizeStep1(_0x2ffcb2);else{if(currentStep===_0x2d75c8(0x145))finalizeStep2(_0x2ffcb2);else{if(currentStep===_0x2d75c8(0x1a6))finalizeStep3(_0x2ffcb2);else currentStep==='step4'&&finalizeStep4(_0x2ffcb2);}}isProcessing=![],hideLoadingIndicator();}catch(_0x3853c6){console[_0x2d75c8(0x1c9)](_0x2d75c8(0xf5),_0x3853c6),logMessage('Error\x20combining\x20batch\x20results:\x20'+_0x3853c6['message'],'error'),isProcessing=![],hideLoadingIndicator();}}function processOpenSpaceBatch(_0x268434){const _0x2eba00=_0x4b8452,{parcelBatch:_0x1b4888,buildingGeojson:_0x318a34,selectedCRS:_0x35c419,startIndex:_0x55fd63,endIndex:_0x7d45a4}=_0x268434,_0x478359=[];for(let _0x4be02d=0x0;_0x4be02d<_0x1b4888[_0x2eba00(0x115)];_0x4be02d++){try{const _0x3bd9d5=_0x1b4888[_0x4be02d],_0x2df793=_0x55fd63+_0x4be02d;updateProgress(_0x2df793,_0x7d45a4,_0x2eba00(0x134)+(_0x2df793+0x1)+'/'+_0x7d45a4);let _0x4413dd;_0x35c419===_0x2eba00(0x1a1)?_0x4413dd=turf['area'](_0x3bd9d5):_0x4413dd=calculateAreaUTM(_0x3bd9d5[_0x2eba00(0xd0)],_0x35c419);_0x4413dd=Math[_0x2eba00(0x140)](_0x4413dd);let _0x1492c5=JSON[_0x2eba00(0xa5)](JSON[_0x2eba00(0x189)](_0x3bd9d5[_0x2eba00(0xd0)])),_0x3ee305=0x0,_0x4141bf=[];for(const _0x394080 of _0x318a34[_0x2eba00(0xdb)]){try{const _0x556c54=turf['booleanIntersects'](_0x3bd9d5,_0x394080);if(_0x556c54){const _0x43d9dc=turf['intersect'](_0x3bd9d5,_0x394080);if(_0x43d9dc){let _0x90098f;_0x35c419===_0x2eba00(0x1a1)?_0x90098f=turf['area'](_0x43d9dc):_0x90098f=calculateAreaUTM(_0x43d9dc['geometry'],_0x35c419),_0x3ee305+=_0x90098f,_0x4141bf[_0x2eba00(0x1f0)](_0x43d9dc);}}}catch(_0x429b69){logMessage('Error\x20checking\x20building\x20intersection:\x20'+_0x429b69[_0x2eba00(0x137)],'warning');}}let _0x320263=_0x4413dd-_0x3ee305;_0x320263=Math[_0x2eba00(0x16a)](0x0,_0x320263);let _0x4ff499={'type':_0x2eba00(0x19e),'properties':{..._0x3bd9d5[_0x2eba00(0xc6)],'parcelArea':Math['round'](_0x4413dd*0x64)/0x64,'buildingFootprintArea':Math[_0x2eba00(0x143)](_0x3ee305*0x64)/0x64,'openSpaceArea':Math[_0x2eba00(0x143)](_0x320263*0x64)/0x64,'openSpacePercentage':Math[_0x2eba00(0x143)](_0x320263/_0x4413dd*0x2710)/0x64},'geometry':_0x1492c5};if(_0x4141bf['length']>0x0)try{const _0x3e9b4b={'type':_0x2eba00(0x19e),'properties':{},'geometry':_0x1492c5};let _0x2c06f5=_0x3e9b4b;for(const _0x380165 of _0x4141bf){if(!_0x2c06f5||!_0x2c06f5[_0x2eba00(0xd0)])continue;_0x2c06f5=turf[_0x2eba00(0x182)](_0x2c06f5,_0x380165);if(!_0x2c06f5)break;}_0x2c06f5&&_0x2c06f5['geometry']&&(_0x4ff499[_0x2eba00(0xd0)]=_0x2c06f5['geometry']);}catch(_0x11e36b){logMessage('Error\x20computing\x20open\x20space\x20geometry\x20for\x20parcel\x20'+_0x2df793+':\x20'+_0x11e36b[_0x2eba00(0x137)],_0x2eba00(0x1bf));}_0x478359[_0x2eba00(0x1f0)](_0x4ff499);}catch(_0x6e8f04){logMessage('Error\x20processing\x20parcel\x20batch:\x20'+_0x6e8f04[_0x2eba00(0x137)],_0x2eba00(0x1c9));}}return _0x478359;}function finalizeStep1(_0x3d48e4){const _0x4e5373=_0x4b8452;if(_0x3d48e4['features'][_0x4e5373(0x115)]===0x0){alert(_0x4e5373(0xd3));return;}resultGeojson=_0x3d48e4,parcelOriginalShapes=JSON['parse'](JSON[_0x4e5373(0x189)](parcelGeojson));resultLayer&&(map[_0x4e5373(0xd2)](resultLayer),delete layerData[_0x4e5373(0xb7)]);addGeoJSONToMap(resultGeojson,'openSpace',_0x4e5373(0xfc));let _0x22abd1=0x0,_0x5c4cc7=0x0,_0xdbf3a6=0x0;resultGeojson[_0x4e5373(0xdb)]['forEach'](_0x19dcd2=>{const _0x166f5a=_0x4e5373;_0x22abd1+=_0x19dcd2[_0x166f5a(0xc6)]['openSpaceArea'],_0x5c4cc7+=_0x19dcd2[_0x166f5a(0xc6)][_0x166f5a(0x1b9)],_0xdbf3a6+=_0x19dcd2[_0x166f5a(0xc6)]['buildingFootprintArea']||0x0;});const _0x93df74=_0x22abd1/resultGeojson[_0x4e5373(0xdb)][_0x4e5373(0x115)],_0x5e06c7=_0x22abd1/_0x5c4cc7*0x64;document[_0x4e5373(0x16f)](_0x4e5373(0x194))['innerHTML']=_0x4e5373(0x1d0)+resultGeojson[_0x4e5373(0xdb)][_0x4e5373(0x115)]+'\x20parcels</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Total\x20parcel\x20area:\x20'+Math[_0x4e5373(0x143)](_0x5c4cc7*0x64)/0x64+_0x4e5373(0xde)+Math[_0x4e5373(0x143)](_0xdbf3a6*0x64)/0x64+_0x4e5373(0xc3)+Math['round'](_0x22abd1*0x64)/0x64+_0x4e5373(0x136)+Math['round'](_0x93df74*0x64)/0x64+_0x4e5373(0xac)+Math[_0x4e5373(0x143)](_0x5e06c7*0x64)/0x64+_0x4e5373(0x175)+currentCRS+_0x4e5373(0x1ba),document['getElementById'](_0x4e5373(0x194))[_0x4e5373(0x1e1)][_0x4e5373(0xcb)]=_0x4e5373(0x105),document[_0x4e5373(0x16f)](_0x4e5373(0x1aa))[_0x4e5373(0xf9)]=![],processFlags['step1']=!![],runningAllSteps&&setTimeout(()=>processStep2(),0x1f4);}function processStep2(){const _0x168b86=_0x4b8452;if(isProcessing){logMessage('Processing\x20already\x20in\x20progress,\x20please\x20wait',_0x168b86(0x1bf));return;}if(processFlags['step2']){const _0x59d695=confirm(_0x168b86(0x17b));if(!_0x59d695)return;}if(!buildingGeojson||!parcelGeojson){alert('Please\x20complete\x20step\x201\x20first.');return;}const _0x4f3089=document[_0x168b86(0x16f)](_0x168b86(0x180))[_0x168b86(0x164)];if(!_0x4f3089){alert(_0x168b86(0x133));return;}currentStep=_0x168b86(0x145),batchSize=parseInt(document['getElementById'](_0x168b86(0x14c))[_0x168b86(0x164)])||0x64,processingDelay=parseInt(document[_0x168b86(0x16f)](_0x168b86(0xd6))[_0x168b86(0x164)])||0xa;const _0x3f3c71=JSON['parse'](JSON[_0x168b86(0x189)](buildingGeojson)),_0x1f958f=JSON['parse'](JSON[_0x168b86(0x189)](parcelGeojson));batchResults=[],currentBatch=0x0;const _0x1f0297=_0x3f3c71[_0x168b86(0xdb)]['length'];totalBatches=Math[_0x168b86(0xb3)](_0x1f0297/batchSize),showLoadingIndicator(_0x168b86(0xbb)),updateProgress(0x0,_0x1f0297,_0x168b86(0xf7)),logMessage('Starting\x20step\x202\x20processing\x20-\x20converting\x20'+_0x1f0297+_0x168b86(0xaf)+totalBatches+_0x168b86(0x107),_0x168b86(0x1b0)),batchStats[_0x168b86(0x15c)]=Date[_0x168b86(0xb5)](),batchStats[_0x168b86(0x158)]=_0x1f0297,isProcessing=!![],processBatchesStep2(_0x3f3c71,_0x1f958f);}function processBatchesStep2(_0x2076de,_0x565b15){const _0x184086=_0x4b8452;useWebWorkers&&workers[_0x184086(0x115)]>0x0?processBatchesWithWorkers(_0x2076de[_0x184086(0xdb)],_0x565b15,'processBuildingPoints'):processBatchesInMainThread(_0x2076de[_0x184086(0xdb)],(_0xef1897,_0x28a4d5,_0x14f2ff)=>{const _0x4db4d4=_0x184086;return processBuildingPointsBatch({'buildingBatch':_0xef1897,'parcelGeojson':_0x565b15,'selectedField':document[_0x4db4d4(0x16f)](_0x4db4d4(0x180))[_0x4db4d4(0x164)],'startIndex':_0x28a4d5,'endIndex':_0x14f2ff});});}function processBuildingPointsBatch(_0x475a36){const _0x3f938e=_0x4b8452,{buildingBatch:_0x2e1626,parcelGeojson:_0x4eb3ff,selectedField:_0x4881ba,startIndex:_0x370989,endIndex:_0x5a1977}=_0x475a36,_0x3e6841=[];let _0x419423=0x0,_0x28ff55=0x0;for(let _0x1f9645=0x0;_0x1f9645<_0x2e1626['length'];_0x1f9645++){try{const _0x572793=_0x2e1626[_0x1f9645],_0x4af0a3=_0x370989+_0x1f9645;updateProgress(_0x4af0a3,_0x5a1977,_0x3f938e(0x1a4)+(_0x4af0a3+0x1)+'/'+_0x5a1977);let _0xd32d9c;if(_0x572793[_0x3f938e(0xd0)][_0x3f938e(0x1cf)]===_0x3f938e(0xc9)){const _0x5e4fdf=turf['centroid'](_0x572793);_0xd32d9c=_0x5e4fdf[_0x3f938e(0xd0)][_0x3f938e(0x1c2)];}else{if(_0x572793[_0x3f938e(0xd0)]['type']==='MultiPolygon'){const _0x2da3ee={'type':'Feature','properties':{},'geometry':{'type':_0x3f938e(0xc9),'coordinates':_0x572793['geometry'][_0x3f938e(0x1c2)][0x0]}},_0x2c5a22=turf[_0x3f938e(0x13f)](_0x2da3ee);_0xd32d9c=_0x2c5a22[_0x3f938e(0xd0)][_0x3f938e(0x1c2)];}else throw new Error(_0x3f938e(0xbf)+_0x572793[_0x3f938e(0xd0)][_0x3f938e(0x1cf)]);}const _0x43001f={'type':_0x3f938e(0x19e),'properties':{..._0x572793[_0x3f938e(0xc6)],'parcelId':null,'parcelName':null,'buildingArea':typeof _0x572793[_0x3f938e(0xc6)][_0x3f938e(0xe6)]===_0x3f938e(0x14a)?_0x572793[_0x3f938e(0xc6)][_0x3f938e(0xe6)]:0x0,'buildingStoreys':typeof _0x572793[_0x3f938e(0xc6)][_0x3f938e(0xdf)]==='number'?_0x572793[_0x3f938e(0xc6)][_0x3f938e(0xdf)]:0x1},'geometry':{'type':_0x3f938e(0x19c),'coordinates':_0xd32d9c}};for(const _0x5cbd8d of _0x4eb3ff[_0x3f938e(0xdb)]){if(turf['booleanPointInPolygon'](_0x43001f[_0x3f938e(0xd0)][_0x3f938e(0x1c2)],_0x5cbd8d[_0x3f938e(0xd0)])){_0x43001f[_0x3f938e(0xc6)]['parcelId']=_0x5cbd8d[_0x3f938e(0xc6)][_0x4881ba],_0x43001f[_0x3f938e(0xc6)][_0x3f938e(0x1da)]=_0x5cbd8d[_0x3f938e(0xc6)][_0x4881ba];break;}}_0x3e6841[_0x3f938e(0x1f0)](_0x43001f),_0x28ff55++;}catch(_0x5b9be2){logMessage('Error\x20creating\x20point\x20for\x20building\x20'+(_0x370989+_0x1f9645)+':\x20'+_0x5b9be2[_0x3f938e(0x137)],_0x3f938e(0x1bf)),_0x419423++;}}return _0x3e6841;}function finalizeStep2(_0x342854){const _0xa46a77=_0x4b8452;if(_0x342854['features'][_0xa46a77(0x115)]===0x0){alert('Failed\x20to\x20create\x20any\x20building\x20points.\x20Check\x20the\x20building\x20GeoJSON\x20data.');return;}layerData[_0xa46a77(0x1f3)]&&layerData['buildingPoints'][_0xa46a77(0x156)]&&(map[_0xa46a77(0xd2)](layerData[_0xa46a77(0x1f3)][_0xa46a77(0x156)]),delete layerData[_0xa46a77(0x1f3)]);addGeoJSONToMap(_0x342854,'buildingPoints',_0xa46a77(0x1b2));let _0x345ada=0x0;_0x342854[_0xa46a77(0xdb)][_0xa46a77(0x1d4)](_0xfea19e=>{const _0x453dce=_0xa46a77;_0xfea19e[_0x453dce(0xc6)]['parcelId']&&_0x345ada++;});const _0x2c5a3f=document[_0xa46a77(0x16f)](_0xa46a77(0x180))['value'];document[_0xa46a77(0x16f)](_0xa46a77(0xa0))[_0xa46a77(0x142)]=_0xa46a77(0xd4)+_0x342854[_0xa46a77(0xdb)][_0xa46a77(0x115)]+'</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Buildings\x20assigned\x20to\x20parcels:\x20'+_0x345ada+'\x20('+Math[_0xa46a77(0x143)](_0x345ada/_0x342854[_0xa46a77(0xdb)][_0xa46a77(0x115)]*0x64)+_0xa46a77(0x13e)+_0x2c5a3f+_0xa46a77(0x1ba),document[_0xa46a77(0x16f)](_0xa46a77(0xa0))[_0xa46a77(0x1e1)]['display']='block',document[_0xa46a77(0x16f)](_0xa46a77(0x1a8))[_0xa46a77(0xf9)]=![],processFlags[_0xa46a77(0x145)]=!![],runningAllSteps&&setTimeout(()=>processStep3(),0x1f4);}function processStep3(){const _0x5ea263=_0x4b8452;if(isProcessing){logMessage(_0x5ea263(0x113),_0x5ea263(0x1bf));return;}if(processFlags[_0x5ea263(0x1a6)]){const _0x122892=confirm(_0x5ea263(0x186));if(!_0x122892)return;}if(!buildingGeojson||!parcelGeojson){alert(_0x5ea263(0xca));return;}const _0x4bf314=parcelOriginalShapes||parcelGeojson;currentStep='step3',batchSize=parseInt(document[_0x5ea263(0x16f)]('batchSize')[_0x5ea263(0x164)])||0x64,processingDelay=parseInt(document[_0x5ea263(0x16f)](_0x5ea263(0xd6))[_0x5ea263(0x164)])||0xa;const _0x372681=JSON[_0x5ea263(0xa5)](JSON[_0x5ea263(0x189)](_0x4bf314)),_0x62d00e=JSON[_0x5ea263(0xa5)](JSON['stringify'](buildingGeojson));batchResults=[],currentBatch=0x0;const _0x2a8026=_0x372681['features'][_0x5ea263(0x115)];totalBatches=Math[_0x5ea263(0xb3)](_0x2a8026/batchSize),showLoadingIndicator(_0x5ea263(0x188)),updateProgress(0x0,_0x2a8026,_0x5ea263(0x177)),logMessage(_0x5ea263(0x1b3)+_0x2a8026+_0x5ea263(0x153)+totalBatches+_0x5ea263(0x107),_0x5ea263(0x1b0)),batchStats[_0x5ea263(0x15c)]=Date['now'](),batchStats[_0x5ea263(0x158)]=_0x2a8026,isProcessing=!![],processBatchesStep3(_0x372681,_0x62d00e);}function processBatchesStep3(_0x42a116,_0x56c831){const _0x29c954=_0x4b8452;useWebWorkers&&workers[_0x29c954(0x115)]>0x0?processBatchesWithWorkers(_0x42a116[_0x29c954(0xdb)],_0x56c831,_0x29c954(0xb6)):processBatchesInMainThread(_0x42a116[_0x29c954(0xdb)],(_0x3cbe24,_0xa56092,_0x4033b1)=>{const _0x4eaf9b=_0x29c954;return processBuildingAreasBatch({'parcelBatch':_0x3cbe24,'buildingGeojson':_0x56c831,'selectedField':document[_0x4eaf9b(0x16f)]('parcelFieldSelector')[_0x4eaf9b(0x164)],'startIndex':_0xa56092,'endIndex':_0x4033b1,'openSpaceResults':resultGeojson});});}function processBuildingAreasBatch(_0x45e62f){const _0x172632=_0x4b8452,{parcelBatch:_0x195705,buildingGeojson:_0x53cef3,selectedField:_0x109771,startIndex:_0x558e69,endIndex:_0x47b307,openSpaceResults:_0x16a39b}=_0x45e62f,_0x5a6e55=[];for(let _0x228bb2=0x0;_0x228bb2<_0x195705[_0x172632(0x115)];_0x228bb2++){try{const _0x56d7be=_0x195705[_0x228bb2],_0x516a85=_0x558e69+_0x228bb2;updateProgress(_0x516a85,_0x47b307,'Processing\x20parcel\x20'+(_0x516a85+0x1)+'/'+_0x47b307);const _0x454c90=_0x56d7be['properties'][_0x109771];let _0x4dfbcc=0x0,_0x326360=0x0,_0x14bb14=[];for(let _0x2ec7fb=0x0;_0x2ec7fb<_0x53cef3[_0x172632(0xdb)][_0x172632(0x115)];_0x2ec7fb++){const _0x412028=_0x53cef3[_0x172632(0xdb)][_0x2ec7fb];try{let _0x450466;if(_0x412028[_0x172632(0xd0)][_0x172632(0x1cf)]===_0x172632(0xc9)){const _0xdd23d0=turf[_0x172632(0x13f)](_0x412028);_0x450466=_0xdd23d0[_0x172632(0xd0)][_0x172632(0x1c2)];}else{if(_0x412028[_0x172632(0xd0)][_0x172632(0x1cf)]===_0x172632(0xa3)){const _0xac4dab={'type':_0x172632(0x19e),'properties':{},'geometry':{'type':'Polygon','coordinates':_0x412028[_0x172632(0xd0)][_0x172632(0x1c2)][0x0]}},_0x24da48=turf['centroid'](_0xac4dab);_0x450466=_0x24da48[_0x172632(0xd0)][_0x172632(0x1c2)];}else continue;}if(turf[_0x172632(0x1f2)](_0x450466,_0x56d7be[_0x172632(0xd0)])){let _0x4b89e3=0x0,_0x25f2fd=0x1;if(typeof _0x412028[_0x172632(0xc6)][_0x172632(0xe6)]===_0x172632(0x14a))_0x4b89e3=_0x412028[_0x172632(0xc6)]['BL_AREA'];else typeof _0x412028['properties'][_0x172632(0xe6)]==='string'&&(_0x4b89e3=parseFloat(_0x412028[_0x172632(0xc6)][_0x172632(0xe6)])||0x0);if(typeof _0x412028[_0x172632(0xc6)]['BL_NSTOREY']===_0x172632(0x14a))_0x25f2fd=_0x412028[_0x172632(0xc6)][_0x172632(0xdf)];else typeof _0x412028[_0x172632(0xc6)][_0x172632(0xdf)]===_0x172632(0xa7)&&(_0x25f2fd=parseInt(_0x412028[_0x172632(0xc6)]['BL_NSTOREY'])||0x1);_0x4b89e3=isNaN(_0x4b89e3)||_0x4b89e3<0x0?0x0:_0x4b89e3,_0x25f2fd=isNaN(_0x25f2fd)||_0x25f2fd<0x1?0x1:_0x25f2fd;const _0x448ad8=_0x4b89e3*_0x25f2fd;_0x4dfbcc+=_0x448ad8,_0x326360++,_0x14bb14[_0x172632(0x1f0)]({'id':_0x2ec7fb,'area':_0x4b89e3,'storeys':_0x25f2fd,'totalArea':_0x448ad8});}}catch(_0x2c1707){logMessage(_0x172632(0x13b)+_0x2ec7fb+'\x20for\x20parcel\x20'+_0x516a85+':\x20'+_0x2c1707[_0x172632(0x137)],_0x172632(0x1bf));}}_0x4dfbcc=Math[_0x172632(0x143)](_0x4dfbcc*0x64)/0x64;let _0x5037f3=0x0,_0x122dd4=0x0;if(_0x16a39b&&_0x16a39b[_0x172632(0xdb)]){const _0x36ed61=_0x16a39b['features']['find'](_0x2ab0dc=>_0x2ab0dc[_0x172632(0xc6)][_0x109771]===_0x454c90);_0x36ed61&&(_0x5037f3=_0x36ed61[_0x172632(0xc6)][_0x172632(0x14f)]||0x0,_0x122dd4=_0x36ed61[_0x172632(0xc6)]['parcelArea']||0x0);}let _0x2cc786=_0x172632(0xa6);_0x14bb14[_0x172632(0x1d4)](_0x490672=>{const _0x5677f4=_0x172632;_0x2cc786+=_0x5677f4(0xc0)+_0x490672['id']+':\x20'+_0x490672['area']+'\x20sq.m\x20×\x20'+_0x490672[_0x5677f4(0x1b5)]+_0x5677f4(0x18a)+_0x490672[_0x5677f4(0xea)]+_0x5677f4(0xe8);});_0x14bb14[_0x172632(0x115)]===0x0&&(_0x2cc786=_0x172632(0x1be));const _0x4fc8da={'type':_0x172632(0x19e),'properties':{..._0x56d7be[_0x172632(0xc6)],'totalBuildingArea':_0x4dfbcc,'buildingCount':_0x326360,'openSpaceArea':_0x5037f3,'parcelArea':_0x122dd4,'calculationDetails':_0x2cc786},'geometry':_0x56d7be[_0x172632(0xd0)]};_0x5a6e55[_0x172632(0x1f0)](_0x4fc8da);}catch(_0x3a77a2){logMessage(_0x172632(0x1e8)+(_0x558e69+_0x228bb2)+_0x172632(0x1ee)+_0x3a77a2[_0x172632(0x137)],_0x172632(0x1c9));}}return _0x5a6e55;}function finalizeStep3(_0x5d6c7c){const _0x2c4d63=_0x4b8452;if(_0x5d6c7c[_0x2c4d63(0xdb)]['length']===0x0){alert('Failed\x20to\x20calculate\x20building\x20areas\x20for\x20any\x20parcels.');return;}resultGeojson=_0x5d6c7c;resultLayer&&(map['removeLayer'](resultLayer),delete layerData[_0x2c4d63(0x9f)]);addGeoJSONToMap(resultGeojson,'parcelsBuildingAreas',_0x2c4d63(0x120));let _0x44d8ec=0x0,_0x42dab8=0x0,_0x5017b1=0x0;resultGeojson[_0x2c4d63(0xdb)][_0x2c4d63(0x1d4)](_0x2ee50f=>{const _0x4e76f5=_0x2c4d63,_0x36bc94=_0x2ee50f[_0x4e76f5(0xc6)][_0x4e76f5(0x10d)]||0x0,_0x4b3213=_0x2ee50f[_0x4e76f5(0xc6)][_0x4e76f5(0x1de)]||0x0;_0x44d8ec+=_0x36bc94,_0x42dab8+=_0x4b3213,_0x36bc94>0x0&&_0x5017b1++;}),document[_0x2c4d63(0x16f)](_0x2c4d63(0xa9))['innerHTML']=_0x2c4d63(0x10a)+resultGeojson[_0x2c4d63(0xdb)][_0x2c4d63(0x115)]+_0x2c4d63(0x149)+_0x5017b1+_0x2c4d63(0xb0)+_0x44d8ec+_0x2c4d63(0x16b)+Math['round'](_0x42dab8*0x64)/0x64+_0x2c4d63(0x103)+currentCRS+_0x2c4d63(0x1ba),document[_0x2c4d63(0x16f)]('step3Result')['style'][_0x2c4d63(0xcb)]=_0x2c4d63(0x105),document['getElementById']('processStep4')[_0x2c4d63(0xf9)]=![],processFlags[_0x2c4d63(0x1a6)]=!![],runningAllSteps&&setTimeout(()=>processStep4(),0x1f4);}function processStep4(){const _0x14be2a=_0x4b8452;if(isProcessing){logMessage('Processing\x20already\x20in\x20progress,\x20please\x20wait','warning');return;}if(processFlags[_0x14be2a(0x1b4)]){const _0x3849e1=confirm('Step\x204\x20has\x20already\x20been\x20completed.\x20Do\x20you\x20want\x20to\x20run\x20it\x20again?');if(!_0x3849e1)return;}if(!resultGeojson){alert('Please\x20complete\x20step\x203\x20first.');return;}currentStep='step4',batchSize=parseInt(document['getElementById'](_0x14be2a(0x14c))[_0x14be2a(0x164)])||0x64,processingDelay=parseInt(document[_0x14be2a(0x16f)](_0x14be2a(0xd6))['value'])||0xa;const _0x4b4516=JSON[_0x14be2a(0xa5)](JSON[_0x14be2a(0x189)](resultGeojson));batchResults=[],currentBatch=0x0;const _0x2c1c09=_0x4b4516['features'][_0x14be2a(0x115)];totalBatches=Math[_0x14be2a(0xb3)](_0x2c1c09/batchSize),showLoadingIndicator(_0x14be2a(0x1c7)),updateProgress(0x0,_0x2c1c09,_0x14be2a(0x11d)),logMessage(_0x14be2a(0xd1)+_0x2c1c09+_0x14be2a(0x153)+totalBatches+_0x14be2a(0x107),_0x14be2a(0x1b0)),batchStats[_0x14be2a(0x15c)]=Date[_0x14be2a(0xb5)](),batchStats['featureCount']=_0x2c1c09,isProcessing=!![],processBatchesStep4(_0x4b4516);}function processBatchesStep4(_0x55f5b3){const _0x4efa1c=_0x4b8452;useWebWorkers&&workers['length']>0x0?processBatchesWithWorkers(_0x55f5b3[_0x4efa1c(0xdb)],null,_0x4efa1c(0x101)):processBatchesInMainThread(_0x55f5b3['features'],(_0x1170e2,_0x4890c0,_0x3850b7)=>{return calculateOSRBatch({'parcelBatch':_0x1170e2,'startIndex':_0x4890c0,'endIndex':_0x3850b7});});}function calculateOSRBatch(_0x3c40fc){const _0x1b2223=_0x4b8452,{parcelBatch:_0x8a3544,startIndex:_0x419708,endIndex:_0xc538db}=_0x3c40fc,_0x2dffd5=[];for(let _0x469f10=0x0;_0x469f10<_0x8a3544[_0x1b2223(0x115)];_0x469f10++){try{const _0xcbea24=_0x8a3544[_0x469f10],_0x5bf635=_0x419708+_0x469f10;updateProgress(_0x5bf635,_0xc538db,'Calculating\x20OSR\x20for\x20parcel\x20'+(_0x5bf635+0x1)+'/'+_0xc538db);const _0x4bba3b=_0xcbea24[_0x1b2223(0xc6)][_0x1b2223(0x14f)]||0x0,_0xc9f0c3=_0xcbea24[_0x1b2223(0xc6)][_0x1b2223(0x1de)]||0x0;let _0x18a75d=0x0;_0xc9f0c3>0x0&&(_0x18a75d=_0x4bba3b/_0xc9f0c3*0x64);_0x18a75d=Math[_0x1b2223(0x143)](_0x18a75d*0x64)/0x64;const _0x3450f5={'type':_0x1b2223(0x19e),'properties':{..._0xcbea24['properties'],'OSR':_0x18a75d},'geometry':_0xcbea24[_0x1b2223(0xd0)]};_0x2dffd5[_0x1b2223(0x1f0)](_0x3450f5);}catch(_0x242cb5){logMessage(_0x1b2223(0x163)+(_0x419708+_0x469f10)+':\x20'+_0x242cb5[_0x1b2223(0x137)],'error');}}return _0x2dffd5;}function finalizeStep4(_0x537659){const _0x4a05c5=_0x4b8452;if(_0x537659[_0x4a05c5(0xdb)][_0x4a05c5(0x115)]===0x0){alert(_0x4a05c5(0x112));return;}resultGeojson=_0x537659,window[_0x4a05c5(0x13a)]=_0x537659;resultLayer&&(map['removeLayer'](resultLayer),delete layerData['finalResult']);addGeoJSONToMap(resultGeojson,_0x4a05c5(0x126),_0x4a05c5(0xfd));let _0x2bc985=0x0,_0x46ea2f=0x0,_0x7bcae4=0x0,_0x5db6f9=resultGeojson[_0x4a05c5(0xdb)][_0x4a05c5(0x115)],_0x54bb6b=0x0,_0x1aa4d3=[];resultGeojson[_0x4a05c5(0xdb)][_0x4a05c5(0x1d4)](_0x4df089=>{const _0x257d1b=_0x4a05c5;_0x4df089[_0x257d1b(0xc6)]['parcelArea']>0x0&&(_0x2bc985+=_0x4df089[_0x257d1b(0xc6)]['parcelArea'],_0x46ea2f+=_0x4df089[_0x257d1b(0xc6)]['openSpaceArea']||0x0,_0x7bcae4+=_0x4df089[_0x257d1b(0xc6)][_0x257d1b(0x1de)]||0x0,_0x4df089[_0x257d1b(0xc6)][_0x257d1b(0x157)]!==undefined&&_0x4df089[_0x257d1b(0xc6)][_0x257d1b(0x1de)]>0x0&&_0x1aa4d3[_0x257d1b(0x1f0)](_0x4df089[_0x257d1b(0xc6)][_0x257d1b(0x157)]),_0x54bb6b++);});const _0x16fdd1=_0x1aa4d3[_0x4a05c5(0x115)]>0x0?_0x1aa4d3['reduce']((_0x271f2a,_0x2f2231)=>_0x271f2a+_0x2f2231,0x0)/_0x1aa4d3['length']:0x0,_0x1c978d=_0x1aa4d3['length']>0x0?Math[_0x4a05c5(0x16a)](..._0x1aa4d3):0x0,_0x153ef8=_0x1aa4d3[_0x4a05c5(0x115)]>0x0?Math[_0x4a05c5(0x130)](..._0x1aa4d3):0x0;document['getElementById']('step4Result')[_0x4a05c5(0x142)]=_0x4a05c5(0x18f)+resultGeojson['features'][_0x4a05c5(0x115)]+'\x20parcels:</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>OSR\x20=\x20(Open\x20Space\x20Area\x20/\x20Total\x20Building\x20Area)\x20×\x20100</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<hr>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Summary\x20Statistics:</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Total\x20parcels:\x20'+_0x5db6f9+_0x4a05c5(0x1dc)+_0x54bb6b+_0x4a05c5(0x146)+Math['round'](_0x2bc985*0x64)/0x64+'\x20sq.m</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>Total\x20open\x20space:\x20'+Math[_0x4a05c5(0x143)](_0x46ea2f*0x64)/0x64+_0x4a05c5(0xf3)+Math['round'](_0x7bcae4*0x64)/0x64+'\x20sq.m</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p><strong>Average\x20OSR:</strong>\x20'+Math['round'](_0x16fdd1*0x64)/0x64+_0x4a05c5(0xcd)+Math[_0x4a05c5(0x143)](_0x1c978d*0x64)/0x64+'%</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p><strong>Minimum\x20OSR:</strong>\x20'+Math[_0x4a05c5(0x143)](_0x153ef8*0x64)/0x64+_0x4a05c5(0x175)+currentCRS+'</p>\x0a\x20\x20\x20\x20\x20\x20',document[_0x4a05c5(0x16f)](_0x4a05c5(0x17d))[_0x4a05c5(0x1e1)][_0x4a05c5(0xcb)]=_0x4a05c5(0x105),document[_0x4a05c5(0x16f)](_0x4a05c5(0x1ab))[_0x4a05c5(0xf9)]=![],document[_0x4a05c5(0x16f)](_0x4a05c5(0x1ca))[_0x4a05c5(0xf9)]=![],processFlags[_0x4a05c5(0x1b4)]=!![],runningAllSteps&&(runningAllSteps=![],logMessage(_0x4a05c5(0xff),_0x4a05c5(0x1b0)));}let runningAllSteps=![];function runAllSteps(){const _0x5cfd07=_0x4b8452;if(isProcessing){logMessage(_0x5cfd07(0x113),_0x5cfd07(0x1bf));return;}if(!buildingGeojson||!parcelGeojson){alert(_0x5cfd07(0xad));return;}const _0x4635a9=document[_0x5cfd07(0x16f)](_0x5cfd07(0x180))[_0x5cfd07(0x164)];if(!_0x4635a9){alert(_0x5cfd07(0x133));return;}if(processFlags[_0x5cfd07(0xda)]||processFlags[_0x5cfd07(0x145)]||processFlags[_0x5cfd07(0x1a6)]||processFlags[_0x5cfd07(0x1b4)]){const _0x5588f1=confirm('Some\x20steps\x20have\x20already\x20been\x20completed.\x20Do\x20you\x20want\x20to\x20run\x20all\x20steps\x20again?');if(!_0x5588f1)return;}runningAllSteps=!![],processStep1();}function showLoadingIndicator(_0xa35860){const _0x416993=_0x4b8452,_0x4227c9=document[_0x416993(0x16f)](_0x416993(0x1d9)),_0x1df430=document[_0x416993(0x16f)](_0x416993(0x18b));_0xa35860?_0x1df430[_0x416993(0xb9)]=':\x20'+_0xa35860:_0x1df430['textContent']='',_0x4227c9['style'][_0x416993(0xcb)]='block',document[_0x416993(0x16f)](_0x416993(0x114))[_0x416993(0x1e1)][_0x416993(0x1a3)]='0%';}function hideLoadingIndicator(){const _0x21b7ff=_0x4b8452;document[_0x21b7ff(0x16f)](_0x21b7ff(0x1d9))[_0x21b7ff(0x1e1)][_0x21b7ff(0xcb)]=_0x21b7ff(0xee);}function updateProgress(_0x45c3d6,_0x51bb80,_0x5228cf){const _0x9c6104=_0x4b8452,_0x2498eb=Math[_0x9c6104(0x130)](0x64,Math[_0x9c6104(0x143)](_0x45c3d6/_0x51bb80*0x64));document['getElementById'](_0x9c6104(0x114))[_0x9c6104(0x1e1)]['width']=_0x2498eb+'%',_0x5228cf&&(document[_0x9c6104(0x16f)]('processingStatus')[_0x9c6104(0xb9)]=':\x20'+_0x5228cf);}function logMessage(_0x3cab43,_0x354efd=_0x4b8452(0x1b0)){const _0x1e82f4=_0x4b8452,_0x260e22=new Date(),_0xddeeb2=_0x260e22[_0x1e82f4(0x129)](),_0x2711db=document[_0x1e82f4(0x165)](_0x1e82f4(0x193));_0x2711db['className']=_0x1e82f4(0x1ef)+_0x354efd,_0x2711db[_0x1e82f4(0xb9)]='['+_0xddeeb2+']\x20'+_0x3cab43;const _0x162d59=document[_0x1e82f4(0x16f)](_0x1e82f4(0x1e3));_0x162d59[_0x1e82f4(0x11b)](_0x2711db),_0x162d59[_0x1e82f4(0xd5)]=_0x162d59['scrollHeight'];switch(_0x354efd){case'error':console[_0x1e82f4(0x1c9)](_0x3cab43);break;case _0x1e82f4(0x1bf):console[_0x1e82f4(0xf8)](_0x3cab43);break;default:console[_0x1e82f4(0x139)](_0x3cab43);}}function exportResult(){const _0x3495cc=_0x4b8452;if(!window[_0x3495cc(0x13a)]){alert(_0x3495cc(0x1eb));return;}const _0x302244=JSON['parse'](JSON[_0x3495cc(0x189)](window[_0x3495cc(0x13a)]));parcelGeojson&&parcelGeojson[_0x3495cc(0x128)]?_0x302244[_0x3495cc(0x128)]=parcelGeojson[_0x3495cc(0x128)]:_0x302244[_0x3495cc(0x128)]={'type':_0x3495cc(0x12f),'properties':{'name':currentCRS}};_0x302244[_0x3495cc(0xc6)]=_0x302244[_0x3495cc(0xc6)]||{},_0x302244['properties'][_0x3495cc(0x1bb)]='Open\x20Space\x20Ratio\x20Web\x20App',_0x302244[_0x3495cc(0xc6)]['processingDate']=new Date()['toISOString'](),_0x302244[_0x3495cc(0xc6)][_0x3495cc(0x18d)]=currentCRS;const _0x1c889d=new Blob([JSON[_0x3495cc(0x189)](_0x302244)],{'type':'application/json'}),_0x5cd94d=URL[_0x3495cc(0x1b6)](_0x1c889d),_0x2336c7=document[_0x3495cc(0x165)]('a');_0x2336c7['href']=_0x5cd94d,_0x2336c7[_0x3495cc(0x152)]=_0x3495cc(0xc2),document['body'][_0x3495cc(0x11b)](_0x2336c7),_0x2336c7['click'](),document[_0x3495cc(0x12d)][_0x3495cc(0xcc)](_0x2336c7),URL[_0x3495cc(0x15b)](_0x5cd94d),logMessage(_0x3495cc(0x1b1),_0x3495cc(0x1b0));}function exportExcel(){const _0x302df5=_0x4b8452;if(!window[_0x302df5(0x13a)]){alert(_0x302df5(0x1eb));return;}const _0x355a7b=document[_0x302df5(0x16f)]('coordSystem')[_0x302df5(0x164)],_0x57724e=document[_0x302df5(0x16f)](_0x302df5(0x180))[_0x302df5(0x164)]||'ID',_0x552f5c=XLSX[_0x302df5(0xf6)][_0x302df5(0x135)](),_0x3b4ac1=window[_0x302df5(0x13a)][_0x302df5(0xdb)][_0x302df5(0x12e)](_0x1eb9b1=>{const _0x30c118=_0x302df5;return{[_0x57724e]:_0x1eb9b1[_0x30c118(0xc6)][_0x57724e],'Parcel\x20Area\x20(sq.m)':_0x1eb9b1[_0x30c118(0xc6)][_0x30c118(0x1b9)],'Open\x20Space\x20Area\x20(sq.m)':_0x1eb9b1['properties'][_0x30c118(0x14f)],'Total\x20Building\x20Area\x20(sq.m)':_0x1eb9b1[_0x30c118(0xc6)][_0x30c118(0x1de)],'OSR\x20(%)':_0x1eb9b1[_0x30c118(0xc6)][_0x30c118(0x157)],'Building\x20Count':_0x1eb9b1['properties']['buildingCount']||0x0};});let _0x33e3b3=_0x3b4ac1[_0x302df5(0x1c1)](_0x292ab6=>_0x292ab6['Total\x20Building\x20Area\x20(sq.m)']>0x0)[_0x302df5(0x12e)](_0x120592=>_0x120592[_0x302df5(0x19a)]);const _0x524ef8=_0x33e3b3[_0x302df5(0x115)]>0x0?_0x33e3b3[_0x302df5(0x1a9)]((_0xcc9f49,_0x5267e0)=>_0xcc9f49+_0x5267e0,0x0)/_0x33e3b3['length']:0x0,_0x71e826=_0x33e3b3['length']>0x0?Math['max'](..._0x33e3b3):0x0,_0x2d29df=_0x33e3b3['length']>0x0?Math[_0x302df5(0x130)](..._0x33e3b3):0x0;_0x3b4ac1[_0x302df5(0x1f0)]({}),_0x3b4ac1[_0x302df5(0x1f0)]({[_0x57724e]:_0x302df5(0x109)}),_0x3b4ac1[_0x302df5(0x1f0)]({[_0x57724e]:_0x302df5(0x10f),'OSR\x20(%)':Math['round'](_0x524ef8*0x64)/0x64}),_0x3b4ac1[_0x302df5(0x1f0)]({[_0x57724e]:_0x302df5(0x1e2),'OSR\x20(%)':Math[_0x302df5(0x143)](_0x71e826*0x64)/0x64}),_0x3b4ac1[_0x302df5(0x1f0)]({[_0x57724e]:_0x302df5(0xa1),'OSR\x20(%)':Math['round'](_0x2d29df*0x64)/0x64}),_0x3b4ac1[_0x302df5(0x1f0)]({}),_0x3b4ac1[_0x302df5(0x1f0)]({[_0x57724e]:_0x302df5(0xb4)}),_0x3b4ac1[_0x302df5(0x1f0)]({[_0x57724e]:_0x302df5(0x19b),'OSR\x20(%)':_0x355a7b}),_0x3b4ac1['push']({[_0x57724e]:'Generated\x20on','OSR\x20(%)':new Date()[_0x302df5(0x18c)]()});const _0x26f309=XLSX[_0x302df5(0xf6)][_0x302df5(0xd7)](_0x3b4ac1);XLSX[_0x302df5(0xf6)]['book_append_sheet'](_0x552f5c,_0x26f309,_0x302df5(0x1d5)),XLSX[_0x302df5(0xdc)](_0x552f5c,'OSR_analysis_result_'+_0x355a7b['replace'](':','_')+_0x302df5(0x1a7)),logMessage(_0x302df5(0x154),_0x302df5(0x1b0));}function init(){const _0x545fc5=_0x4b8452;createWorkers(),initMap(),document[_0x545fc5(0x16f)](_0x545fc5(0x138))[_0x545fc5(0xbd)](_0x545fc5(0x14b),function(){initMap();}),document['getElementById'](_0x545fc5(0x10e))[_0x545fc5(0xbd)](_0x545fc5(0x14b),function(){handleFileUpload(this,'building');}),document['getElementById'](_0x545fc5(0xdd))[_0x545fc5(0xbd)]('change',function(){handleFileUpload(this,'parcel');}),document['getElementById']('processStep1')[_0x545fc5(0xbd)]('click',processStep1),document[_0x545fc5(0x16f)](_0x545fc5(0x1aa))[_0x545fc5(0xbd)](_0x545fc5(0xbc),processStep2),document[_0x545fc5(0x16f)]('processStep3')[_0x545fc5(0xbd)](_0x545fc5(0xbc),processStep3),document['getElementById']('processStep4')[_0x545fc5(0xbd)](_0x545fc5(0xbc),processStep4),document[_0x545fc5(0x16f)](_0x545fc5(0x1ab))[_0x545fc5(0xbd)]('click',exportResult),document[_0x545fc5(0x16f)]('exportExcelButton')[_0x545fc5(0xbd)](_0x545fc5(0xbc),exportExcel),document[_0x545fc5(0x16f)](_0x545fc5(0xfa))[_0x545fc5(0xbd)](_0x545fc5(0xbc),runAllSteps),document['getElementById']('layerSelect')[_0x545fc5(0xbd)]('change',function(){const _0x15ad44=_0x545fc5;displayAttributes(this[_0x15ad44(0x164)]);}),document[_0x545fc5(0x16f)]('useWebWorkers')['addEventListener'](_0x545fc5(0x14b),function(){const _0x28cec0=_0x545fc5;useWebWorkers=this['checked'],useWebWorkers?createWorkers():terminateWorkers(),logMessage(_0x28cec0(0x16e)+(useWebWorkers?_0x28cec0(0xb1):_0x28cec0(0xf9)),'info');}),document[_0x545fc5(0x16f)](_0x545fc5(0xf0))[_0x545fc5(0xbd)](_0x545fc5(0xbc),function(){const _0x6fa9b2=_0x545fc5,_0x5591ef=document[_0x6fa9b2(0x16f)]('logContainer');_0x5591ef['style']['display']===_0x6fa9b2(0xee)?(_0x5591ef[_0x6fa9b2(0x1e1)][_0x6fa9b2(0xcb)]=_0x6fa9b2(0x105),this[_0x6fa9b2(0x142)]=_0x6fa9b2(0x122)):(_0x5591ef[_0x6fa9b2(0x1e1)]['display']=_0x6fa9b2(0xee),this[_0x6fa9b2(0x142)]=_0x6fa9b2(0x12c));}),document[_0x545fc5(0x16f)](_0x545fc5(0x100))[_0x545fc5(0xf9)]=!![],document[_0x545fc5(0x16f)](_0x545fc5(0x1aa))[_0x545fc5(0xf9)]=!![],document['getElementById'](_0x545fc5(0x1a8))['disabled']=!![],document[_0x545fc5(0x16f)](_0x545fc5(0x1c8))[_0x545fc5(0xf9)]=!![],document[_0x545fc5(0x16f)]('exportButton')[_0x545fc5(0xf9)]=!![],document['getElementById']('exportExcelButton')[_0x545fc5(0xf9)]=!![],document[_0x545fc5(0x16f)]('runAllSteps')['disabled']=!![],logMessage(_0x545fc5(0x1ea),_0x545fc5(0x1b0)),logMessage('Using\x20'+currentCRS+'\x20coordinate\x20system',_0x545fc5(0x1b0));}window[_0x4b8452(0x1c0)]=init;
+    // ===== GLOBAL VARIABLES =====
+    let map;
+    let buildingLayer;
+    let parcelLayer;
+    let resultLayer;
+    let buildingGeojson = null;
+    let parcelGeojson = null;
+    let resultGeojson = null;
+    let parcelOriginalShapes = null;
+    let parcelFields = [];
+    let currentCRS = 'EPSG:32647';
+    let allLayers = [];
+    let layerData = {};
+    let processFlags = {
+      step1: false,
+      step2: false,
+      step3: false,
+      step4: false
+    };
+    
+    // Web Worker variables
+    let workers = [];
+    let useWebWorkers = true;
+    const NUM_WORKERS = 4;
+    let isProcessing = false;
+    
+    // Batch processing variables
+    let batchSize = 100;
+    let processingDelay = 10;
+    let batchResults = [];
+    let currentBatch = 0;
+    let totalBatches = 0;
+    let currentStep = '';
+    let batchStats = {
+      startTime: 0,
+      endTime: 0,
+      featureCount: 0
+    };
+    let runningAllSteps = false;
+    
+    // ===== MAP INITIALIZATION =====
+    function initMap() {
+      if (map) {
+        map.remove();
+      }
+      
+      currentCRS = document.getElementById('coordSystem').value;
+      
+      map = L.map('mapDiv', {
+        center: [13.7563, 100.5018],
+        zoom: 12,
+        zoomControl: true
+      });
+      
+      const baseMaps = {
+        'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors'
+        }),
+        'Satellite (ESRI)': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'ESRI World Imagery'
+        }),
+        'CartoDB Positron': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap, © CartoDB'
+        })
+      };
+      
+      baseMaps['OpenStreetMap'].addTo(map);
+      L.control.layers(baseMaps, {}, { position: 'topright' }).addTo(map);
+      
+      buildingLayer = L.geoJSON(null, {
+        style: { color: '#ff7800', weight: 2 },
+        onEachFeature: addPopup
+      }).addTo(map);
+      
+      parcelLayer = L.geoJSON(null, {
+        style: { color: '#0078d7', weight: 2, fillOpacity: 0.2 },
+        onEachFeature: addPopup
+      }).addTo(map);
+      
+      resultLayer = L.geoJSON(null, {
+        style: { color: '#28a745', weight: 3, fillOpacity: 0.3 },
+        onEachFeature: addPopup
+      }).addTo(map);
+      
+      logMessage(`Map initialized with ${currentCRS}`, 'info');
+    }
+    
+    function addPopup(feature, layer) {
+      if (feature.properties) {
+        let popupContent = '<div class="info-popup"><b>Properties:</b><br>';
+        for (let key in feature.properties) {
+          popupContent += `${key}: ${feature.properties[key]}<br>`;
+        }
+        popupContent += '</div>';
+        layer.bindPopup(popupContent);
+      }
+    }
+    
+    // ===== COORDINATE TRANSFORMATION =====
+    
+    function convertUTMToWGS84(geojson, utmZone) {
+      const clonedGeoJSON = JSON.parse(JSON.stringify(geojson));
+      
+      clonedGeoJSON.features.forEach(feature => {
+        turf.coordEach(feature, (coord) => {
+          if (Math.abs(coord[0]) > 180) {
+            const wgs84 = proj4(utmZone, "EPSG:4326", coord);
+            coord[0] = wgs84[0];
+            coord[1] = wgs84[1];
+          }
+        });
+      });
+      
+      return clonedGeoJSON;
+    }
+    
+    function convertWGS84ToUTM(geojson, utmZone) {
+      const clonedGeoJSON = JSON.parse(JSON.stringify(geojson));
+      
+      clonedGeoJSON.features.forEach(feature => {
+        turf.coordEach(feature, (coord) => {
+          if (Math.abs(coord[0]) <= 180) {
+            const utm = proj4("EPSG:4326", utmZone, coord);
+            coord[0] = utm[0];
+            coord[1] = utm[1];
+          }
+        });
+      });
+      
+      return clonedGeoJSON;
+    }
+    
+    // ===== FILE UPLOAD HANDLERS =====
+    
+    function showStatus(elementId, message, isSuccess) {
+      const statusEl = document.getElementById(elementId);
+      if (!message) {
+        statusEl.style.display = 'none';
+        return;
+      }
+      
+      statusEl.style.display = 'block';
+      statusEl.textContent = message;
+      statusEl.className = 'file-status ' + (isSuccess ? 'success' : 'error');
+    }
+    
+    // Building file type buttons
+    document.getElementById('btnBuildingGeoJSON').addEventListener('click', function() {
+      document.getElementById('buildingFile').style.display = 'block';
+      document.getElementById('buildingShapefileFile').style.display = 'none';
+      document.getElementById('buildingFile').value = '';
+      document.getElementById('buildingShapefileFile').value = '';
+      
+      this.classList.add('active');
+      document.getElementById('btnBuildingShapefile').classList.remove('active');
+      showStatus('buildingStatus', '', false);
+    });
+    
+    document.getElementById('btnBuildingShapefile').addEventListener('click', function() {
+      document.getElementById('buildingFile').style.display = 'none';
+      document.getElementById('buildingShapefileFile').style.display = 'block';
+      document.getElementById('buildingFile').value = '';
+      document.getElementById('buildingShapefileFile').value = '';
+      
+      this.classList.add('active');
+      document.getElementById('btnBuildingGeoJSON').classList.remove('active');
+      showStatus('buildingStatus', '', false);
+    });
+    
+    // Parcel file type buttons
+    document.getElementById('btnParcelGeoJSON').addEventListener('click', function() {
+      document.getElementById('parcelFile').style.display = 'block';
+      document.getElementById('parcelShapefileFile').style.display = 'none';
+      document.getElementById('parcelFile').value = '';
+      document.getElementById('parcelShapefileFile').value = '';
+      
+      this.classList.add('active');
+      document.getElementById('btnParcelShapefile').classList.remove('active');
+      showStatus('parcelStatus', '', false);
+    });
+    
+    document.getElementById('btnParcelShapefile').addEventListener('click', function() {
+      document.getElementById('parcelFile').style.display = 'none';
+      document.getElementById('parcelShapefileFile').style.display = 'block';
+      document.getElementById('parcelFile').value = '';
+      document.getElementById('parcelShapefileFile').value = '';
+      
+      this.classList.add('active');
+      document.getElementById('btnParcelGeoJSON').classList.remove('active');
+      showStatus('parcelStatus', '', false);
+    });
+    
+    // Building GeoJSON upload
+    document.getElementById('buildingFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const geojson = JSON.parse(event.target.result);
+          const utmZone = document.getElementById('coordSystem').value;
+          const wgs84GeoJSON = convertUTMToWGS84(geojson, utmZone);
+          
+          buildingGeojson = wgs84GeoJSON;
+          buildingLayer.clearLayers().addData(wgs84GeoJSON);
+          map.fitBounds(buildingLayer.getBounds());
+          
+          showStatus('buildingStatus', `✓ Loaded ${wgs84GeoJSON.features.length} buildings`, true);
+          addGeoJSONToMap(wgs84GeoJSON, 'building', 'Buildings');
+          checkEnableProcessing();
+          resetProcessFlags();
+        } catch (error) {
+          showStatus('buildingStatus', '✗ Error: ' + error.message, false);
+        }
+      };
+      reader.readAsText(file);
+    });
+    
+    // Building Shapefile upload
+    document.getElementById('buildingShapefileFile').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const geojson = await shp(arrayBuffer);
+        
+        let fc;
+        if (Array.isArray(geojson)) {
+          fc = geojson[0];
+        } else if (geojson.type === 'FeatureCollection') {
+          fc = geojson;
+        } else {
+          throw new Error('Invalid Shapefile format');
+        }
+        
+        const utmZone = document.getElementById('coordSystem').value;
+        const wgs84GeoJSON = convertUTMToWGS84(fc, utmZone);
+        
+        buildingGeojson = wgs84GeoJSON;
+        buildingLayer.clearLayers().addData(wgs84GeoJSON);
+        map.fitBounds(buildingLayer.getBounds());
+        
+        showStatus('buildingStatus', `✓ Loaded ${wgs84GeoJSON.features.length} buildings (Shapefile)`, true);
+        addGeoJSONToMap(wgs84GeoJSON, 'building', 'Buildings');
+        checkEnableProcessing();
+        resetProcessFlags();
+      } catch (error) {
+        showStatus('buildingStatus', '✗ Error: ' + error.message, false);
+      }
+    });
+    
+    // Parcel GeoJSON upload
+    document.getElementById('parcelFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const geojson = JSON.parse(event.target.result);
+          const utmZone = document.getElementById('coordSystem').value;
+          const wgs84GeoJSON = convertUTMToWGS84(geojson, utmZone);
+          
+          parcelGeojson = wgs84GeoJSON;
+          parcelLayer.clearLayers().addData(wgs84GeoJSON);
+          map.fitBounds(parcelLayer.getBounds());
+          
+          updateParcelFieldSelector(wgs84GeoJSON);
+          
+          showStatus('parcelStatus', `✓ Loaded ${wgs84GeoJSON.features.length} parcels`, true);
+          addGeoJSONToMap(wgs84GeoJSON, 'parcel', 'Land Parcels');
+          checkEnableProcessing();
+          resetProcessFlags();
+        } catch (error) {
+          showStatus('parcelStatus', '✗ Error: ' + error.message, false);
+        }
+      };
+      reader.readAsText(file);
+    });
+    
+    // Parcel Shapefile upload
+    document.getElementById('parcelShapefileFile').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const geojson = await shp(arrayBuffer);
+        
+        let fc;
+        if (Array.isArray(geojson)) {
+          fc = geojson[0];
+        } else if (geojson.type === 'FeatureCollection') {
+          fc = geojson;
+        } else {
+          throw new Error('Invalid Shapefile format');
+        }
+        
+        const utmZone = document.getElementById('coordSystem').value;
+        const wgs84GeoJSON = convertUTMToWGS84(fc, utmZone);
+        
+        parcelGeojson = wgs84GeoJSON;
+        parcelLayer.clearLayers().addData(wgs84GeoJSON);
+        map.fitBounds(parcelLayer.getBounds());
+        
+        updateParcelFieldSelector(wgs84GeoJSON);
+        
+        showStatus('parcelStatus', `✓ Loaded ${wgs84GeoJSON.features.length} parcels (Shapefile)`, true);
+        addGeoJSONToMap(wgs84GeoJSON, 'parcel', 'Land Parcels');
+        checkEnableProcessing();
+        resetProcessFlags();
+      } catch (error) {
+        showStatus('parcelStatus', '✗ Error: ' + error.message, false);
+      }
+    });
+    
+    // ===== HELPER FUNCTIONS =====
+    
+    function checkEnableProcessing() {
+      if (buildingGeojson && parcelGeojson) {
+        document.getElementById('processStep1').disabled = false;
+        document.getElementById('runAllSteps').disabled = false;
+      }
+    }
+    
+    function updateParcelFieldSelector(geojson) {
+      const selector = document.getElementById('parcelFieldSelector');
+      selector.innerHTML = '';
+      
+      if (geojson.features.length > 0) {
+        const props = geojson.features[0].properties;
+        Object.keys(props).forEach(key => {
+          const option = document.createElement('option');
+          option.value = key;
+          option.textContent = key;
+          selector.appendChild(option);
+        });
+        
+        document.getElementById('fieldSelectorContainer').style.display = 'block';
+      }
+    }
+    
+    function resetProcessFlags() {
+      processFlags = {
+        step1: false,
+        step2: false,
+        step3: false,
+        step4: false
+      };
+      
+      document.getElementById('step1Result').style.display = 'none';
+      document.getElementById('step2Result').style.display = 'none';
+      document.getElementById('step3Result').style.display = 'none';
+      document.getElementById('step4Result').style.display = 'none';
+      
+      document.getElementById('processStep2').disabled = true;
+      document.getElementById('processStep3').disabled = true;
+      document.getElementById('processStep4').disabled = true;
+      document.getElementById('exportButton').disabled = true;
+      document.getElementById('exportExcelButton').disabled = true;
+      document.getElementById('exportShapefileButton').disabled = true;
+    }
+    
+    function addGeoJSONToMap(geojson, layerId, layerTitle) {
+      const style = layerId === 'building' ? { color: '#ff7800', weight: 2 } :
+                    layerId === 'parcel' ? { color: '#0078d7', weight: 2, fillOpacity: 0.2 } :
+                    { color: '#28a745', weight: 3, fillOpacity: 0.3 };
+      
+      const layer = L.geoJSON(geojson, {
+        style: style,
+        onEachFeature: addPopup
+      });
+      
+      if (layerId === 'building') {
+        buildingLayer = layer.addTo(map);
+      } else if (layerId === 'parcel') {
+        parcelLayer = layer.addTo(map);
+      } else {
+        resultLayer = layer.addTo(map);
+      }
+      
+      addLayerToControl(layer, layerId, layerTitle, geojson);
+      
+      try {
+        map.fitBounds(layer.getBounds());
+      } catch (e) {
+        logMessage("Could not zoom to layer bounds", 'warning');
+      }
+    }
+    
+    function addLayerToControl(layer, layerId, layerTitle, geojson) {
+      if (layerData[layerId]) {
+        const idx = allLayers.indexOf(layerData[layerId].layer);
+        if (idx > -1) {
+          allLayers.splice(idx, 1);
+        }
+      }
+      
+      allLayers.push(layer);
+      layerData[layerId] = {
+        layer: layer,
+        title: layerTitle,
+        geojson: geojson
+      };
+      
+      const layerSelect = document.getElementById('layerSelect');
+      let optionExists = false;
+      for (let i = 0; i < layerSelect.options.length; i++) {
+        if (layerSelect.options[i].value === layerId) {
+          optionExists = true;
+          break;
+        }
+      }
+      
+      if (!optionExists) {
+        const option = document.createElement('option');
+        option.value = layerId;
+        option.textContent = layerTitle;
+        layerSelect.appendChild(option);
+      }
+      
+      updateLayerControlPanel();
+    }
+    
+    function updateLayerControlPanel() {
+      const layerList = document.getElementById('layerList');
+      layerList.innerHTML = '';
+      
+      Object.keys(layerData).reverse().forEach(id => {
+        const layer = layerData[id];
+        
+        const layerItem = document.createElement('div');
+        layerItem.className = 'layer-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'layer-toggle';
+        checkbox.checked = map.hasLayer(layer.layer);
+        checkbox.dataset.layerId = id;
+        checkbox.addEventListener('change', function() {
+          if (this.checked) {
+            if (!map.hasLayer(layer.layer)) {
+              map.addLayer(layer.layer);
+            }
+          } else {
+            if (map.hasLayer(layer.layer)) {
+              map.removeLayer(layer.layer);
+            }
+          }
+        });
+        
+        const label = document.createElement('label');
+        label.className = 'layer-label';
+        label.textContent = layer.title;
+        
+        layerItem.appendChild(checkbox);
+        layerItem.appendChild(label);
+        layerList.appendChild(layerItem);
+      });
+    }
+    
+    function displayAttributes(layerId) {
+      const attributePanel = document.getElementById('attributePanel');
+      const attributeContent = document.getElementById('attributeContent');
+      
+      if (!layerId || !layerData[layerId]) {
+        attributePanel.style.display = 'none';
+        return;
+      }
+      
+      const layer = layerData[layerId];
+      const geojson = layer.geojson;
+      
+      if (!geojson || !geojson.features || geojson.features.length === 0) {
+        attributeContent.innerHTML = '<p>No attribute data available.</p>';
+        attributePanel.style.display = 'block';
+        return;
+      }
+      
+      let html = `<h4>${layer.title} Attributes</h4>`;
+      html += '<table class="attribute-table">';
+      
+      let fieldsToDisplay = [];
+      if (geojson.features.length > 0 && geojson.features[0].properties) {
+        fieldsToDisplay = Object.keys(geojson.features[0].properties);
+      }
+      
+      html += '<tr><th>FID</th>';
+      fieldsToDisplay.forEach(prop => {
+        html += `<th>${prop}</th>`;
+      });
+      html += '</tr>';
+      
+      geojson.features.forEach((feature, index) => {
+        html += '<tr>';
+        html += `<td>${index}</td>`;
+        
+        fieldsToDisplay.forEach(prop => {
+          const value = feature.properties ? feature.properties[prop] : '';
+          html += `<td>${value !== undefined && value !== null ? value : ''}</td>`;
+        });
+        
+        html += '</tr>';
+      });
+      
+      html += '</table>';
+      
+      attributeContent.innerHTML = html;
+      attributePanel.style.display = 'block';
+    }
+    
+    // ===== WEB WORKERS =====
+    
+    function createWorkers() {
+      if (!useWebWorkers) return;
+      
+      terminateWorkers();
+      
+      const workerScript = document.getElementById('workerScript').textContent;
+      const blob = new Blob([workerScript], { type: 'text/javascript' });
+      const workerURL = URL.createObjectURL(blob);
+      
+      for (let i = 0; i < NUM_WORKERS; i++) {
+        const worker = new Worker(workerURL);
+        
+        worker.onmessage = function(e) {
+          handleWorkerMessage(e.data);
+        };
+        
+        worker.onerror = function(error) {
+          logMessage(`Worker error: ${error.message}`, 'error');
+        };
+        
+        workers.push(worker);
+      }
+      
+      logMessage(`Created ${NUM_WORKERS} web workers`, 'info');
+    }
+    
+    function terminateWorkers() {
+      workers.forEach(worker => worker.terminate());
+      workers = [];
+    }
+    
+    function handleWorkerMessage(message) {
+      const { type, batchIndex, features, level, message: msg, index, total } = message;
+      
+      switch(type) {
+        case 'result':
+          batchResults.push({
+            batchIndex: batchIndex,
+            features: features
+          });
+          
+          const completed = batchResults.length;
+          const progress = Math.round((completed / totalBatches) * 100);
+          updateProgress(completed, totalBatches, `Completed ${completed}/${totalBatches} batches (${progress}%)`);
+          
+          if (completed >= totalBatches) {
+            combineBatchResults();
+          }
+          break;
+          
+        case 'log':
+          logMessage(msg, level);
+          break;
+          
+        case 'progress':
+          updateProgress(index, total, msg);
+          break;
+          
+        case 'error':
+          logMessage(`Worker error: ${msg}`, 'error');
+          break;
+      }
+    }
+    
+    // ===== AREA CALCULATION (UTM) =====
+    
+    function polygonArea(coords) {
+      let area = 0;
+      const numPoints = coords.length;
+      
+      if (numPoints < 3) return 0;
+      
+      for (let i = 0; i < numPoints - 1; i++) {
+        area += coords[i][0] * coords[i+1][1] - coords[i+1][0] * coords[i][1];
+      }
+      
+      area += coords[numPoints-1][0] * coords[0][1] - coords[0][0] * coords[numPoints-1][1];
+      
+      return Math.abs(area / 2);
+    }
+    
+    function calculateAreaUTM(geometry) {
+      let area = 0;
+      
+      if (geometry.type === 'Polygon') {
+        area = polygonArea(geometry.coordinates[0]);
+        for (let i = 1; i < geometry.coordinates.length; i++) {
+          area -= polygonArea(geometry.coordinates[i]);
+        }
+      } else if (geometry.type === 'MultiPolygon') {
+        for (const polygon of geometry.coordinates) {
+          area += polygonArea(polygon[0]);
+          for (let i = 1; i < polygon.length; i++) {
+            area -= polygonArea(polygon[i]);
+          }
+        }
+      }
+      
+      return Math.abs(area);
+    }
+    
+    // ===== PROCESSING FUNCTIONS =====
+    
+    // Step 1: Calculate Parcel Area
+    function processStep1() {
+      if (isProcessing) {
+        logMessage('Processing already in progress', 'warning');
+        return;
+      }
+      
+      if (processFlags.step1) {
+        const confirmRedo = confirm('Step 1 already completed. Run again?');
+        if (!confirmRedo) return;
+      }
+      
+      if (!parcelGeojson) {
+        alert("Please upload parcel file first.");
+        return;
+      }
+      
+      currentStep = 'step1';
+      batchSize = parseInt(document.getElementById('batchSize').value) || 100;
+      processingDelay = parseInt(document.getElementById('processingDelay').value) || 10;
+      
+      // แปลงพิกัดกลับเป็น UTM สำหรับการคำนวณพื้นที่
+      const utmZone = document.getElementById('coordSystem').value;
+      const parcelDataUTM = convertWGS84ToUTM(parcelGeojson, utmZone);
+      
+      batchResults = [];
+      currentBatch = 0;
+      
+      const totalFeatures = parcelDataUTM.features.length;
+      totalBatches = Math.ceil(totalFeatures / batchSize);
+      
+      showLoadingIndicator('Calculating parcel areas');
+      updateProgress(0, totalFeatures, 'Starting...');
+      
+      logMessage(`Starting step 1 - ${totalFeatures} parcels in ${totalBatches} batches`, 'info');
+      batchStats.startTime = Date.now();
+      batchStats.featureCount = totalFeatures;
+      
+      isProcessing = true;
+      
+      if (useWebWorkers && workers.length > 0) {
+        processBatchesWithWorkers(parcelDataUTM.features, 'processParcelArea');
+      } else {
+        processBatchesInMainThread(parcelDataUTM.features, (batch, start, end) => {
+          const processedBatch = [];
+          
+          for (let i = 0; i < batch.length; i++) {
+            const parcel = batch[i];
+            
+            // คำนวณพื้นที่จากพิกัด UTM
+            const area = calculateAreaUTM(parcel.geometry);
+            
+            // ใช้ geometry จาก WGS84 เดิมสำหรับแสดงผล
+            const originalParcel = parcelGeojson.features[start + i];
+            
+            processedBatch.push({
+              type: "Feature",
+              properties: {
+                ...originalParcel.properties,
+                parcelArea: Math.round(area * 100) / 100
+              },
+              geometry: originalParcel.geometry
+            });
+          }
+          
+          return processedBatch;
+        });
+      }
+    }
+    
+    function processBatchesWithWorkers(features, command) {
+      const batches = [];
+      for (let i = 0; i < features.length; i += batchSize) {
+        batches.push({
+          items: features.slice(i, i + batchSize),
+          startIndex: i,
+          endIndex: Math.min(i + batchSize, features.length)
+        });
+      }
+      
+      batches.forEach((batch, index) => {
+        const workerIndex = index % workers.length;
+        const worker = workers[workerIndex];
+        
+        let data = {
+          command: command,
+          batchIndex: index,
+          startIndex: batch.startIndex,
+          endIndex: batch.endIndex
+        };
+        
+        if (command === 'processParcelArea') {
+          // Worker จะได้รับข้อมูล UTM เพื่อคำนวณพื้นที่
+          data.parcelBatch = batch.items;
+          data.selectedCRS = currentCRS;
+          // ส่ง geometry WGS84 ไปด้วยสำหรับแสดงผลบนแผนที่
+          data.originalGeometries = parcelGeojson.features.slice(batch.startIndex, batch.endIndex).map(f => f.geometry);
+        } else if (command === 'processBuildingPoints') {
+          data.buildingBatch = batch.items;
+          data.parcelGeojson = parcelGeojson;
+          data.selectedField = document.getElementById('parcelFieldSelector').value;
+        } else if (command === 'processBuildingAreas') {
+          data.parcelBatch = batch.items;
+          data.buildingGeojson = buildingGeojson;
+          data.selectedField = document.getElementById('parcelFieldSelector').value;
+        } else if (command === 'calculateOSR') {
+          data.parcelBatch = batch.items;
+        }
+        
+        worker.postMessage(data);
+      });
+    }
+    
+    function processBatchesInMainThread(features, processFn) {
+      const batches = [];
+      for (let i = 0; i < features.length; i += batchSize) {
+        batches.push({
+          items: features.slice(i, i + batchSize),
+          startIndex: i,
+          endIndex: Math.min(i + batchSize, features.length)
+        });
+      }
+      
+      function processNextBatch(index) {
+        if (index >= batches.length) {
+          combineBatchResults();
+          return;
+        }
+        
+        const batch = batches[index];
+        updateProgress(batch.startIndex, features.length, `Batch ${index + 1}/${batches.length}`);
+        
+        try {
+          const result = processFn(batch.items, batch.startIndex, batch.endIndex);
+          
+          batchResults.push({
+            batchIndex: index,
+            features: result
+          });
+          
+          setTimeout(() => {
+            processNextBatch(index + 1);
+          }, processingDelay);
+        } catch (error) {
+          logMessage(`Error processing batch ${index}: ${error.message}`, 'error');
+          isProcessing = false;
+          hideLoadingIndicator();
+        }
+      }
+      
+      processNextBatch(0);
+    }
+    
+    function combineBatchResults() {
+      try {
+        batchResults.sort((a, b) => a.batchIndex - b.batchIndex);
+        
+        let allFeatures = [];
+        for (const batch of batchResults) {
+          allFeatures = allFeatures.concat(batch.features);
+        }
+        
+        const combinedGeoJSON = {
+          type: "FeatureCollection",
+          features: allFeatures
+        };
+        
+        batchStats.endTime = Date.now();
+        const processingTime = (batchStats.endTime - batchStats.startTime) / 1000;
+        
+        logMessage(`Completed processing ${batchStats.featureCount} features in ${processingTime.toFixed(2)}s`, 'info');
+        
+        if (currentStep === 'step1') {
+          finalizeStep1(combinedGeoJSON);
+        } else if (currentStep === 'step2') {
+          finalizeStep2(combinedGeoJSON);
+        } else if (currentStep === 'step3') {
+          finalizeStep3(combinedGeoJSON);
+        } else if (currentStep === 'step4') {
+          finalizeStep4(combinedGeoJSON);
+        }
+        
+        isProcessing = false;
+        hideLoadingIndicator();
+        
+      } catch (error) {
+        logMessage(`Error combining batch results: ${error.message}`, 'error');
+        isProcessing = false;
+        hideLoadingIndicator();
+      }
+    }
+    
+    function finalizeStep1(combinedGeoJSON) {
+      if (combinedGeoJSON.features.length === 0) {
+        alert("Failed to calculate areas.");
+        return;
+      }
+      
+      resultGeojson = combinedGeoJSON;
+      parcelOriginalShapes = JSON.parse(JSON.stringify(parcelGeojson));
+      
+      if (resultLayer) {
+        map.removeLayer(resultLayer);
+        delete layerData['parcelArea'];
+      }
+      
+      addGeoJSONToMap(resultGeojson, 'parcelArea', 'Parcels with Area');
+      
+      let totalArea = 0;
+      resultGeojson.features.forEach(feature => {
+        totalArea += feature.properties.parcelArea;
+      });
+      
+      const avgArea = totalArea / resultGeojson.features.length;
+      
+      document.getElementById('step1Result').innerHTML = `
+        <p>Calculated areas for ${resultGeojson.features.length} parcels</p>
+        <p>Total area: ${Math.round(totalArea * 100) / 100} sq.m</p>
+        <p>Average area: ${Math.round(avgArea * 100) / 100} sq.m</p>
+        <p>CRS: ${currentCRS}</p>
+      `;
+      document.getElementById('step1Result').style.display = 'block';
+      
+      document.getElementById('processStep2').disabled = false;
+      processFlags.step1 = true;
+      
+      if (runningAllSteps) {
+        setTimeout(() => processStep2(), 500);
+      }
+    }
+    
+    // Step 2: Extract Parcel Information
+    function processStep2() {
+      if (isProcessing) {
+        logMessage('Processing already in progress', 'warning');
+        return;
+      }
+      
+      if (processFlags.step2) {
+        const confirmRedo = confirm('Step 2 already completed. Run again?');
+        if (!confirmRedo) return;
+      }
+      
+      if (!buildingGeojson || !parcelGeojson) {
+        alert("Please complete step 1 first.");
+        return;
+      }
+      
+      const selectedField = document.getElementById('parcelFieldSelector').value;
+      if (!selectedField) {
+        alert("Please select a parcel field.");
+        return;
+      }
+      
+      currentStep = 'step2';
+      batchSize = parseInt(document.getElementById('batchSize').value) || 100;
+      processingDelay = parseInt(document.getElementById('processingDelay').value) || 10;
+      
+      const buildingData = JSON.parse(JSON.stringify(buildingGeojson));
+      
+      batchResults = [];
+      currentBatch = 0;
+      
+      const totalFeatures = buildingData.features.length;
+      totalBatches = Math.ceil(totalFeatures / batchSize);
+      
+      showLoadingIndicator('Converting buildings to points');
+      updateProgress(0, totalFeatures, 'Starting...');
+      
+      logMessage(`Starting step 2 - ${totalFeatures} buildings in ${totalBatches} batches`, 'info');
+      batchStats.startTime = Date.now();
+      batchStats.featureCount = totalFeatures;
+      
+      isProcessing = true;
+      
+      if (useWebWorkers && workers.length > 0) {
+        processBatchesWithWorkers(buildingData.features, 'processBuildingPoints');
+      } else {
+        processBatchesInMainThread(buildingData.features, (batch, start, end) => {
+          const buildingPoints = [];
+          
+          batch.forEach(building => {
+            let centerCoords;
+            
+            if (building.geometry.type === "Polygon") {
+              const centroid = turf.centroid(building);
+              centerCoords = centroid.geometry.coordinates;
+            } else if (building.geometry.type === "MultiPolygon") {
+              const firstPolygon = turf.polygon(building.geometry.coordinates[0]);
+              const centroid = turf.centroid(firstPolygon);
+              centerCoords = centroid.geometry.coordinates;
+            }
+            
+            const pointFeature = {
+              type: "Feature",
+              properties: {
+                ...building.properties,
+                parcelId: null,
+                parcelName: null,
+                buildingArea: building.properties.BL_AREA || 0,
+                buildingStoreys: building.properties.BL_NSTOREY || 1
+              },
+              geometry: {
+                type: "Point",
+                coordinates: centerCoords
+              }
+            };
+            
+            for (const parcel of parcelGeojson.features) {
+              if (turf.booleanPointInPolygon(centerCoords, parcel.geometry)) {
+                const selectedField = document.getElementById('parcelFieldSelector').value;
+                pointFeature.properties.parcelId = parcel.properties[selectedField];
+                pointFeature.properties.parcelName = parcel.properties[selectedField];
+                break;
+              }
+            }
+            
+            buildingPoints.push(pointFeature);
+          });
+          
+          return buildingPoints;
+        });
+      }
+    }
+    
+    function finalizeStep2(combinedGeoJSON) {
+      const buildingsWithParcel = combinedGeoJSON.features.filter(f => f.properties.parcelId !== null).length;
+      
+      document.getElementById('step2Result').innerHTML = `
+        <p>Processed ${combinedGeoJSON.features.length} buildings</p>
+        <p>Matched to parcels: ${buildingsWithParcel}</p>
+      `;
+      document.getElementById('step2Result').style.display = 'block';
+      
+      addGeoJSONToMap(combinedGeoJSON, 'buildingPoints', 'Building Points');
+      
+      document.getElementById('processStep3').disabled = false;
+      processFlags.step2 = true;
+      
+      if (runningAllSteps) {
+        setTimeout(() => processStep3(), 500);
+      }
+    }
+    
+    // Step 3: Calculate Total Building Area
+    function processStep3() {
+      if (isProcessing) {
+        logMessage('Processing already in progress', 'warning');
+        return;
+      }
+      
+      if (processFlags.step3) {
+        const confirmRedo = confirm('Step 3 already completed. Run again?');
+        if (!confirmRedo) return;
+      }
+      
+      if (!parcelGeojson || !buildingGeojson) {
+        alert("Please complete step 2 first.");
+        return;
+      }
+      
+      if (!resultGeojson) {
+        alert("Please complete step 1 first. Parcel area data is required.");
+        return;
+      }
+      
+      const selectedField = document.getElementById('parcelFieldSelector').value;
+      if (!selectedField) {
+        alert("Please select a parcel field.");
+        return;
+      }
+      
+      currentStep = 'step3';
+      batchSize = parseInt(document.getElementById('batchSize').value) || 100;
+      processingDelay = parseInt(document.getElementById('processingDelay').value) || 10;
+      
+      // ใช้ resultGeojson ที่มี parcelArea จาก step1
+      const parcelData = JSON.parse(JSON.stringify(resultGeojson));
+      
+      batchResults = [];
+      currentBatch = 0;
+      
+      const totalFeatures = parcelData.features.length;
+      totalBatches = Math.ceil(totalFeatures / batchSize);
+      
+      showLoadingIndicator('Calculating building areas');
+      updateProgress(0, totalFeatures, 'Starting...');
+      
+      logMessage(`Starting step 3 - ${totalFeatures} parcels in ${totalBatches} batches`, 'info');
+      batchStats.startTime = Date.now();
+      batchStats.featureCount = totalFeatures;
+      
+      isProcessing = true;
+      
+      if (useWebWorkers && workers.length > 0) {
+        processBatchesWithWorkers(parcelData.features, 'processBuildingAreas');
+      } else {
+        processBatchesInMainThread(parcelData.features, (batch, start, end) => {
+          const processedParcels = [];
+          
+          batch.forEach(parcel => {
+            const selectedField = document.getElementById('parcelFieldSelector').value;
+            const parcelId = parcel.properties[selectedField];
+            let totalBuildingOneFloor = 0;  // BL_AREA only
+            let totalBuildingAllFloor = 0;  // BL_AREA * BL_NSTOREY
+            let buildingCount = 0;
+            
+            buildingGeojson.features.forEach(building => {
+              let center;
+              
+              if (building.geometry.type === "Polygon") {
+                const centroid = turf.centroid(building);
+                center = centroid.geometry.coordinates;
+              } else if (building.geometry.type === "MultiPolygon") {
+                const firstPolygon = turf.polygon(building.geometry.coordinates[0]);
+                const centroid = turf.centroid(firstPolygon);
+                center = centroid.geometry.coordinates;
+              }
+              
+              if (turf.booleanPointInPolygon(center, parcel.geometry)) {
+                const buildingArea = building.properties.BL_AREA || 0;
+                const buildingStoreys = building.properties.BL_NSTOREY || 1;
+                
+                // คำนวณทั้งสองแบบ
+                totalBuildingOneFloor += buildingArea;  // BL_AREA only
+                totalBuildingAllFloor += buildingArea * buildingStoreys;  // BL_AREA * BL_NSTOREY
+                buildingCount++;
+              }
+            });
+            
+            processedParcels.push({
+              type: "Feature",
+              properties: {
+                ...parcel.properties,
+                parcelArea: parcel.properties.parcelArea, // เก็บ parcelArea จาก step1
+                totalBuildingOneFloor: Math.round(totalBuildingOneFloor * 100) / 100,
+                totalBuildingAllFloor: Math.round(totalBuildingAllFloor * 100) / 100,
+                buildingCount: buildingCount
+              },
+              geometry: parcel.geometry
+            });
+          });
+          
+          return processedParcels;
+        });
+      }
+    }
+    
+    function finalizeStep3(combinedGeoJSON) {
+      // อัพเดท parcelGeojson ด้วยข้อมูล totalBuildingOneFloor และ totalBuildingAllFloor
+      // แต่ต้องรักษา parcelArea จาก step1 ไว้ด้วย
+      const updatedFeatures = combinedGeoJSON.features.map((parcel, index) => {
+        // หา parcel เดิมที่มี parcelArea จาก resultGeojson (ผลจาก step1)
+        const originalParcel = resultGeojson ? resultGeojson.features[index] : null;
+        
+        return {
+          type: "Feature",
+          properties: {
+            ...parcel.properties,
+            parcelArea: originalParcel ? originalParcel.properties.parcelArea : parcel.properties.parcelArea,
+            totalBuildingOneFloor: parcel.properties.totalBuildingOneFloor || 0,
+            totalBuildingAllFloor: parcel.properties.totalBuildingAllFloor || 0,
+            buildingCount: parcel.properties.buildingCount || 0
+          },
+          geometry: parcel.geometry
+        };
+      });
+      
+      parcelGeojson = {
+        type: "FeatureCollection",
+        features: updatedFeatures
+      };
+      
+      const totalBuildingOneFloor = parcelGeojson.features.reduce((sum, f) => 
+        sum + (f.properties.totalBuildingOneFloor || 0), 0);
+      const totalBuildingAllFloor = parcelGeojson.features.reduce((sum, f) => 
+        sum + (f.properties.totalBuildingAllFloor || 0), 0);
+      
+      // นับจำนวน parcels ที่มีข้อมูล parcelArea
+      const parcelsWithArea = parcelGeojson.features.filter(f => f.properties.parcelArea > 0).length;
+      
+      document.getElementById('step3Result').innerHTML = `
+        <p>Calculated building areas for ${parcelGeojson.features.length} parcels</p>
+        <p>Parcels with area data: ${parcelsWithArea}</p>
+        <p>Total building area (one floor): ${Math.round(totalBuildingOneFloor * 100) / 100} sq.m</p>
+        <p>Total building area (all floors): ${Math.round(totalBuildingAllFloor * 100) / 100} sq.m</p>
+      `;
+      document.getElementById('step3Result').style.display = 'block';
+      
+      addGeoJSONToMap(parcelGeojson, 'parcelsBuildingAreas', 'Parcels with Building Areas');
+      
+      document.getElementById('processStep4').disabled = false;
+      processFlags.step3 = true;
+      
+      logMessage(`Step 3 completed. Parcels with area: ${parcelsWithArea}/${parcelGeojson.features.length}`, 'info');
+      
+      if (runningAllSteps) {
+        setTimeout(() => processStep4(), 500);
+      }
+    }
+    
+    // Step 4: Calculate OSR
+    function processStep4() {
+      if (isProcessing) {
+        logMessage('Processing already in progress', 'warning');
+        return;
+      }
+      
+      if (processFlags.step4) {
+        const confirmRedo = confirm('Step 4 already completed. Run again?');
+        if (!confirmRedo) return;
+      }
+      
+      if (!parcelGeojson) {
+        alert("Please complete step 3 first.");
+        return;
+      }
+      
+      currentStep = 'step4';
+      batchSize = parseInt(document.getElementById('batchSize').value) || 100;
+      processingDelay = parseInt(document.getElementById('processingDelay').value) || 10;
+      
+      const parcelData = JSON.parse(JSON.stringify(parcelGeojson));
+      
+      batchResults = [];
+      currentBatch = 0;
+      
+      const totalFeatures = parcelData.features.length;
+      totalBatches = Math.ceil(totalFeatures / batchSize);
+      
+      showLoadingIndicator('Calculating OSR');
+      updateProgress(0, totalFeatures, 'Starting...');
+      
+      logMessage(`Starting step 4 - ${totalFeatures} parcels in ${totalBatches} batches`, 'info');
+      batchStats.startTime = Date.now();
+      batchStats.featureCount = totalFeatures;
+      
+      isProcessing = true;
+      
+      if (useWebWorkers && workers.length > 0) {
+        processBatchesWithWorkers(parcelData.features, 'calculateOSR');
+      } else {
+        processBatchesInMainThread(parcelData.features, (batch, start, end) => {
+          return batch.map(parcel => {
+            const totalBuildingOneFloor = parcel.properties.totalBuildingOneFloor || 0;
+            const totalBuildingAllFloor = parcel.properties.totalBuildingAllFloor || 0;
+            const parcelArea = parcel.properties.parcelArea || 0;
+            
+            // คำนวณ Open Space Area = Parcel Area - Total Building One Floor
+            const openSpaceArea = parcelArea - totalBuildingOneFloor;
+            
+            // คำนวณ OSR = (Open Space Area / Total Building All Floor) × 100
+            let osr = 0;
+            if (totalBuildingAllFloor > 0) {
+              osr = (openSpaceArea / totalBuildingAllFloor) * 100;
+            }
+            
+            return {
+              type: "Feature",
+              properties: {
+                ...parcel.properties,
+                openSpaceArea: Math.round(openSpaceArea * 100) / 100,
+                OSR: Math.round(osr * 100) / 100
+              },
+              geometry: parcel.geometry
+            };
+          });
+        });
+      }
+    }
+    
+    function finalizeStep4(combinedGeoJSON) {
+      if (combinedGeoJSON.features.length === 0) {
+        alert("Failed to calculate OSR values.");
+        return;
+      }
+      
+      resultGeojson = combinedGeoJSON;
+      window.finalResultGeojson = combinedGeoJSON;
+      
+      if (resultLayer) {
+        map.removeLayer(resultLayer);
+        delete layerData['finalResult'];
+      }
+      
+      addGeoJSONToMap(resultGeojson, 'finalResult', 'Final Result (OSR)');
+      
+      let totalParcelArea = 0;
+      let totalBuildingOneFloor = 0;
+      let totalBuildingAllFloor = 0;
+      let totalOpenSpaceArea = 0;
+      let totalParcels = resultGeojson.features.length;
+      let parcelsWithData = 0;
+      let parcelsWithBothData = 0;
+      let osrValues = [];
+      
+      // Log ตัวอย่างข้อมูล 3 แปลงแรก
+      logMessage('=== Sample OSR Calculations (first 3 parcels) ===', 'info');
+      
+      resultGeojson.features.forEach((parcel, index) => {
+        const parcelArea = parcel.properties.parcelArea || 0;
+        const buildingOneFloor = parcel.properties.totalBuildingOneFloor || 0;
+        const buildingAllFloor = parcel.properties.totalBuildingAllFloor || 0;
+        const openSpaceArea = parcel.properties.openSpaceArea || 0;
+        const osr = parcel.properties.OSR || 0;
+        
+        // Log ตัวอย่างแปลงแรก 3 แปลง
+        if (index < 3) {
+          logMessage(`Parcel ${index + 1}: Area=${parcelArea.toFixed(2)}m², BuildingOneFloor=${buildingOneFloor.toFixed(2)}m², BuildingAllFloor=${buildingAllFloor.toFixed(2)}m², OpenSpace=${openSpaceArea.toFixed(2)}m², OSR=${osr.toFixed(2)}%`, 'info');
+        }
+        
+        if (parcelArea > 0) {
+          totalParcelArea += parcelArea;
+          totalBuildingOneFloor += buildingOneFloor;
+          totalBuildingAllFloor += buildingAllFloor;
+          totalOpenSpaceArea += openSpaceArea;
+          parcelsWithData++;
+          
+          if (buildingAllFloor > 0) {
+            parcelsWithBothData++;
+            osrValues.push(osr);
+          }
+        }
+      });
+      
+      const averageOSR = osrValues.length > 0 ? osrValues.reduce((a, b) => a + b, 0) / osrValues.length : 0;
+      const maxOSR = osrValues.length > 0 ? Math.max(...osrValues) : 0;
+      const minOSR = osrValues.length > 0 ? Math.min(...osrValues) : 0;
+      
+      // คำนวณ Overall OSR = (Total Open Space Area / Total Building All Floor) × 100
+      const overallOSR = totalBuildingAllFloor > 0 ? (totalOpenSpaceArea / totalBuildingAllFloor) * 100 : 0;
+      
+      document.getElementById('step4Result').innerHTML = `
+        <p><strong>OSR calculated for ${resultGeojson.features.length} parcels</strong></p>
+        <p style="font-size: 12px; color: #666;">Open Space Area = Parcel Area - Total Building One Floor</p>
+        <p style="font-size: 12px; color: #666;">OSR = (Open Space Area / Total Building All Floor) × 100</p>
+        <hr>
+        <p><strong>Summary Statistics:</strong></p>
+        <p>Total parcels: ${totalParcels}</p>
+        <p>Parcels with area data: ${parcelsWithData}</p>
+        <p>Parcels with buildings: ${parcelsWithBothData}</p>
+        <p>Total parcel area: ${Math.round(totalParcelArea * 100) / 100} sq.m</p>
+        <p>Total building area (one floor): ${Math.round(totalBuildingOneFloor * 100) / 100} sq.m</p>
+        <p>Total building area (all floors): ${Math.round(totalBuildingAllFloor * 100) / 100} sq.m</p>
+        <p>Total open space area: ${Math.round(totalOpenSpaceArea * 100) / 100} sq.m</p>
+        <hr>
+        <p><strong>Overall OSR:</strong> <span style="color: #0079c1; font-size: 16px;">${overallOSR.toFixed(2)}%</span></p>
+        <p><strong>Average OSR:</strong> ${averageOSR.toFixed(2)}%</p>
+        <p><strong>Maximum OSR:</strong> ${maxOSR.toFixed(2)}%</p>
+        <p><strong>Minimum OSR:</strong> ${minOSR.toFixed(2)}%</p>
+        <p style="font-size: 11px; color: #666; margin-top: 10px;">CRS: ${currentCRS}</p>
+      `;
+      document.getElementById('step4Result').style.display = 'block';
+      
+      document.getElementById('exportButton').disabled = false;
+      document.getElementById('exportExcelButton').disabled = false;
+      document.getElementById('exportShapefileButton').disabled = false;
+      processFlags.step4 = true;
+      
+      logMessage(`OSR calculation completed. Overall OSR: ${overallOSR.toFixed(2)}%`, 'info');
+      
+      if (runningAllSteps) {
+        runningAllSteps = false;
+        logMessage('Completed all processing steps successfully!', 'info');
+      }
+    }
+    
+    // Run all steps
+    function runAllSteps() {
+      if (isProcessing) {
+        logMessage('Processing already in progress', 'warning');
+        return;
+      }
+      
+      if (!buildingGeojson || !parcelGeojson) {
+        alert("Please upload both parcel and building files first.");
+        return;
+      }
+      
+      const selectedField = document.getElementById('parcelFieldSelector').value;
+      if (!selectedField) {
+        alert("Please select a parcel field.");
+        return;
+      }
+      
+      if (processFlags.step1 || processFlags.step2 || processFlags.step3 || processFlags.step4) {
+        const confirmRedo = confirm('Some steps already completed. Run all steps again?');
+        if (!confirmRedo) return;
+      }
+      
+      runningAllSteps = true;
+      processStep1();
+    }
+    
+    // ===== EXPORT FUNCTIONS =====
+    
+    function exportResult() {
+      if (!window.finalResultGeojson) {
+        alert("Please complete step 4 first.");
+        return;
+      }
+      
+      const utmZone = document.getElementById('coordSystem').value;
+      const utmData = convertWGS84ToUTM(window.finalResultGeojson, utmZone);
+      
+      utmData.crs = {
+        "type": "name",
+        "properties": {
+          "name": currentCRS
+        }
+      };
+      
+      const blob = new Blob([JSON.stringify(utmData, null, 2)], { 
+        type: 'application/json' 
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `OSR_Result_${utmZone.replace(':', '_')}_${Date.now()}.geojson`;
+      a.click();
+      
+      URL.revokeObjectURL(url);
+      logMessage('Exported GeoJSON (UTM) successfully', 'info');
+    }
+    
+    function exportExcel() {
+      if (!window.finalResultGeojson) {
+        alert("Please complete step 4 first.");
+        return;
+      }
+      
+      const selectedField = document.getElementById('parcelFieldSelector').value;
+      const selectedCRS = document.getElementById('coordSystem').value;
+      
+      const data = window.finalResultGeojson.features.map((feature, index) => {
+        return {
+          'FID': index,
+          [selectedField]: feature.properties[selectedField] || '',
+          'Parcel Area (sq.m)': feature.properties.parcelArea || 0,
+          'Building One Floor (sq.m)': feature.properties.totalBuildingOneFloor || 0,
+          'Building All Floors (sq.m)': feature.properties.totalBuildingAllFloor || 0,
+          'Open Space Area (sq.m)': feature.properties.openSpaceArea || 0,
+          'Building Count': feature.properties.buildingCount || 0,
+          'OSR (%)': feature.properties.OSR || 0
+        };
+      });
+      
+      const wb = XLSX.utils.book_new();
+      
+      data.unshift({});
+      data.unshift({
+        [selectedField]: 'Coordinate System',
+        'OSR (%)': selectedCRS
+      });
+      data.unshift({
+        [selectedField]: 'Generated on',
+        'OSR (%)': new Date().toLocaleString()
+      });
+      
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, "OSR Analysis");
+      XLSX.writeFile(wb, `OSR_Result_${selectedCRS.replace(':', '_')}_${Date.now()}.xlsx`);
+      
+      logMessage('Exported Excel successfully', 'info');
+    }
+    
+    async function exportShapefile() {
+      if (!window.finalResultGeojson) {
+        alert("Please complete step 4 first.");
+        return;
+      }
+      
+      try {
+        showLoadingIndicator('Preparing Shapefile export...');
+        
+        const utmZone = document.getElementById('coordSystem').value;
+        const selectedField = document.getElementById('parcelFieldSelector').value;
+        
+        // แปลงกลับเป็น UTM
+        const utmData = convertWGS84ToUTM(window.finalResultGeojson, utmZone);
+        
+        logMessage('Converting GeoJSON to Shapefile format...', 'info');
+        
+        // เตรียมข้อมูล properties โดยตัดชื่อฟิลด์ให้สั้นลง (Shapefile รองรับแค่ 10 ตัวอักษร)
+        const features = utmData.features.map((feature, index) => {
+          const shortProps = {};
+          
+          // FID
+          shortProps['FID'] = index;
+          
+          // เก็บ field หลัก
+          if (feature.properties[selectedField] !== undefined) {
+            const fieldValue = String(feature.properties[selectedField]);
+            shortProps['PARCEL_ID'] = fieldValue.substring(0, 254); // DBF text field max 254
+          }
+          
+          // เก็บข้อมูล OSR
+          shortProps['PARCEL_A'] = parseFloat((feature.properties.parcelArea || 0).toFixed(2));
+          shortProps['BUILD_1F'] = parseFloat((feature.properties.totalBuildingOneFloor || 0).toFixed(2));
+          shortProps['BUILD_AF'] = parseFloat((feature.properties.totalBuildingAllFloor || 0).toFixed(2));
+          shortProps['OPEN_A'] = parseFloat((feature.properties.openSpaceArea || 0).toFixed(2));
+          shortProps['BUILD_CNT'] = parseInt(feature.properties.buildingCount || 0);
+          shortProps['OSR'] = parseFloat((feature.properties.OSR || 0).toFixed(2));
+          
+          return {
+            type: feature.type,
+            geometry: feature.geometry,
+            properties: shortProps
+          };
+        });
+        
+        const processedGeoJSON = {
+          type: 'FeatureCollection',
+          features: features
+        };
+        
+        logMessage('Generating Shapefile components...', 'info');
+        
+        // สร้าง Shapefile components
+        const shapefileComponents = await createShapefileFromGeoJSON(processedGeoJSON);
+        
+        // สร้าง ZIP file
+        const zip = new JSZip();
+        
+        // เพิ่มไฟล์ Shapefile
+        zip.file('OSR_Result.shp', shapefileComponents.shp);
+        zip.file('OSR_Result.shx', shapefileComponents.shx);
+        zip.file('OSR_Result.dbf', shapefileComponents.dbf);
+        
+        // สร้างไฟล์ .prj
+        let prjContent = '';
+        if (utmZone === 'EPSG:32647') {
+          prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",99.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
+        } else {
+          prjContent = 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",105.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
+        }
+        
+        zip.file('OSR_Result.prj', prjContent);
+        
+        // สร้างไฟล์ README
+        const readmeContent = `Open Space Ratio (OSR) Analysis Results
+========================================
+
+Coordinate System: ${utmZone}
+Export Date: ${new Date().toLocaleString()}
+
+Files Included:
+--------------
+OSR_Result.shp  : Shape geometry
+OSR_Result.shx  : Shape index
+OSR_Result.dbf  : Attribute data
+OSR_Result.prj  : Projection information
+
+Field Descriptions:
+------------------
+FID        : Feature ID (sequential number)
+PARCEL_ID  : Parcel Identifier
+PARCEL_A   : Parcel Area (square meters)
+BUILD_1F   : Total Building Area - One Floor only (BL_AREA, square meters)
+BUILD_AF   : Total Building Area - All Floors (BL_AREA × BL_NSTOREY, square meters)
+OPEN_A     : Open Space Area (PARCEL_A - BUILD_1F, square meters)
+BUILD_CNT  : Number of Buildings in Parcel
+OSR        : Open Space Ratio ((OPEN_A / BUILD_AF) × 100, percentage)
+
+Calculation Notes:
+-----------------
+1. Open Space Area = Parcel Area - Total Building One Floor
+   - Uses only ground floor footprint (BL_AREA) for open space calculation
+   
+2. OSR = (Open Space Area / Total Building All Floors) × 100
+   - Open Space Area: Available open space on the parcel
+   - Total Building All Floors: Total built area including all stories
+
+Notes:
+------
+- All area measurements are in square meters
+- OSR is expressed as a percentage
+- BUILD_1F uses ground floor footprint only
+- BUILD_AF accounts for multiple stories
+- Coordinate system: ${utmZone === 'EPSG:32647' ? 'WGS 1984 UTM Zone 47N' : 'WGS 1984 UTM Zone 48N'}
+- Compatible with ArcGIS, QGIS, and other GIS software
+- Generated by Open Space Ratio Web App
+
+Example Usage in ArcMap:
+-----------------------
+1. Extract all files to the same folder
+2. Add OSR_Result.shp to your map
+3. View attributes in the attribute table
+4. Symbolize by OSR field for visualization
+
+For questions or issues, please check the application documentation.
+`;
+        
+        zip.file('README.txt', readmeContent);
+        
+        // สร้าง ZIP และดาวน์โหลด
+        const content = await zip.generateAsync({ 
+          type: 'blob',
+          compression: "DEFLATE",
+          compressionOptions: {
+            level: 9
+          }
+        });
+        
+        saveAs(content, `OSR_Result_${utmZone.replace(':', '_')}_${Date.now()}.zip`);
+        
+        hideLoadingIndicator();
+        logMessage('Shapefile exported successfully!', 'info');
+        logMessage(`Exported ${features.length} features to Shapefile format`, 'info');
+        
+      } catch (error) {
+        hideLoadingIndicator();
+        console.error('Export error:', error);
+        alert('Error exporting Shapefile: ' + error.message);
+        logMessage('Export error: ' + error.message, 'error');
+      }
+    }
+    
+    // ฟังก์ชันสร้าง Shapefile จาก GeoJSON
+    async function createShapefileFromGeoJSON(geojson) {
+      // สร้าง .shp (geometry)
+      const shpBuffer = createShpFile(geojson);
+      
+      // สร้าง .shx (index)
+      const shxBuffer = createShxFile(geojson);
+      
+      // สร้าง .dbf (attributes)
+      const dbfBuffer = createDbfFile(geojson);
+      
+      return {
+        shp: shpBuffer,
+        shx: shxBuffer,
+        dbf: dbfBuffer
+      };
+    }
+    
+    // สร้างไฟล์ .shp
+    function createShpFile(geojson) {
+      const features = geojson.features;
+      
+      // คำนวณ bounding box
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      
+      features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+          feature.geometry.coordinates[0].forEach(coord => {
+            minX = Math.min(minX, coord[0]);
+            minY = Math.min(minY, coord[1]);
+            maxX = Math.max(maxX, coord[0]);
+            maxY = Math.max(maxY, coord[1]);
+          });
+        } else if (feature.geometry.type === 'MultiPolygon') {
+          feature.geometry.coordinates.forEach(polygon => {
+            polygon[0].forEach(coord => {
+              minX = Math.min(minX, coord[0]);
+              minY = Math.min(minY, coord[1]);
+              maxX = Math.max(maxX, coord[0]);
+              maxY = Math.max(maxY, coord[1]);
+            });
+          });
+        }
+      });
+      
+      // สร้าง header (100 bytes)
+      const header = new ArrayBuffer(100);
+      const headerView = new DataView(header);
+      
+      // File code (9994 in big-endian)
+      headerView.setInt32(0, 9994, false);
+      
+      // File length (จะคำนวณทีหลัง - ใส่ placeholder ไว้ก่อน)
+      headerView.setInt32(24, 0, false);
+      
+      // Version (1000)
+      headerView.setInt32(28, 1000, true);
+      
+      // Shape type (5 = Polygon)
+      headerView.setInt32(32, 5, true);
+      
+      // Bounding box
+      headerView.setFloat64(36, minX, true);
+      headerView.setFloat64(44, minY, true);
+      headerView.setFloat64(52, maxX, true);
+      headerView.setFloat64(60, maxY, true);
+      
+      // Z and M values (not used, set to 0)
+      headerView.setFloat64(68, 0, true);
+      headerView.setFloat64(76, 0, true);
+      headerView.setFloat64(84, 0, true);
+      headerView.setFloat64(92, 0, true);
+      
+      // สร้าง records
+      const records = [];
+      let recordNumber = 1;
+      
+      features.forEach(feature => {
+        const recordBuffer = createPolygonRecord(feature.geometry, recordNumber);
+        records.push(recordBuffer);
+        recordNumber++;
+      });
+      
+      // รวม header + records
+      const totalLength = 100 + records.reduce((sum, r) => sum + r.byteLength, 0);
+      const result = new Uint8Array(totalLength);
+      
+      // Copy header
+      result.set(new Uint8Array(header), 0);
+      
+      // Update file length in header (in 16-bit words)
+      const fileLengthInWords = totalLength / 2;
+      new DataView(result.buffer).setInt32(24, fileLengthInWords, false);
+      
+      // Copy records
+      let offset = 100;
+      records.forEach(record => {
+        result.set(new Uint8Array(record), offset);
+        offset += record.byteLength;
+      });
+      
+      return result.buffer;
+    }
+    
+    // สร้าง polygon record
+    function createPolygonRecord(geometry, recordNumber) {
+      let numParts = 0;
+      let numPoints = 0;
+      let parts = [];
+      let points = [];
+      
+      if (geometry.type === 'Polygon') {
+        numParts = geometry.coordinates.length;
+        geometry.coordinates.forEach((ring, index) => {
+          parts.push(numPoints);
+          ring.forEach(coord => {
+            points.push(coord[0], coord[1]);
+            numPoints++;
+          });
+        });
+      } else if (geometry.type === 'MultiPolygon') {
+        geometry.coordinates.forEach(polygon => {
+          polygon.forEach((ring, index) => {
+            parts.push(numPoints);
+            ring.forEach(coord => {
+              points.push(coord[0], coord[1]);
+              numPoints++;
+            });
+            numParts++;
+          });
+        });
+      }
+      
+      // คำนวณ bounding box
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (let i = 0; i < points.length; i += 2) {
+        minX = Math.min(minX, points[i]);
+        maxX = Math.max(maxX, points[i]);
+        minY = Math.min(minY, points[i + 1]);
+        maxY = Math.max(maxY, points[i + 1]);
+      }
+      
+      // Record header (8 bytes) + content
+      const contentLength = 44 + (4 * numParts) + (16 * numPoints);
+      const recordLength = 8 + contentLength;
+      
+      const buffer = new ArrayBuffer(recordLength);
+      const view = new DataView(buffer);
+      
+      // Record header
+      view.setInt32(0, recordNumber, false); // Record number (big-endian)
+      view.setInt32(4, contentLength / 2, false); // Content length in 16-bit words (big-endian)
+      
+      // Shape type
+      view.setInt32(8, 5, true); // Polygon (little-endian)
+      
+      // Bounding box
+      view.setFloat64(12, minX, true);
+      view.setFloat64(20, minY, true);
+      view.setFloat64(28, maxX, true);
+      view.setFloat64(36, maxY, true);
+      
+      // Number of parts and points
+      view.setInt32(44, numParts, true);
+      view.setInt32(48, numPoints, true);
+      
+      // Parts array
+      let offset = 52;
+      parts.forEach(partIndex => {
+        view.setInt32(offset, partIndex, true);
+        offset += 4;
+      });
+      
+      // Points array
+      for (let i = 0; i < points.length; i += 2) {
+        view.setFloat64(offset, points[i], true); // X
+        view.setFloat64(offset + 8, points[i + 1], true); // Y
+        offset += 16;
+      }
+      
+      return buffer;
+    }
+    
+    // สร้างไฟล์ .shx
+    function createShxFile(geojson) {
+      const features = geojson.features;
+      
+      // คำนวณ bounding box (เหมือน .shp)
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      
+      features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+          feature.geometry.coordinates[0].forEach(coord => {
+            minX = Math.min(minX, coord[0]);
+            minY = Math.min(minY, coord[1]);
+            maxX = Math.max(maxX, coord[0]);
+            maxY = Math.max(maxY, coord[1]);
+          });
+        } else if (feature.geometry.type === 'MultiPolygon') {
+          feature.geometry.coordinates.forEach(polygon => {
+            polygon[0].forEach(coord => {
+              minX = Math.min(minX, coord[0]);
+              minY = Math.min(minY, coord[1]);
+              maxX = Math.max(maxX, coord[0]);
+              maxY = Math.max(maxY, coord[1]);
+            });
+          });
+        }
+      });
+      
+      // Header (100 bytes) + index records (8 bytes per feature)
+      const totalLength = 100 + (features.length * 8);
+      const buffer = new ArrayBuffer(totalLength);
+      const view = new DataView(buffer);
+      
+      // File code
+      view.setInt32(0, 9994, false);
+      
+      // File length in 16-bit words
+      view.setInt32(24, totalLength / 2, false);
+      
+      // Version
+      view.setInt32(28, 1000, true);
+      
+      // Shape type
+      view.setInt32(32, 5, true);
+      
+      // Bounding box
+      view.setFloat64(36, minX, true);
+      view.setFloat64(44, minY, true);
+      view.setFloat64(52, maxX, true);
+      view.setFloat64(60, maxY, true);
+      
+      // Index records
+      let offset = 100;
+      let recordOffset = 50; // Start after header (100 bytes / 2 = 50 words)
+      
+      features.forEach((feature, index) => {
+        // คำนวณ content length ของแต่ละ record
+        let numParts = 0;
+        let numPoints = 0;
+        
+        if (feature.geometry.type === 'Polygon') {
+          numParts = feature.geometry.coordinates.length;
+          feature.geometry.coordinates.forEach(ring => {
+            numPoints += ring.length;
+          });
+        } else if (feature.geometry.type === 'MultiPolygon') {
+          feature.geometry.coordinates.forEach(polygon => {
+            numParts += polygon.length;
+            polygon.forEach(ring => {
+              numPoints += ring.length;
+            });
+          });
+        }
+        
+        const contentLength = 44 + (4 * numParts) + (16 * numPoints);
+        
+        // Offset (in 16-bit words, big-endian)
+        view.setInt32(offset, recordOffset, false);
+        
+        // Content length (in 16-bit words, big-endian)
+        view.setInt32(offset + 4, contentLength / 2, false);
+        
+        recordOffset += 4 + (contentLength / 2); // 4 words for record header
+        offset += 8;
+      });
+      
+      return buffer;
+    }
+    
+    // สร้างไฟล์ .dbf
+    function createDbfFile(geojson) {
+      const features = geojson.features;
+      const numRecords = features.length;
+      
+      // Define fields
+      const fields = [
+        { name: 'FID', type: 'N', length: 10, decimal: 0 },
+        { name: 'PARCEL_ID', type: 'C', length: 50, decimal: 0 },
+        { name: 'PARCEL_A', type: 'N', length: 15, decimal: 2 },
+        { name: 'BUILD_1F', type: 'N', length: 15, decimal: 2 },
+        { name: 'BUILD_AF', type: 'N', length: 15, decimal: 2 },
+        { name: 'OPEN_A', type: 'N', length: 15, decimal: 2 },
+        { name: 'BUILD_CNT', type: 'N', length: 10, decimal: 0 },
+        { name: 'OSR', type: 'N', length: 10, decimal: 2 }
+      ];
+      
+      // Calculate record length (1 byte for deletion flag + sum of field lengths)
+      const recordLength = 1 + fields.reduce((sum, field) => sum + field.length, 0);
+      
+      // Header length (32 bytes + 32 bytes per field + 1 byte terminator)
+      const headerLength = 32 + (fields.length * 32) + 1;
+      
+      // Total file length
+      const fileLength = headerLength + (numRecords * recordLength);
+      
+      const buffer = new ArrayBuffer(fileLength);
+      const view = new DataView(buffer);
+      const bytes = new Uint8Array(buffer);
+      
+      // Header
+      view.setUint8(0, 3); // Version (dBASE III)
+      
+      // Last update date (YY, MM, DD)
+      const now = new Date();
+      view.setUint8(1, now.getFullYear() - 1900);
+      view.setUint8(2, now.getMonth() + 1);
+      view.setUint8(3, now.getDate());
+      
+      // Number of records
+      view.setUint32(4, numRecords, true);
+      
+      // Header length
+      view.setUint16(8, headerLength, true);
+      
+      // Record length
+      view.setUint16(10, recordLength, true);
+      
+      // Field descriptors
+      let offset = 32;
+      fields.forEach(field => {
+        // Field name (11 bytes, null-terminated)
+        for (let i = 0; i < field.name.length; i++) {
+          bytes[offset + i] = field.name.charCodeAt(i);
+        }
+        
+        // Field type
+        bytes[offset + 11] = field.type.charCodeAt(0);
+        
+        // Field length
+        bytes[offset + 16] = field.length;
+        
+        // Decimal count
+        bytes[offset + 17] = field.decimal;
+        
+        offset += 32;
+      });
+      
+      // Field descriptor terminator
+      bytes[offset] = 0x0D;
+      offset++;
+      
+      // Records
+      features.forEach((feature, index) => {
+        const props = feature.properties;
+        
+        // Deletion flag (space = not deleted)
+        bytes[offset] = 0x20;
+        offset++;
+        
+        // Write field values
+        fields.forEach(field => {
+          let value = '';
+          
+          switch (field.name) {
+            case 'FID':
+              value = String(props.FID || index).padStart(field.length, ' ');
+              break;
+            case 'PARCEL_ID':
+              value = String(props.PARCEL_ID || '').substring(0, field.length).padEnd(field.length, ' ');
+              break;
+            case 'PARCEL_A':
+              value = props.PARCEL_A.toFixed(field.decimal).padStart(field.length, ' ');
+              break;
+            case 'BUILD_1F':
+              value = props.BUILD_1F.toFixed(field.decimal).padStart(field.length, ' ');
+              break;
+            case 'BUILD_AF':
+              value = props.BUILD_AF.toFixed(field.decimal).padStart(field.length, ' ');
+              break;
+            case 'OPEN_A':
+              value = props.OPEN_A.toFixed(field.decimal).padStart(field.length, ' ');
+              break;
+            case 'BUILD_CNT':
+              value = String(props.BUILD_CNT).padStart(field.length, ' ');
+              break;
+            case 'OSR':
+              value = props.OSR.toFixed(field.decimal).padStart(field.length, ' ');
+              break;
+          }
+          
+          // Write value
+          for (let i = 0; i < field.length; i++) {
+            bytes[offset + i] = i < value.length ? value.charCodeAt(i) : 0x20;
+          }
+          
+          offset += field.length;
+        });
+      });
+      
+      // End of file marker
+      bytes[offset] = 0x1A;
+      
+      return buffer;
+    }
+    
+    // ===== UTILITY FUNCTIONS =====
+    
+    function showLoadingIndicator(message) {
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const processingStatus = document.getElementById('processingStatus');
+      
+      if (message) {
+        processingStatus.textContent = ": " + message;
+      } else {
+        processingStatus.textContent = "";
+      }
+      
+      loadingIndicator.style.display = 'block';
+      document.getElementById('progressBar').style.width = '0%';
+    }
+    
+    function hideLoadingIndicator() {
+      document.getElementById('loadingIndicator').style.display = 'none';
+    }
+    
+    function updateProgress(current, total, message) {
+      const percent = Math.min(100, Math.round((current / total) * 100));
+      document.getElementById('progressBar').style.width = percent + '%';
+      
+      if (message) {
+        document.getElementById('processingStatus').textContent = ": " + message;
+      }
+    }
+    
+    function logMessage(message, level = 'info') {
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString();
+      
+      const logEntry = document.createElement('div');
+      logEntry.className = `log-entry log-${level}`;
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      
+      const logContent = document.getElementById('logContent');
+      logContent.appendChild(logEntry);
+      logContent.scrollTop = logContent.scrollHeight;
+      
+      switch(level) {
+        case 'error':
+          console.error(message);
+          break;
+        case 'warning':
+          console.warn(message);
+          break;
+        default:
+          console.log(message);
+      }
+    }
+    
+    // ===== EVENT LISTENERS =====
+    
+    function init() {
+      createWorkers();
+      initMap();
+      
+      document.getElementById('coordSystem').addEventListener('change', function() {
+        currentCRS = this.value;
+        logMessage(`Changed UTM Zone to ${currentCRS}`, 'info');
+      });
+      
+      document.getElementById('processStep1').addEventListener('click', processStep1);
+      document.getElementById('processStep2').addEventListener('click', processStep2);
+      document.getElementById('processStep3').addEventListener('click', processStep3);
+      document.getElementById('processStep4').addEventListener('click', processStep4);
+      document.getElementById('runAllSteps').addEventListener('click', runAllSteps);
+      
+      document.getElementById('exportButton').addEventListener('click', exportResult);
+      document.getElementById('exportExcelButton').addEventListener('click', exportExcel);
+      document.getElementById('exportShapefileButton').addEventListener('click', exportShapefile);
+      
+      document.getElementById('layerSelect').addEventListener('change', function() {
+        displayAttributes(this.value);
+      });
+      
+      document.getElementById('useWebWorkers').addEventListener('change', function() {
+        useWebWorkers = this.checked;
+        if (useWebWorkers) {
+          createWorkers();
+        } else {
+          terminateWorkers();
+        }
+        logMessage(`Web Workers ${useWebWorkers ? 'enabled' : 'disabled'}`, 'info');
+      });
+      
+      document.getElementById('toggleLogButton').addEventListener('click', function() {
+        const logContainer = document.getElementById('logContainer');
+        if (logContainer.style.display === 'none') {
+          logContainer.style.display = 'block';
+          this.innerHTML = '<i class="fas fa-times"></i> Hide Log';
+        } else {
+          logContainer.style.display = 'none';
+          this.innerHTML = '<i class="fas fa-list"></i> Toggle Log';
+        }
+      });
+      
+      logMessage("Application initialized successfully!", 'info');
+      logMessage(`Using ${currentCRS} coordinate system`, 'info');
+    }
+    
+    window.onload = init;
   </script>
-  <script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
-                
