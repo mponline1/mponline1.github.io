@@ -365,18 +365,34 @@
         // --- 📤 7. Export as Shapefile ---
         document.getElementById('btnExportShapefile').onclick = async () => {
             try {
+                // รวบรวมข้อมูลเส้นตั้งฉากทั้งหมดจาก layers.perp
                 const geojson = layers.perp.toGeoJSON();
                 
                 if (!geojson.features || geojson.features.length === 0) {
-                    alert('ไม่มีข้อมูลให้ส่งออก');
+                    alert('ไม่มีข้อมูลเส้นตั้งฉากให้ส่งออก กรุณาสร้างเส้นตั้งฉากก่อน');
                     return;
                 }
 
                 document.getElementById('loadingIndicator').classList.add('show');
 
+                // กรองเฉพาะ LineString features (เส้นตั้งฉาก) ไม่เอา Point markers
+                const perpLines = {
+                    type: "FeatureCollection",
+                    features: geojson.features.filter(f => 
+                        f.geometry && 
+                        (f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString')
+                    )
+                };
+
+                if (perpLines.features.length === 0) {
+                    alert('ไม่พบเส้นตั้งฉากในข้อมูล');
+                    document.getElementById('loadingIndicator').classList.remove('show');
+                    return;
+                }
+
                 // แปลงพิกัดกลับเป็น UTM ก่อนส่งออก
                 const utmZone = "EPSG:" + document.getElementById('utmZone').value;
-                const utmGeoJSON = JSON.parse(JSON.stringify(geojson)); // Deep copy
+                const utmGeoJSON = JSON.parse(JSON.stringify(perpLines)); // Deep copy
                 
                 utmGeoJSON.features.forEach(feature => {
                     turf.coordEach(feature, (coord) => {
@@ -386,11 +402,27 @@
                     });
                 });
 
+                // เพิ่ม attributes ให้กับแต่ละเส้น
+                utmGeoJSON.features.forEach((feature, index) => {
+                    if (!feature.properties) {
+                        feature.properties = {};
+                    }
+                    feature.properties.ID = index + 1;
+                    feature.properties.TYPE = 'Perpendicular';
+                    
+                    // คำนวณความยาวเส้น
+                    const length = turf.length(feature, { units: 'meters' });
+                    feature.properties.LENGTH_M = parseFloat(length.toFixed(3));
+                });
+
                 // สร้าง Shapefile ด้วย custom function
-                await createShapefile(utmGeoJSON, `exported_roads_utm_${Date.now()}`);
+                await createShapefile(utmGeoJSON, `perpendicular_lines_${Date.now()}`);
+                
+                alert(`ส่งออกเส้นตั้งฉากทั้งหมด ${perpLines.features.length} เส้นเรียบร้อยแล้ว!`);
                 
             } catch (error) {
                 alert('เกิดข้อผิดพลาดในการส่งออก Shapefile: ' + error.message);
+                console.error(error);
             } finally {
                 document.getElementById('loadingIndicator').classList.remove('show');
             }
@@ -429,82 +461,125 @@
         // --- สร้างไฟล์ .shp ---
         function createSHPFile(geojson, shapeType) {
             const features = geojson.features;
-            let contentLength = 0;
             const records = [];
+            let totalContentLength = 0;
 
-            features.forEach((feature, index) => {
+            // คำนวณขนาดของแต่ละ record
+            features.forEach((feature) => {
                 const coords = feature.geometry.coordinates;
                 let numPoints = 0;
                 let points = [];
+                let numParts = 1;
+                let partIndices = [0];
 
                 if (shapeType === 1) { // Point
                     numPoints = 1;
                     points = [coords];
                 } else if (shapeType === 3) { // Polyline
                     if (Array.isArray(coords[0][0])) { // MultiLineString
+                        numParts = coords.length;
+                        partIndices = [];
+                        let currentIndex = 0;
                         coords.forEach(line => {
+                            partIndices.push(currentIndex);
                             numPoints += line.length;
                             points = points.concat(line);
+                            currentIndex += line.length;
                         });
                     } else { // LineString
+                        numParts = 1;
                         numPoints = coords.length;
                         points = coords;
+                        partIndices = [0];
                     }
                 }
 
-                const recordHeader = 8; // 4 bytes record number + 4 bytes content length
-                const recordContent = shapeType === 1 ? 20 : (44 + 4 * 1 + numPoints * 16); // simplified
-                const recordSize = recordHeader + recordContent;
-                
-                records.push({ numPoints, points, recordContent: recordContent / 2 });
-                contentLength += recordSize;
+                // คำนวณขนาด content (in bytes)
+                let contentLength;
+                if (shapeType === 1) {
+                    contentLength = 20; // 4 + 8 + 8
+                } else if (shapeType === 3) {
+                    contentLength = 44 + (4 * numParts) + (16 * numPoints);
+                }
+
+                records.push({
+                    numPoints: numPoints,
+                    numParts: numParts,
+                    partIndices: partIndices,
+                    points: points,
+                    contentLengthBytes: contentLength,
+                    contentLengthWords: contentLength / 2
+                });
+
+                totalContentLength += 8 + contentLength;
             });
 
-            const fileLength = 100 + contentLength;
+            const fileLength = 100 + totalContentLength;
             const buffer = new ArrayBuffer(fileLength);
             const view = new DataView(buffer);
 
-            // Header (100 bytes)
-            view.setInt32(0, 9994, false); // File code
-            view.setInt32(24, fileLength / 2, false); // File length in 16-bit words
-            view.setInt32(28, 1000, true); // Version
-            view.setInt32(32, shapeType, true); // Shape type
+            // ========== HEADER (100 bytes) ==========
+            view.setInt32(0, 9994, false);              // File code
+            for (let i = 4; i < 24; i += 4) {
+                view.setInt32(i, 0, false);             // Unused
+            }
+            view.setInt32(24, fileLength / 2, false);   // File length in words
+            view.setInt32(28, 1000, true);              // Version
+            view.setInt32(32, shapeType, true);         // Shape type
 
-            // Calculate bounding box
+            // Bounding box
             const bbox = calculateBoundingBox(geojson);
             view.setFloat64(36, bbox.xmin, true);
             view.setFloat64(44, bbox.ymin, true);
             view.setFloat64(52, bbox.xmax, true);
             view.setFloat64(60, bbox.ymax, true);
+            view.setFloat64(68, 0.0, true);             // Zmin
+            view.setFloat64(76, 0.0, true);             // Zmax
+            view.setFloat64(84, 0.0, true);             // Mmin
+            view.setFloat64(92, 0.0, true);             // Mmax
 
-            // Records
+            // ========== RECORDS ==========
             let offset = 100;
             records.forEach((record, index) => {
-                view.setInt32(offset, index + 1, false); // Record number
-                view.setInt32(offset + 4, record.recordContent, false); // Content length
-                view.setInt32(offset + 8, shapeType, true); // Shape type
+                // Record header
+                view.setInt32(offset, index + 1, false);
+                view.setInt32(offset + 4, record.contentLengthWords, false);
+                offset += 8;
 
                 if (shapeType === 1) { // Point
-                    view.setFloat64(offset + 12, record.points[0][0], true);
-                    view.setFloat64(offset + 20, record.points[0][1], true);
-                    offset += 28;
+                    view.setInt32(offset, shapeType, true);
+                    view.setFloat64(offset + 4, record.points[0][0], true);
+                    view.setFloat64(offset + 12, record.points[0][1], true);
+                    offset += 20;
                 } else if (shapeType === 3) { // Polyline
-                    const recBbox = calculateGeometryBbox(record.points);
-                    view.setFloat64(offset + 12, recBbox.xmin, true);
-                    view.setFloat64(offset + 20, recBbox.ymin, true);
-                    view.setFloat64(offset + 28, recBbox.xmax, true);
-                    view.setFloat64(offset + 36, recBbox.ymax, true);
-                    view.setInt32(offset + 44, 1, true); // Number of parts
-                    view.setInt32(offset + 48, record.numPoints, true); // Number of points
-                    view.setInt32(offset + 52, 0, true); // Part start index
+                    view.setInt32(offset, shapeType, true);
+                    offset += 4;
 
-                    let pointOffset = offset + 56;
-                    record.points.forEach(pt => {
-                        view.setFloat64(pointOffset, pt[0], true);
-                        view.setFloat64(pointOffset + 8, pt[1], true);
-                        pointOffset += 16;
+                    // Bounding box
+                    const recBbox = calculateGeometryBbox(record.points);
+                    view.setFloat64(offset, recBbox.xmin, true);
+                    view.setFloat64(offset + 8, recBbox.ymin, true);
+                    view.setFloat64(offset + 16, recBbox.xmax, true);
+                    view.setFloat64(offset + 24, recBbox.ymax, true);
+                    offset += 32;
+
+                    // NumParts and NumPoints
+                    view.setInt32(offset, record.numParts, true);
+                    view.setInt32(offset + 4, record.numPoints, true);
+                    offset += 8;
+
+                    // Part indices
+                    record.partIndices.forEach(partIdx => {
+                        view.setInt32(offset, partIdx, true);
+                        offset += 4;
                     });
-                    offset = pointOffset;
+
+                    // Point coordinates
+                    record.points.forEach(pt => {
+                        view.setFloat64(offset, pt[0], true);
+                        view.setFloat64(offset + 8, pt[1], true);
+                        offset += 16;
+                    });
                 }
             });
 
@@ -515,14 +590,17 @@
         function createSHXFile(geojson, shapeType) {
             const features = geojson.features;
             const headerSize = 100;
-            const recordSize = 8; // 4 bytes offset + 4 bytes content length
+            const recordSize = 8;
             const fileLength = headerSize + features.length * recordSize;
             
             const buffer = new ArrayBuffer(fileLength);
             const view = new DataView(buffer);
 
-            // Header
+            // ========== HEADER (100 bytes) ==========
             view.setInt32(0, 9994, false);
+            for (let i = 4; i < 24; i += 4) {
+                view.setInt32(i, 0, false);
+            }
             view.setInt32(24, fileLength / 2, false);
             view.setInt32(28, 1000, true);
             view.setInt32(32, shapeType, true);
@@ -532,17 +610,50 @@
             view.setFloat64(44, bbox.ymin, true);
             view.setFloat64(52, bbox.xmax, true);
             view.setFloat64(60, bbox.ymax, true);
+            view.setFloat64(68, 0.0, true);
+            view.setFloat64(76, 0.0, true);
+            view.setFloat64(84, 0.0, true);
+            view.setFloat64(92, 0.0, true);
 
-            // Index records
-            let offset = 100;
-            let contentOffset = 50; // Start after header (100 bytes / 2)
+            // ========== INDEX RECORDS ==========
+            let indexOffset = 100;
+            let contentOffset = 50; // Start after header (100 bytes / 2 = 50 words)
             
-            features.forEach(() => {
-                view.setInt32(offset, contentOffset, false);
-                const contentLength = shapeType === 1 ? 10 : 100; // simplified
-                view.setInt32(offset + 4, contentLength, false);
-                offset += 8;
-                contentOffset += contentLength + 4; // +4 for record header
+            features.forEach((feature) => {
+                const coords = feature.geometry.coordinates;
+                let numPoints = 0;
+                let numParts = 1;
+
+                if (shapeType === 1) {
+                    numPoints = 1;
+                } else if (shapeType === 3) {
+                    if (Array.isArray(coords[0][0])) {
+                        numParts = coords.length;
+                        coords.forEach(line => {
+                            numPoints += line.length;
+                        });
+                    } else {
+                        numParts = 1;
+                        numPoints = coords.length;
+                    }
+                }
+
+                // คำนวณขนาด content
+                let contentLength;
+                if (shapeType === 1) {
+                    contentLength = 10; // 20 bytes / 2 = 10 words
+                } else if (shapeType === 3) {
+                    const contentBytes = 44 + (4 * numParts) + (16 * numPoints);
+                    contentLength = contentBytes / 2; // Convert to 16-bit words
+                }
+
+                // เขียน offset และ content length
+                view.setInt32(indexOffset, contentOffset, false);
+                view.setInt32(indexOffset + 4, contentLength, false);
+                indexOffset += 8;
+
+                // อัพเดท offset สำหรับ record ถัดไป
+                contentOffset += 4 + contentLength; // 4 words for record header + content
             });
 
             return buffer;
@@ -553,25 +664,73 @@
             const features = geojson.features;
             const numRecords = features.length;
             
-            // รวบรวม properties ทั้งหมด
-            const properties = new Set();
+            // รวบรวม properties และวิเคราะห์ประเภทข้อมูล
+            const propertyInfo = new Map();
             features.forEach(f => {
                 if (f.properties) {
-                    Object.keys(f.properties).forEach(key => properties.add(key));
+                    Object.entries(f.properties).forEach(([key, value]) => {
+                        if (!propertyInfo.has(key)) {
+                            propertyInfo.set(key, {
+                                name: key,
+                                type: 'C',
+                                maxLength: 0,
+                                hasDecimals: false,
+                                isNumeric: true
+                            });
+                        }
+                        
+                        const info = propertyInfo.get(key);
+                        const strValue = String(value);
+                        info.maxLength = Math.max(info.maxLength, strValue.length);
+                        
+                        // ตรวจสอบว่าเป็นตัวเลขหรือไม่
+                        if (value !== null && value !== undefined) {
+                            const numValue = Number(value);
+                            if (isNaN(numValue)) {
+                                info.isNumeric = false;
+                            } else if (String(value).includes('.')) {
+                                info.hasDecimals = true;
+                            }
+                        }
+                    });
                 }
             });
-            const propArray = Array.from(properties).slice(0, 10); // จำกัด 10 fields
 
-            // กำหนด field definitions
+            // สร้าง field definitions
             const fieldDefinitions = [{ name: 'FID', type: 'N', length: 10, decimal: 0 }];
-            propArray.forEach(prop => {
-                fieldDefinitions.push({
-                    name: prop.substring(0, 10),
+            const propArray = [];
+            
+            let fieldCount = 0;
+            for (const [key, info] of propertyInfo) {
+                if (fieldCount >= 9) break; // จำกัด 10 fields รวม FID
+                
+                let fieldDef = {
+                    name: key.substring(0, 10).toUpperCase(),
                     type: 'C',
                     length: 50,
                     decimal: 0
-                });
-            });
+                };
+
+                // กำหนดประเภทข้อมูลตามลักษณะ
+                if (info.isNumeric) {
+                    if (info.hasDecimals) {
+                        fieldDef.type = 'N'; // Numeric with decimals
+                        fieldDef.length = Math.min(18, Math.max(10, info.maxLength + 5));
+                        fieldDef.decimal = 3;
+                    } else {
+                        fieldDef.type = 'N'; // Numeric integer
+                        fieldDef.length = Math.min(10, Math.max(5, info.maxLength));
+                        fieldDef.decimal = 0;
+                    }
+                } else {
+                    fieldDef.type = 'C'; // Character
+                    fieldDef.length = Math.min(254, Math.max(10, info.maxLength + 5));
+                }
+                
+                fieldDefinitions.push(fieldDef);
+                propArray.push(key);
+                fieldCount++;
+            }
 
             const numFields = fieldDefinitions.length;
             const headerSize = 32 + numFields * 32 + 1;
@@ -602,11 +761,12 @@
                     uint8View[fieldOffset + i] = 0x00;
                 }
                 uint8View[fieldOffset + 11] = field.type.charCodeAt(0);
+                view.setUint32(fieldOffset + 12, 0, true); // Data address
                 view.setUint8(fieldOffset + 16, field.length);
                 view.setUint8(fieldOffset + 17, field.decimal);
                 fieldOffset += 32;
             });
-            uint8View[fieldOffset] = 0x0D;
+            uint8View[fieldOffset] = 0x0D; // Field descriptor terminator
 
             // Records
             let recordOffset = headerSize;
@@ -616,23 +776,51 @@
 
                 fieldDefinitions.forEach((field, fieldIndex) => {
                     let value = '';
+                    
                     if (fieldIndex === 0) {
+                        // FID field
                         value = (index + 1).toString();
                     } else {
                         const propName = propArray[fieldIndex - 1];
                         const propValue = feature.properties && feature.properties[propName];
+                        
                         if (propValue !== undefined && propValue !== null) {
-                            value = propValue.toString();
+                            if (field.type === 'N') {
+                                // Numeric field
+                                const numValue = Number(propValue);
+                                if (!isNaN(numValue)) {
+                                    if (field.decimal > 0) {
+                                        value = numValue.toFixed(field.decimal);
+                                    } else {
+                                        value = Math.round(numValue).toString();
+                                    }
+                                }
+                            } else {
+                                // Character field
+                                value = String(propValue);
+                            }
                         }
                     }
-                    value = value.substring(0, field.length).padEnd(field.length, ' ');
+                    
+                    // จัดรูปแบบตามประเภท field
+                    if (field.type === 'N') {
+                        // Numeric: ชิดขวา
+                        value = value.substring(0, field.length).padStart(field.length, ' ');
+                    } else {
+                        // Character: ชิดซ้าย
+                        value = value.substring(0, field.length).padEnd(field.length, ' ');
+                    }
+                    
+                    // เขียนข้อมูล
                     for (let i = 0; i < field.length; i++) {
                         uint8View[recordOffset + i] = value.charCodeAt(i) || 0x20;
                     }
+                    
                     recordOffset += field.length;
                 });
             });
 
+            // End of file marker
             uint8View[totalSize - 1] = 0x1A;
             return buffer;
         }
