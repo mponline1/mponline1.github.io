@@ -5,242 +5,368 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculate AREA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Prompt', 'Sarabun', sans-serif;
-        }
+<style>
+    /* =========================================
+       1. CORE VARIABLES (BLUE THEME)
+       ========================================= */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --primary-solid: #1565c0;
+        --primary-dark: #0d47a1;
+        --primary-light: #e3f2fd;
+        --text-white: #ffffff;
+        --text-yellow: #ffeb3b;
+        --text-gray: #546e7a;
         
-        body {
-            background-color: #f8f9fa;
-            color: #343a40;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1140px;
-            margin: 0 auto;
-            padding: 0 15px;
-        }
-        
-        /* Header Section */
-        .header {
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-        }
-        
-        .home-link {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: #0066cc;
-            font-weight: 500;
-            font-size: 18px;
-            transition: all 0.3s ease;
-        }
-        
-        .home-link:hover {
-            color: #004d99;
-        }
-        
-        .home-link i {
-            margin-right: 8px;
-            font-size: 20px;
-        }
-        
-        /* Main Title Section */
-        .hero-section {
-            text-align: center;
-            padding: 40px 0;
-            background: linear-gradient(135deg, #0066cc, #00aaff);
-            color: white;
-            margin-bottom: 40px;
-            border-radius: 0 0 30px 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .hero-title {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        .hero-subtitle {
-            font-size: 16px;
-            max-width: 700px;
-            margin: 0 auto;
-            opacity: 0.9;
-        }
-        
-        /* Main Button Section */
-        .main-button-section {
-            margin-bottom: 50px;
-        }
-        
-        .section-title {
-            font-size: 24px;
-            margin-bottom: 25px;
-            color: #333;
-            text-align: center;
-            position: relative;
-            padding-bottom: 10px;
-        }
-        
-        .section-title:after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80px;
-            height: 3px;
-            background-color: #0066cc;
-        }
-        
-        .button-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .button-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .main-button {
-            background-color: #fff;
-            color: #333;
-            border: none;
-            border-radius: 10px;
-            padding: 25px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            height: 100%;
-        }
-        
-        .main-button:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .main-button i {
-            font-size: 30px;
-            margin-bottom: 15px;
-            color: #0066cc;
-        }
-        
-        .button-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        /* Manual Section */
-        .manual-section {
-            background-color: #fff;
-            border-radius: 15px;
-            padding: 40px 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 50px;
-        }
-        
-        .manual-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .manual-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .manual-button {
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: #333;
-            transition: all 0.3s ease;
-        }
-        
-        .manual-button:hover {
-            background-color: #f1f3f5;
-            transform: translateY(-3px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .manual-button i {
-            font-size: 24px;
-            margin-right: 15px;
-            width: 45px;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #e9ecef;
-            border-radius: 50%;
-            color: #0066cc;
-        }
-        
-        /* Footer Section */
-        .footer {
-            text-align: center;
-            padding: 30px 0;
-            border-top: 1px solid #e9ecef;
-            margin-top: 30px;
-        }
-        
-        .footer-text {
-            color: #6c757d;
-            font-size: 14px;
-        }
-    </style>
+        --bg-glass: rgba(255, 255, 255, 0.1);
+        --bg-glass-hover: rgba(255, 255, 255, 0.25);
+        --header-height: 70px;
+    }
+
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Prompt', sans-serif;
+        margin: 0;
+        padding-top: var(--header-height);
+        background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
+        min-height: 100vh;
+        color: #333;
+    }
+
+    .container {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+
+    /* =========================================
+       2. HEADER STYLES
+       ========================================= */
+    .mapraw-header {
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        position: fixed;
+        top: 0; left: 0; width: 100%; z-index: 1000;
+        height: var(--header-height);
+    }
+    
+    .mapraw-header-content {
+        max-width: 100%; margin: 0 auto; display: flex;
+        align-items: center; justify-content: space-between;
+        padding: 0 20px; height: 100%;
+    }
+    
+    .mapraw-logo-section { display: flex; flex-direction: column; justify-content: center; padding-right: 15px; }
+    .mapraw-logo-main { color: var(--text-white); font-size: 1.2rem; font-weight: 700; margin: 0; line-height: 1; white-space: nowrap; }
+    .mapraw-logo-main span { color: var(--text-yellow); text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); }
+    .mapraw-page-title { color: #e3f2fd; font-size: 1rem; font-weight: 400; margin: 2px 0 0 0; white-space: nowrap; }
+    
+    .mapraw-nav { display: flex; gap: 8px; align-items: center; height: 100%; }
+    .mapraw-nav-item { position: relative; height: 100%; display: flex; align-items: center; }
+    
+    .mapraw-nav-btn {
+        background: var(--bg-glass); color: white; border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;
+        transition: all 0.2s ease; text-decoration: none; display: flex; align-items: center; gap: 6px;
+        font-family: 'Prompt', sans-serif; white-space: nowrap;
+    }
+    .mapraw-nav-btn:hover { background: var(--bg-glass-hover); transform: translateY(-1px); }
+    .mapraw-nav-btn.home-btn { background: rgba(255, 235, 59, 0.15); border-color: #ffeb3b; color: #ffeb3b; }
+    .mapraw-nav-btn.home-btn:hover { background: #ffeb3b; color: #1565c0; }
+
+    .mapraw-dropdown {
+        position: absolute; top: calc(100% - 10px); left: 50%; transform: translateX(-50%) translateY(10px);
+        background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        min-width: 200px; opacity: 0; visibility: hidden; transition: all 0.2s ease; padding: 5px 0; z-index: 1001;
+    }
+    @media (min-width: 1201px) { .mapraw-nav-item:hover .mapraw-dropdown { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); } }
+    .mapraw-dropdown-item { display: block; padding: 10px 20px; color: #333; text-decoration: none; font-size: 0.9rem; transition: background 0.2s; white-space: nowrap; }
+    .mapraw-dropdown-item:hover { background: #f1f8ff; color: var(--primary-solid); }
+
+    .mobile-menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 10px; z-index: 1002; }
+    .bar { display: block; width: 25px; height: 3px; margin: 5px auto; background-color: white; transition: all 0.3s ease-in-out; border-radius: 2px; }
+
+    @media (max-width: 1400px) { .mapraw-nav-btn { padding: 6px 8px; font-size: 0.8rem; } .mapraw-nav { gap: 4px; } }
+    @media (max-width: 1200px) {
+        .mobile-menu-toggle { display: block; }
+        .mapraw-nav { position: fixed; top: var(--header-height); right: -100%; width: 280px; height: calc(100vh - var(--header-height)); background: white; flex-direction: column; align-items: stretch; gap: 0; padding: 10px 0; transition: right 0.3s ease; box-shadow: -5px 0 15px rgba(0,0,0,0.1); overflow-y: auto; }
+        .mapraw-nav.active { right: 0; }
+        .mapraw-nav-item { height: auto; flex-direction: column; width: 100%; display: block; border-bottom: 1px solid #eee; }
+        .mapraw-nav-btn { background: white; color: #333; border: none; border-radius: 0; padding: 15px 20px; font-size: 1rem; justify-content: space-between; width: 100%; }
+        .mapraw-nav-btn:hover { background: #f5f5f5; color: var(--primary-solid); transform: none; }
+        .mapraw-dropdown { position: static; transform: none; visibility: visible; opacity: 1; box-shadow: none; min-width: 100%; background: #f9f9f9; display: none; padding: 0; }
+        .mapraw-nav-item.active .mapraw-dropdown { display: block; }
+        .mapraw-dropdown-item { padding-left: 40px; color: #666; }
+        .mobile-menu-toggle.active .bar:nth-child(2) { opacity: 0; }
+        .mobile-menu-toggle.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+        .mobile-menu-toggle.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+    }
+    @media (max-width: 480px) { .mapraw-logo-main { font-size: 1rem; } .mapraw-page-title { font-size: 0.75rem; } }
+
+    /* =========================================
+       3. PAGE CONTENT STYLES
+       ========================================= */
+
+    /* Main Button Section */
+    .main-button-section {
+        margin-top: 40px; /* เว้นระยะห่างจาก Header */
+        margin-bottom: 50px;
+    }
+    
+    .section-title {
+        font-size: 24px;
+        margin-bottom: 30px;
+        color: var(--primary-dark);
+        text-align: center;
+        position: relative;
+        padding-bottom: 10px;
+        font-weight: 700;
+    }
+    
+    .section-title:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background-color: var(--text-yellow);
+        border-radius: 2px;
+    }
+    
+    .button-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+    }
+    
+    /* Main Button Cards */
+    .main-button {
+        background-color: #ffffff;
+        color: #333;
+        border: 2px solid var(--primary-light);
+        border-radius: 12px;
+        padding: 30px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .main-button:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary-solid);
+        box-shadow: 0 10px 25px rgba(21, 101, 192, 0.15);
+    }
+    
+    .main-button i {
+        font-size: 36px;
+        margin-bottom: 20px;
+        color: var(--primary-solid);
+    }
+    
+    .button-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: var(--primary-dark);
+    }
+
+    .main-button p {
+        font-size: 14px;
+        color: var(--text-gray);
+        line-height: 1.5;
+        margin: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .button-grid { grid-template-columns: 1fr; }
+    }
+    
+    /* Manual Section */
+    .manual-section {
+        background-color: white;
+        border-radius: 12px;
+        padding: 40px 30px;
+        box-shadow: 0 4px 20px rgba(30, 136, 229, 0.15);
+        border-top: 4px solid var(--primary-solid);
+        margin-bottom: 50px;
+        max-width: 1000px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .manual-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    /* Manual Button */
+    .manual-button {
+        background-color: #ffffff;
+        border: 2px solid var(--primary-light);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        color: var(--text-gray);
+        transition: all 0.2s ease;
+    }
+    
+    .manual-button:hover {
+        background-color: #ffffff;
+        border-color: var(--primary-solid);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(21, 101, 192, 0.1);
+        color: var(--primary-dark);
+    }
+    
+    .manual-button i {
+        font-size: 20px;
+        margin-right: 15px;
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f0f7ff;
+        border-radius: 50%;
+        color: var(--primary-solid);
+        flex-shrink: 0;
+    }
+
+    .manual-button h3 {
+        font-size: 16px;
+        margin: 0;
+        font-weight: 500;
+    }
+    
+    @media (max-width: 768px) {
+        .manual-grid { grid-template-columns: 1fr; }
+        .manual-section { padding: 30px 20px; width: 95%; }
+    }
+    
+    /* Footer Section */
+    .footer {
+        text-align: center;
+        padding: 30px 0;
+        border-top: 1px solid #e3f2fd;
+        margin-top: 30px;
+    }
+    
+    .footer-text {
+        color: var(--text-gray);
+        font-size: 14px;
+    }
+</style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <a href="index.html" class="home-link">
-                    <i class="fas fa-home"></i> หน้าหลัก
+        <header class="mapraw-header">
+    <div class="mapraw-header-content">
+        <div class="mapraw-logo-section">
+            <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+            <p class="mapraw-page-title">Calculate AREA</p>
+        </div>
+        
+        <button class="mobile-menu-toggle" id="mobileMenuBtn">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <nav class="mapraw-nav" id="mainNav">
+            <div class="mapraw-nav-item">
+                <a href="index.html" class="mapraw-nav-btn home-btn">
+                    <span>🏠 หน้าหลัก</span>
                 </a>
-            </nav>
-        </div>
-    </header>
-    
-    <!-- Main Title -->
-    <section class="hero-section">
-        <div class="container">
-            <h2 class="hero-title">Calculate AREA</h2>
-            <p class="hero-subtitle">เครื่องมือคำนวณพื้นที่สำหรับการวางแผนและออกแบบเมือง</p>
-        </div>
-    </section>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>📋 เครื่องมือสำรวจ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                    <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                    <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                    <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                    <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                    <a href="page13.html" class="mapraw-dropdown-item">Perpendicular Line</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚙️ เครื่องมือประมวลผล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                    <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                    <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                    <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                    <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚖️ เครื่องมือกฎหมาย</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                    <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🧮 คำนวณเบื้องต้น</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🎯 เครื่องมืออื่นๆ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
     
     <!-- Main Buttons -->
     <section class="main-button-section">
@@ -324,4 +450,27 @@
         </div>
     </footer>
 </body>
+<script>
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const nav = document.getElementById('mainNav');
+
+    menuBtn.addEventListener('click', () => {
+        menuBtn.classList.toggle('active');
+        nav.classList.toggle('active');
+    });
+
+    function toggleMobileDropdown(element) {
+        if (window.innerWidth <= 1200) {
+            element.classList.toggle('active');
+        }
+    }
+    
+    // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
+    document.addEventListener('click', (e) => {
+        if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
+            nav.classList.remove('active');
+            menuBtn.classList.remove('active');
+        }
+    });
+</script>
 </html>
