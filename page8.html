@@ -10,239 +10,1061 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/ag-grid/31.0.1/styles/ag-theme-alpine.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        :root {
-            --primary-green: #4CAF50;
-            --light-green: #e8f5e9;
-            --bg-green: #f1f8e9;
-            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+<style>
+ 
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --text-white: #ffffff;
+        --text-yellow: #ffeb3b;
+        --bg-glass: rgba(255, 255, 255, 0.1);
+        --bg-glass-hover: rgba(255, 255, 255, 0.25);
+        --header-height: 70px;
+    }
+    
+    body {
+        margin: 0;
+        padding-top: var(--header-height);
+    }
+
+    /* Header Structure */
+    .mapraw-header {
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        font-family: 'Prompt', sans-serif;
+        height: var(--header-height);
+    }
+    
+    .mapraw-header-content {
+        max-width: 100%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        height: 100%;
+    }
+    
+    /* Logo Section */
+    .mapraw-logo-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-shrink: 0;
+        padding-right: 15px;
+    }
+    
+    .mapraw-logo-main {
+        color: var(--text-white);
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    
+    .mapraw-logo-main span {
+        color: var(--text-yellow);
+        text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+    }
+    
+    .mapraw-page-title {
+        color: #e3f2fd;
+        font-size: 1rem;
+        font-weight: 400;
+        margin: 2px 0 0 0;
+        white-space: nowrap;
+    }
+    
+    /* Navigation Section */
+    .mapraw-nav {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        height: 100%;
+    }
+    
+    .mapraw-nav-item {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Buttons */
+    .mapraw-nav-btn {
+        background: var(--bg-glass);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Prompt', sans-serif;
+        white-space: nowrap;
+    }
+    
+    .mapraw-nav-btn:hover {
+        background: var(--bg-glass-hover);
+        transform: translateY(-1px);
+    }
+    
+    .mapraw-nav-btn.home-btn {
+        background: rgba(255, 235, 59, 0.15);
+        border-color: #ffeb3b;
+        color: #ffeb3b;
+    }
+    
+    .mapraw-nav-btn.home-btn:hover {
+        background: #ffeb3b;
+        color: #1565c0;
+    }
+
+    /* Dropdown */
+    .mapraw-dropdown {
+        position: absolute;
+        top: calc(100% - 10px);
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        min-width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        padding: 5px 0;
+        z-index: 1001;
+    }
+    
+    /* Hover Logic for Desktop */
+    @media (min-width: 1201px) {
+        .mapraw-nav-item:hover .mapraw-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
         }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: var(--bg-green);
-            min-height: 100vh;
+    }
+    
+    .mapraw-dropdown-item {
+        display: block;
+        padding: 10px 20px;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+        white-space: nowrap;
+    }
+    
+    .mapraw-dropdown-item:hover {
+        background: #f1f8ff;
+        color: #1565c0;
+    }
+
+    /* Hamburger Menu Toggle */
+    .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        z-index: 1002;
+    }
+    
+    .bar {
+        display: block;
+        width: 25px;
+        height: 3px;
+        margin: 5px auto;
+        background-color: white;
+        transition: all 0.3s ease-in-out;
+        border-radius: 2px;
+    }
+
+    /* ==== Responsive Styles ==== */
+    
+    @media (max-width: 1400px) {
+        .mapraw-nav-btn {
+            padding: 6px 8px;
+            font-size: 0.8rem;
         }
-        
-        .card {
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: var(--card-shadow);
-            margin-bottom: 20px;
-            overflow: hidden;
+        .mapraw-nav {
+            gap: 4px;
         }
-        
-        .header-card {
-            padding: 20px;
-        }
-        
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .header h1 {
-            color: var(--primary-green);
-            margin: 0;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .header .subtitle {
-            color: var(--primary-green);
-            font-size: 18px;
-            margin-top: 5px;
-        }
-        
-        .home-icon {
-            width: 40px;
-            height: 40px;
-            background-color: var(--primary-green);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-decoration: none;
-            transition: transform 0.2s, background-color 0.2s;
-        }
-        
-        .home-icon:hover {
-            transform: translateY(-2px);
-            background-color: #45a049;
-        }
-        
-        .content-card {
-            background-color: white;
-            padding: 30px;
-        }
-        
-        .manual-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #333;
-            font-size: 20px;
-            margin-bottom: 25px;
-            text-decoration: none;
-        }
-        
-        .manual-title:hover {
-            color: var(--primary-green);
-        }
-        
-        .manual-title i {
-            color: var(--primary-green);
-            font-size: 24px;
-        }
-        
-        .file-input-section {
-            margin-bottom: 25px;
-        }
-        
-        .file-label {
+    }
+
+    @media (max-width: 1200px) {
+        .mobile-menu-toggle {
             display: block;
-            margin-bottom: 10px;
-            font-size: 16px;
-            color: #333;
-        }
-        
-        .file-input-wrapper {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        #fileInput {
-            display: none;
-        }
-        
-        .choose-file {
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            background-color: white;
-            flex-grow: 1;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        
-        .button-group {
-            display: flex;
-            gap: 15px;
-            margin-top: 25px;
-        }
-        
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .btn-process {
-            background-color: #2196F3;
-            color: white;
-        }
-        
-        .btn-export {
-            background-color: var(--primary-green);
-            color: white;
-        }
-        
-        .btn-clear {
-            background-color: #f44336;
-            color: white;
-        }
-        
-        .grid-card {
-            background-color: white;
-            padding: 20px;
-            min-height: 400px;
-        }
-        
-        #grid {
-            width: 100%;
-            height: calc(100vh - 400px);
-            min-height: 400px;
-            background-color: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-        }
-        
-        #status {
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            background-color: var(--light-green);
-            display: none;
         }
 
-        .ag-header-cell-filtered {
-            background-color: var(--light-green) !important;
-            font-weight: bold;
+        .mapraw-nav {
+            position: fixed;
+            top: var(--header-height);
+            right: -100%;
+            width: 280px;
+            height: calc(100vh - var(--header-height));
+            background: white;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            padding: 10px 0;
+            transition: right 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
         }
-    </style>
+
+        .mapraw-nav.active {
+            right: 0;
+        }
+
+        .mapraw-nav-item {
+            height: auto;
+            flex-direction: column;
+            width: 100%;
+            display: block;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mapraw-nav-btn {
+            background: white;
+            color: #333;
+            border: none;
+            border-radius: 0;
+            padding: 15px 20px;
+            font-size: 1rem;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mapraw-nav-btn:hover {
+            background: #f5f5f5;
+            color: #1565c0;
+            transform: none;
+        }
+
+        .mapraw-dropdown {
+            position: static;
+            transform: none;
+            visibility: visible;
+            opacity: 1;
+            box-shadow: none;
+            min-width: 100%;
+            background: #f9f9f9;
+            display: none;
+            padding: 0;
+        }
+        
+        .mapraw-nav-item.active .mapraw-dropdown {
+            display: block;
+        }
+
+        .mapraw-dropdown-item {
+            padding-left: 40px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .mobile-menu-toggle.active .bar:nth-child(2) {
+            opacity: 0;
+        }
+        .mobile-menu-toggle.active .bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .mobile-menu-toggle.active .bar:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .mapraw-logo-main { font-size: 1rem; }
+        .mapraw-page-title { font-size: 0.75rem; }
+    }
+ 
+    /* =========================================
+       1. CORE VARIABLES (BLUE MAPRAW THEME)
+       ========================================= */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --primary-solid: #1565c0;
+        --primary-dark: #0d47a1;
+        --primary-light: #e3f2fd;
+        --primary-hover: #1e88e5;
+        
+        --text-white: #ffffff;
+        --text-gray: #546e7a;
+        --text-dark: #333;
+
+        --card-shadow: 0 4px 12px rgba(21, 101, 192, 0.1);
+        --card-border: 1px solid #e3f2fd;
+        --radius-md: 12px;
+        --radius-sm: 6px;
+    }
+    
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Prompt', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(180deg, #f5f9ff 0%, #ffffff 100%);
+        height: 100vh;
+        overflow: hidden; /* ป้องกัน Scrollbar ซ้อน */
+        display: flex;
+        flex-direction: column;
+        color: var(--text-dark);
+    }
+    
+    /* =========================================
+       2. COMPACT HEADER (TITLE BAR)
+       ========================================= */
+    .header-bar {
+        background-color: white;
+        padding: 10px 20px;
+        margin: 15px 20px 10px 20px; /* เพิ่มระยะห่างด้านบนไม่ให้ติดขอบจอ */
+        border-radius: var(--radius-md);
+        box-shadow: var(--card-shadow);
+        border-top: 4px solid var(--primary-solid); /* แถบสีด้านบน */
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        transition: transform 0.2s;
+    }
+    
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .header-title h1 {
+        color: var(--primary-dark);
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .manual-link {
+        color: var(--primary-solid);
+        background-color: var(--primary-light);
+        padding: 5px 12px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .manual-link:hover {
+        background-color: var(--primary-solid);
+        color: white;
+        transform: translateY(-1px);
+    }
+    
+    .home-icon {
+        width: 34px;
+        height: 34px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-decoration: none;
+        transition: all 0.2s;
+        box-shadow: 0 2px 5px rgba(21, 101, 192, 0.3);
+    }
+    
+    .home-icon:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(21, 101, 192, 0.4);
+    }
+
+    /* =========================================
+       3. COMPACT CONTROL PANEL
+       ========================================= */
+    .control-panel {
+        background-color: white;
+        padding: 12px 20px;
+        margin: 0 20px 10px 20px; /* ลดระยะห่างด้านล่างเพื่อเพิ่มพื้นที่ตาราง */
+        border-radius: var(--radius-md);
+        box-shadow: var(--card-shadow);
+        border: var(--card-border);
+        flex-shrink: 0;
+    }
+
+    .control-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 10px;
+    }
+
+    .control-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .control-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .control-label {
+        font-size: 12px;
+        color: var(--text-gray);
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    #fileInput {
+        display: none;
+    }
+    
+    /* Input Styling */
+    .file-display, .search-input {
+        padding: 8px 12px;
+        border: 1px solid #cfd8dc;
+        border-radius: var(--radius-sm);
+        background-color: #fafafa;
+        font-size: 13px;
+        font-family: 'Prompt', sans-serif;
+        width: 100%;
+        transition: all 0.2s;
+        color: var(--text-dark);
+    }
+
+    .file-display:hover, .search-input:focus {
+        border-color: var(--primary-solid);
+        background-color: white;
+        outline: none;
+        box-shadow: 0 0 0 2px var(--primary-light);
+    }
+    
+    .file-display {
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* =========================================
+       4. BUTTONS
+       ========================================= */
+    .button-toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 8px 14px;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        font-family: 'Prompt', sans-serif;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn:active {
+        transform: translateY(0);
+    }
+    
+    /* Button Colors Mapping */
+    .btn-process { background: var(--primary-gradient); color: white; }
+    .btn-export { background-color: #2e7d32; color: white; } /* Green for Excel */
+    .btn-export-csv { background-color: #00897b; color: white; } /* Teal for CSV */
+    .btn-stats { background-color: #f57f17; color: white; } /* Orange */
+    .btn-save-filter { background-color: #7b1fa2; color: white; } /* Purple */
+    .btn-load-filter { background-color: #5e35b1; color: white; } /* Deep Purple */
+    .btn-clear { background-color: #c62828; color: white; } /* Red */
+
+    .btn i {
+        font-size: 12px;
+    }
+
+    /* =========================================
+       5. STATUS BAR
+       ========================================= */
+    .status-bar {
+        background-color: var(--primary-light);
+        padding: 8px 20px;
+        margin: 0 20px 10px 20px;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        color: var(--primary-dark);
+        display: none;
+        flex-shrink: 0;
+        border: 1px solid #bbdefb;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .status-bar.active {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* =========================================
+       6. GRID CONTAINER (MAXIMIZED)
+       ========================================= */
+    .grid-container {
+        flex: 1; /* Key: This makes it fill all remaining vertical space */
+        padding: 0 20px 20px 20px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 0; /* Important for flex child scroll */
+    }
+    
+    #grid {
+        flex: 1;
+        width: 100%;
+        background-color: white;
+        border: 1px solid #cfd8dc;
+        border-radius: var(--radius-md);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+
+    /* AG Grid Theme Overrides to Match Blue Theme */
+    .ag-theme-alpine {
+        --ag-selected-row-background-color: var(--primary-light);
+        --ag-header-background-color: #f5f7fa;
+        --ag-header-foreground-color: var(--text-gray);
+        --ag-header-cell-hover-background-color: #e3f2fd;
+        --ag-row-hover-color: #f0f7ff;
+        --ag-borders: solid 1px #eceff1;
+        --ag-font-family: 'Prompt', sans-serif;
+        --ag-font-size: 13px;
+    }
+
+    .ag-header-cell-filtered {
+        background-color: var(--primary-light) !important;
+        color: var(--primary-dark) !important;
+        font-weight: bold;
+    }
+
+    /* =========================================
+       7. MODALS
+       ========================================= */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(13, 71, 161, 0.2); /* Tinted backdrop */
+        backdrop-filter: blur(3px);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 3% auto;
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        max-width: 600px;
+        max-height: 85vh;
+        overflow-y: auto;
+        border-top: 5px solid var(--primary-solid);
+        animation: slideUp 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        color: var(--primary-solid);
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    .close {
+        color: #b0bec5;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
+        line-height: 1;
+    }
+
+    .close:hover {
+        color: var(--primary-dark);
+    }
+
+    /* Modal Lists */
+    .column-list, .filter-list {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #eceff1;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fafafa;
+    }
+
+    .column-item, .filter-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        margin-bottom: 4px;
+        border-radius: 6px;
+        transition: background-color 0.2s;
+        border: 1px solid transparent;
+        background: white;
+    }
+
+    .column-item:hover, .filter-item:hover {
+        background-color: var(--primary-light);
+        border-color: #bbdefb;
+    }
+
+    /* Modal Actions */
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        justify-content: flex-end;
+    }
+
+    .btn-modal {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: 'Prompt', sans-serif;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-modal-primary {
+        background-color: var(--primary-solid);
+        color: white;
+        box-shadow: 0 2px 6px rgba(21, 101, 192, 0.3);
+    }
+
+    .btn-modal-primary:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .btn-modal-secondary {
+        background-color: #eceff1;
+        color: #546e7a;
+    }
+
+    .btn-modal-secondary:hover {
+        background-color: #cfd8dc;
+        color: #37474f;
+    }
+
+    /* =========================================
+       8. STATISTICS & MISC STYLES
+       ========================================= */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .stat-box {
+        padding: 20px;
+        border-radius: 12px;
+        background-color: #f8fbff;
+        border: 1px solid #e3f2fd;
+        border-left: 4px solid var(--primary-solid);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-gray);
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-solid);
+    }
+    
+    .stats-column-section {
+        background-color: #fafafa;
+        border-left: 3px solid var(--primary-solid);
+        margin-bottom: 15px;
+        padding: 15px;
+        border-radius: 8px;
+    }
+    
+    .stats-table th {
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+        font-weight: 600;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #cfd8dc;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #b0bec5;
+    }
+
+    /* =========================================
+       9. RESPONSIVE
+       ========================================= */
+    @media (max-width: 1200px) {
+        .control-row {
+            grid-template-columns: 1fr 1fr;
+        }
+        .button-toolbar {
+            grid-column: 1 / -1;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .control-row {
+            grid-template-columns: 1fr;
+        }
+        .button-toolbar {
+            flex-direction: column;
+        }
+        .btn {
+            justify-content: center;
+        }
+        .header-bar {
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 15px;
+        }
+        .header-title h1 {
+            font-size: 16px;
+        }
+        .home-icon {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+        }
+        .control-panel, .grid-container, .header-bar {
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+        .grid-container {
+            padding: 0 10px 10px 10px;
+        }
+    }
+</style>
 </head>
 <body>
-    <div class="card header-card">
-        <div class="header">
-            <div>
-                <h1>SHAPEFILE TO EXCEL</h1>
-                <div class="subtitle">แปลง shapefile เป็น excel</div>
+        <header class="mapraw-header">
+    <div class="mapraw-header-content">
+        <div class="mapraw-logo-section">
+            <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+            <p class="mapraw-page-title">SHAPEFILE TO EXCEL</p>
+        </div>
+        
+        <button class="mobile-menu-toggle" id="mobileMenuBtn">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <nav class="mapraw-nav" id="mainNav">
+            <div class="mapraw-nav-item">
+                <a href="index.html" class="mapraw-nav-btn home-btn">
+                    <span>🏠 หน้าหลัก</span>
+                </a>
             </div>
-            <a href="index.html" class="home-icon">
-                <i class="fas fa-home"></i>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>📋 เครื่องมือสำรวจ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                    <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                    <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                    <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                    <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                    <a href="page13.html" class="mapraw-dropdown-item">Perpendicular Line</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚙️ เครื่องมือประมวลผล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                    <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                    <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                    <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                    <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚖️ เครื่องมือกฎหมาย</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                    <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🧮 คำนวณเบื้องต้น</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🎯 เครื่องมืออื่นๆ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
+
+    <!-- Compact Header -->
+    <div class="header-bar">
+        <div class="header-title">
+            <a href="SHP TO EXCEL HANDBOOK.pdf" class="manual-link" title="คู่มือการใช้งาน">
+                <i class="fas fa-book"></i>
+                <span>คู่มือ</span>
             </a>
         </div>
+  
     </div>
-    
-    <div class="card content-card">
-        <a href="SHP TO EXCEL HANDBOOK.pdf" class="manual-title">
-            <i class="fas fa-book"></i>
-            <span>คู่มือการใช้งาน</span>
-        </a>
-        
-        <div class="file-input-section">
-            <label class="file-label">ไฟล์ shapefile (zip file)</label>
-            <div class="file-input-wrapper">
+
+    <!-- Compact Control Panel -->
+    <div class="control-panel">
+        <div class="control-row">
+            <div class="control-item">
+                <label class="control-label">ไฟล์ Shapefile (.zip)</label>
                 <input type="file" id="fileInput" accept=".zip" />
-                <input type="text" class="choose-file" id="fileDisplay" placeholder="เลือกไฟล์" readonly onclick="document.getElementById('fileInput').click();" />
+                <input type="text" class="file-display" id="fileDisplay" placeholder="คลิกเพื่อเลือกไฟล์" readonly onclick="document.getElementById('fileInput').click();" />
+            </div>
+            <div class="control-item">
+                <label class="control-label">ค้นหาข้อมูล (ทุกคอลัมน์)</label>
+                <input type="text" id="quickSearch" class="search-input" placeholder="พิมพ์คำค้นหา..." onkeyup="performQuickSearch()">
+            </div>
+            <div class="control-item">
+                <label class="control-label">ดำเนินการ</label>
+                <button class="btn btn-process" onclick="processShapefile()" title="ประมวลผลไฟล์ Shapefile">
+                    <i class="fas fa-cog"></i>
+                    <span>ประมวลผล</span>
+                </button>
             </div>
         </div>
-        
-        <div class="button-group">
-            <button class="btn btn-process" onclick="processShapefile()">
-                <i class="fas fa-cog"></i>
-                ประมวลผล
-            </button>
-            <button class="btn btn-export" onclick="exportToExcel()">
-                <i class="fas fa-file-excel"></i>
-                ส่งออกเป็น Excel
-            </button>
-            <button class="btn btn-clear" onclick="clearAllFilters()">
-                <i class="fas fa-trash"></i>
-                ล้างตัวกรองทั้งหมด
-            </button>
+
+        <div class="control-row">
+            <div class="control-item" style="grid-column: 1 / -1;">
+                <label class="control-label">เครื่องมือ</label>
+                <div class="button-toolbar">
+                    <button class="btn btn-export" onclick="showColumnSelector()" title="เลือกคอลัมน์และส่งออก Excel">
+                        <i class="fas fa-file-excel"></i>
+                        <span>Excel (เลือก)</span>
+                    </button>
+                    <button class="btn btn-export" onclick="exportToExcel()" title="ส่งออก Excel ทั้งหมด">
+                        <i class="fas fa-file-excel"></i>
+                        <span>Excel (ทั้งหมด)</span>
+                    </button>
+                    <button class="btn btn-export-csv" onclick="exportToCSV()" title="ส่งออกเป็น CSV">
+                        <i class="fas fa-file-csv"></i>
+                        <span>CSV</span>
+                    </button>
+                    <button class="btn btn-stats" onclick="showStatistics()" title="แสดงสถิติข้อมูล">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>สถิติ</span>
+                    </button>
+                    <button class="btn btn-save-filter" onclick="showSaveFilter()" title="บันทึกการตั้งค่าตัวกรอง">
+                        <i class="fas fa-save"></i>
+                        <span>บันทึกตัวกรอง</span>
+                    </button>
+                    <button class="btn btn-load-filter" onclick="showLoadFilter()" title="โหลดการตั้งค่าตัวกรอง">
+                        <i class="fas fa-folder-open"></i>
+                        <span>โหลดตัวกรอง</span>
+                    </button>
+                    <button class="btn btn-clear" onclick="clearAllFilters()" title="ล้างตัวกรองและค้นหา">
+                        <i class="fas fa-times"></i>
+                        <span>ล้างตัวกรอง</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
-    
-    <div class="card grid-card">
-        <div id="status"></div>
+
+    <!-- Status Bar -->
+    <div id="status" class="status-bar"></div>
+
+    <!-- Grid Container -->
+    <div class="grid-container">
         <div id="grid" class="ag-theme-alpine"></div>
+    </div>
+
+    <!-- Column Selector Modal -->
+    <div id="columnModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-columns"></i> เลือกคอลัมน์ที่จะส่งออก</h2>
+                <span class="close" onclick="closeColumnModal()">&times;</span>
+            </div>
+            <div style="margin-bottom: 15px; display: flex; gap: 8px;">
+                <button class="btn-modal btn-modal-secondary" onclick="selectAllColumns()">
+                    <i class="fas fa-check-square"></i> เลือกทั้งหมด
+                </button>
+                <button class="btn-modal btn-modal-secondary" onclick="deselectAllColumns()">
+                    <i class="fas fa-square"></i> ยกเลิกทั้งหมด
+                </button>
+            </div>
+            <div id="columnList" class="column-list"></div>
+            <div class="modal-actions">
+                <button class="btn-modal btn-modal-secondary" onclick="closeColumnModal()">ยกเลิก</button>
+                <button class="btn-modal btn-modal-primary" onclick="exportSelectedColumns()">
+                    <i class="fas fa-download"></i> ส่งออก Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Modal -->
+    <div id="statsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-chart-bar"></i> สถิติข้อมูล</h2>
+                <span class="close" onclick="closeStatsModal()">&times;</span>
+            </div>
+            <div id="statsContent"></div>
+            <div class="modal-actions">
+                <button class="btn-modal btn-modal-secondary" onclick="closeStatsModal()">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Filter Modal -->
+    <div id="saveFilterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-save"></i> บันทึกตัวกรอง</h2>
+                <span class="close" onclick="closeSaveFilterModal()">&times;</span>
+            </div>
+            <label class="control-label">ชื่อตัวกรอง</label>
+            <input type="text" id="filterName" class="filter-input" placeholder="ระบุชื่อตัวกรอง...">
+            <div class="modal-actions">
+                <button class="btn-modal btn-modal-secondary" onclick="closeSaveFilterModal()">ยกเลิก</button>
+                <button class="btn-modal btn-modal-primary" onclick="saveFilter()">
+                    <i class="fas fa-save"></i> บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Filter Modal -->
+    <div id="loadFilterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-folder-open"></i> โหลดตัวกรอง</h2>
+                <span class="close" onclick="closeLoadFilterModal()">&times;</span>
+            </div>
+            <div id="filterList" class="filter-list"></div>
+            <div class="modal-actions">
+                <button class="btn-modal btn-modal-secondary" onclick="closeLoadFilterModal()">ปิด</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -250,15 +1072,16 @@
         let columnDefs = [];
         let rowData = [];
         let originalFileName = '';
+        let savedFilters = JSON.parse(localStorage.getItem('shapefileFilters') || '[]');
 
         // Update file input display
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                originalFileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+                originalFileName = file.name.replace(/\.[^/.]+$/, "");
                 document.getElementById('fileDisplay').value = file.name;
             } else {
-                document.getElementById('fileDisplay').value = 'เลือกไฟล์';
+                document.getElementById('fileDisplay').value = 'คลิกเพื่อเลือกไฟล์';
                 originalFileName = '';
             }
         });
@@ -273,8 +1096,8 @@
                 return;
             }
 
-            status.style.display = 'block';
-            status.textContent = 'กำลังประมวลผล...';
+            status.classList.add('active');
+            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังประมวลผล...';
 
             try {
                 const arrayBuffer = await file.arrayBuffer();
@@ -288,7 +1111,7 @@
                         filter: 'agSetColumnFilter',
                         floatingFilter: true,
                         sortable: true,
-                        minWidth: 200,
+                        minWidth: 150,
                         filterParams: {
                             buttons: ['apply', 'clear', 'reset'],
                             closeOnApply: false,
@@ -315,12 +1138,12 @@
                         columnDefs: columnDefs,
                         rowData: rowData,
                         pagination: true,
-                        paginationPageSize: 20,
+                        paginationPageSize: 50,
                         domLayout: 'normal',
                         onFilterChanged: onFilterChanged,
                         defaultColDef: {
                             flex: 1,
-                            minWidth: 200,
+                            minWidth: 150,
                             filter: 'agSetColumnFilter',
                             floatingFilter: true,
                             resizable: true,
@@ -339,11 +1162,11 @@
                     gridApi = new agGrid.Grid(gridDiv, gridOptions);
                     gridApi = gridOptions.api;
 
-                    status.textContent = `จำนวนข้อมูลทั้งหมด: ${rowData.length.toLocaleString()} แถว`;
+                    status.innerHTML = `<i class="fas fa-check-circle"></i> จำนวนข้อมูลทั้งหมด: <strong>${rowData.length.toLocaleString()}</strong> แถว`;
                 }
             } catch (error) {
                 console.error('Error:', error);
-                status.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
+                status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> เกิดข้อผิดพลาด: ${error.message}`;
             }
         }
 
@@ -356,6 +1179,7 @@
             if (gridApi) {
                 gridApi.setFilterModel(null);
                 gridApi.onFilterChanged();
+                document.getElementById('quickSearch').value = '';
             }
         }
 
@@ -364,11 +1188,461 @@
                 const filteredCount = gridApi.getDisplayedRowCount();
                 const totalCount = rowData.length;
                 const status = document.getElementById('status');
-                status.style.display = 'block';
-                status.textContent = `จำนวนข้อมูลที่แสดง: ${filteredCount.toLocaleString()} จาก ${totalCount.toLocaleString()} แถว`;
+                status.classList.add('active');
+                
+                if (filteredCount === totalCount) {
+                    status.innerHTML = `<i class="fas fa-table"></i> จำนวนข้อมูล: <strong>${totalCount.toLocaleString()}</strong> แถว`;
+                } else {
+                    status.innerHTML = `<i class="fas fa-filter"></i> แสดง: <strong>${filteredCount.toLocaleString()}</strong> / ${totalCount.toLocaleString()} แถว`;
+                }
             }
         }
 
+        // Quick Search Function
+        function performQuickSearch() {
+            if (!gridApi) return;
+            
+            const searchText = document.getElementById('quickSearch').value.toLowerCase();
+            gridApi.setQuickFilter(searchText);
+            onFilterChanged();
+        }
+
+        // Column Selector Functions
+        function showColumnSelector() {
+            if (!gridApi) {
+                alert('ไม่มีข้อมูลที่จะส่งออก');
+                return;
+            }
+
+            const columnList = document.getElementById('columnList');
+            columnList.innerHTML = '';
+
+            columnDefs.forEach(col => {
+                const div = document.createElement('div');
+                div.className = 'column-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="col_${col.field}" value="${col.field}" checked>
+                    <label for="col_${col.field}">${col.field}</label>
+                `;
+                columnList.appendChild(div);
+            });
+
+            document.getElementById('columnModal').style.display = 'block';
+        }
+
+        function closeColumnModal() {
+            document.getElementById('columnModal').style.display = 'none';
+        }
+
+        function selectAllColumns() {
+            document.querySelectorAll('#columnList input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+        }
+
+        function deselectAllColumns() {
+            document.querySelectorAll('#columnList input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+
+        function exportSelectedColumns() {
+            const selectedColumns = [];
+            document.querySelectorAll('#columnList input[type="checkbox"]:checked').forEach(cb => {
+                selectedColumns.push(cb.value);
+            });
+
+            if (selectedColumns.length === 0) {
+                alert('กรุณาเลือกอย่างน้อย 1 คอลัมน์');
+                return;
+            }
+
+            const filteredData = [];
+            gridApi.forEachNodeAfterFilter(node => {
+                const rowData = {};
+                selectedColumns.forEach(col => {
+                    rowData[col] = node.data[col];
+                });
+                filteredData.push(rowData);
+            });
+
+            const ws = XLSX.utils.json_to_sheet(filteredData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ShapefileData");
+            
+            const exportFileName = originalFileName ? `${originalFileName}_selected.xlsx` : 'shapefile_data_selected.xlsx';
+            XLSX.writeFile(wb, exportFileName);
+
+            closeColumnModal();
+        }
+
+        // CSV Export Function - Improved to preserve data types
+        function exportToCSV() {
+            if (!gridApi) {
+                alert('ไม่มีข้อมูลที่จะส่งออก');
+                return;
+            }
+
+            const filteredData = [];
+            gridApi.forEachNodeAfterFilter(node => {
+                filteredData.push(node.data);
+            });
+
+            if (filteredData.length === 0) {
+                alert('ไม่มีข้อมูลที่จะส่งออก');
+                return;
+            }
+
+            // Convert to CSV with proper data type handling
+            const headers = Object.keys(filteredData[0]);
+            let csv = headers.join(',') + '\n';
+
+            filteredData.forEach(row => {
+                const values = headers.map(header => {
+                    let value = row[header];
+                    
+                    // Handle null/undefined
+                    if (value === null || value === undefined) {
+                        return '';
+                    }
+                    
+                    // Check if value is numeric (quantitative)
+                    if (typeof value === 'number') {
+                        // Keep as number, no quotes
+                        return value;
+                    }
+                    
+                    // Handle qualitative data (text)
+                    value = String(value);
+                    
+                    // Escape quotes
+                    value = value.replace(/"/g, '""');
+                    
+                    // Quote if contains special characters
+                    if (value.includes(',') || value.includes('\n') || value.includes('"') || value.includes('\r')) {
+                        value = `"${value}"`;
+                    }
+                    
+                    return value;
+                });
+                csv += values.join(',') + '\n';
+            });
+
+            // Download CSV
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const exportFileName = originalFileName ? `${originalFileName}.csv` : 'shapefile_data.csv';
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', exportFileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Statistics Functions - Enhanced with expandable details
+        function showStatistics() {
+            if (!gridApi || rowData.length === 0) {
+                alert('ไม่มีข้อมูลที่จะแสดงสถิติ');
+                return;
+            }
+
+            const filteredData = [];
+            gridApi.forEachNodeAfterFilter(node => {
+                filteredData.push(node.data);
+            });
+
+            const statsContent = document.getElementById('statsContent');
+            
+            // Basic stats
+            let html = '<div class="stats-container">';
+            html += `<div class="stat-box">
+                        <div class="stat-label">จำนวนข้อมูลทั้งหมด</div>
+                        <div class="stat-value">${rowData.length.toLocaleString()}</div>
+                    </div>`;
+            html += `<div class="stat-box">
+                        <div class="stat-label">จำนวนข้อมูลที่แสดง</div>
+                        <div class="stat-value">${filteredData.length.toLocaleString()}</div>
+                    </div>`;
+            html += `<div class="stat-box">
+                        <div class="stat-label">จำนวนคอลัมน์</div>
+                        <div class="stat-value">${columnDefs.length}</div>
+                    </div>`;
+            html += '</div>';
+
+            // Detailed stats for each column
+            html += '<div class="stats-detail">';
+            html += '<h3>สถิติแต่ละคอลัมน์</h3>';
+
+            columnDefs.forEach((col, colIndex) => {
+                const field = col.field;
+                const values = filteredData.map(row => row[field]).filter(v => v !== null && v !== undefined);
+                
+                if (values.length === 0) return;
+
+                const isNumeric = values.every(v => typeof v === 'number');
+                
+                html += `<div class="stats-column-section">`;
+                html += `<h4 onclick="toggleStatsDetail('stats-detail-${colIndex}')" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-chevron-right stats-toggle" id="stats-toggle-${colIndex}"></i>
+                            ${field}
+                            <span style="font-size: 12px; color: #666; font-weight: normal;">
+                                (${isNumeric ? 'ข้อมูลเชิงปริมาณ' : 'ข้อมูลเชิงคุณภาพ'})
+                            </span>
+                         </h4>`;
+                
+                html += `<div id="stats-detail-${colIndex}" class="stats-detail-content" style="display: none;">`;
+                
+                if (isNumeric) {
+                    // Quantitative data statistics
+                    const sum = values.reduce((a, b) => a + b, 0);
+                    const avg = sum / values.length;
+                    const min = Math.min(...values);
+                    const max = Math.max(...values);
+                    const sortedValues = [...values].sort((a, b) => a - b);
+                    const median = sortedValues.length % 2 === 0
+                        ? (sortedValues[sortedValues.length / 2 - 1] + sortedValues[sortedValues.length / 2]) / 2
+                        : sortedValues[Math.floor(sortedValues.length / 2)];
+                    
+                    html += '<table class="stats-table">';
+                    html += '<tr><th>สถิติ</th><th>ค่า</th></tr>';
+                    html += `<tr><td>จำนวนข้อมูล</td><td>${values.length.toLocaleString()}</td></tr>`;
+                    html += `<tr><td>ค่าเฉลี่ย (Mean)</td><td>${avg.toLocaleString(undefined, {maximumFractionDigits: 2})}</td></tr>`;
+                    html += `<tr><td>ค่ากลาง (Median)</td><td>${median.toLocaleString(undefined, {maximumFractionDigits: 2})}</td></tr>`;
+                    html += `<tr><td>ค่าต่ำสุด (Min)</td><td>${min.toLocaleString()}</td></tr>`;
+                    html += `<tr><td>ค่าสูงสุด (Max)</td><td>${max.toLocaleString()}</td></tr>`;
+                    html += `<tr><td>ผลรวม (Sum)</td><td>${sum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td></tr>`;
+                    html += `<tr><td>ช่วงข้อมูล (Range)</td><td>${(max - min).toLocaleString(undefined, {maximumFractionDigits: 2})}</td></tr>`;
+                    html += '</table>';
+                    
+                    // Show unique values if reasonable amount
+                    const uniqueValues = [...new Set(values)];
+                    if (uniqueValues.length <= 50) {
+                        const valueCounts = {};
+                        values.forEach(v => {
+                            valueCounts[v] = (valueCounts[v] || 0) + 1;
+                        });
+                        const sortedCounts = Object.entries(valueCounts)
+                            .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+                        
+                        html += `<div style="margin-top: 15px;">`;
+                        html += `<h5 style="margin-bottom: 10px; color: #666;">การกระจายของข้อมูล</h5>`;
+                        html += '<table class="stats-table">';
+                        html += '<tr><th>ค่า</th><th>จำนวน</th><th>เปอร์เซ็นต์</th></tr>';
+                        sortedCounts.forEach(([value, count]) => {
+                            const percent = ((count / values.length) * 100).toFixed(1);
+                            html += `<tr><td>${parseFloat(value).toLocaleString()}</td><td>${count.toLocaleString()}</td><td>${percent}%</td></tr>`;
+                        });
+                        html += '</table></div>';
+                    }
+                } else {
+                    // Qualitative data statistics
+                    const uniqueValues = [...new Set(values)];
+                    const valueCounts = {};
+                    values.forEach(v => {
+                        valueCounts[v] = (valueCounts[v] || 0) + 1;
+                    });
+                    
+                    const sortedCounts = Object.entries(valueCounts)
+                        .sort((a, b) => b[1] - a[1]);
+                    
+                    html += '<table class="stats-table">';
+                    html += '<tr><th>สถิติ</th><th>ค่า</th></tr>';
+                    html += `<tr><td>จำนวนข้อมูล</td><td>${values.length.toLocaleString()}</td></tr>`;
+                    html += `<tr><td>ค่าที่ไม่ซ้ำ</td><td>${uniqueValues.length.toLocaleString()}</td></tr>`;
+                    html += `<tr><td>ค่าที่พบบ่อยที่สุด</td><td>${sortedCounts[0][0]} (${sortedCounts[0][1]} ครั้ง)</td></tr>`;
+                    html += '</table>';
+                    
+                    // Show all values in expandable section
+                    html += `<div style="margin-top: 15px;">`;
+                    html += `<h5 style="margin-bottom: 10px; color: #666; cursor: pointer; display: flex; align-items: center; gap: 8px;" onclick="toggleValueList('values-${colIndex}')">
+                                <i class="fas fa-chevron-right value-toggle" id="value-toggle-${colIndex}"></i>
+                                การกระจายของข้อมูลทั้งหมด (${sortedCounts.length} ค่า)
+                             </h5>`;
+                    html += `<div id="values-${colIndex}" class="value-list" style="display: none;">`;
+                    html += '<table class="stats-table">';
+                    html += '<tr><th>ลำดับ</th><th>ค่า</th><th>จำนวน</th><th>เปอร์เซ็นต์</th></tr>';
+                    sortedCounts.forEach(([value, count], idx) => {
+                        const percent = ((count / values.length) * 100).toFixed(1);
+                        html += `<tr><td>${idx + 1}</td><td>${value}</td><td>${count.toLocaleString()}</td><td>${percent}%</td></tr>`;
+                    });
+                    html += '</table></div></div>';
+                }
+                
+                html += '</div></div>';
+            });
+
+            html += '</div>';
+            statsContent.innerHTML = html;
+
+            document.getElementById('statsModal').style.display = 'block';
+        }
+
+        function toggleStatsDetail(id) {
+            const element = document.getElementById(id);
+            const toggleIcon = document.getElementById(id.replace('stats-detail-', 'stats-toggle-'));
+            
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-down');
+            } else {
+                element.style.display = 'none';
+                toggleIcon.classList.remove('fa-chevron-down');
+                toggleIcon.classList.add('fa-chevron-right');
+            }
+        }
+
+        function toggleValueList(id) {
+            const element = document.getElementById(id);
+            const toggleIcon = document.getElementById(id.replace('values-', 'value-toggle-'));
+            
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-down');
+            } else {
+                element.style.display = 'none';
+                toggleIcon.classList.remove('fa-chevron-down');
+                toggleIcon.classList.add('fa-chevron-right');
+            }
+        }
+
+        function closeStatsModal() {
+            document.getElementById('statsModal').style.display = 'none';
+        }
+
+        // Filter Management Functions
+        function showSaveFilter() {
+            if (!gridApi) {
+                alert('ไม่มีข้อมูลที่จะบันทึกตัวกรอง');
+                return;
+            }
+
+            const filterModel = gridApi.getFilterModel();
+            if (Object.keys(filterModel).length === 0) {
+                alert('ไม่มีตัวกรองที่จะบันทึก กรุณากรองข้อมูลก่อน');
+                return;
+            }
+
+            document.getElementById('filterName').value = '';
+            document.getElementById('saveFilterModal').style.display = 'block';
+        }
+
+        function closeSaveFilterModal() {
+            document.getElementById('saveFilterModal').style.display = 'none';
+        }
+
+        function saveFilter() {
+            const filterName = document.getElementById('filterName').value.trim();
+            
+            if (!filterName) {
+                alert('กรุณาระบุชื่อตัวกรอง');
+                return;
+            }
+
+            const filterModel = gridApi.getFilterModel();
+            const quickSearchValue = document.getElementById('quickSearch').value;
+
+            const filterData = {
+                name: filterName,
+                filterModel: filterModel,
+                quickSearch: quickSearchValue,
+                timestamp: new Date().toISOString()
+            };
+
+            const existingIndex = savedFilters.findIndex(f => f.name === filterName);
+            if (existingIndex >= 0) {
+                if (!confirm('ชื่อตัวกรองนี้มีอยู่แล้ว ต้องการเขียนทับหรือไม่?')) {
+                    return;
+                }
+                savedFilters[existingIndex] = filterData;
+            } else {
+                savedFilters.push(filterData);
+            }
+
+            localStorage.setItem('shapefileFilters', JSON.stringify(savedFilters));
+            
+            alert('บันทึกตัวกรองสำเร็จ');
+            closeSaveFilterModal();
+        }
+
+        function showLoadFilter() {
+            const filterList = document.getElementById('filterList');
+            filterList.innerHTML = '';
+
+            if (savedFilters.length === 0) {
+                filterList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>ไม่มีตัวกรองที่บันทึกไว้</p>
+                    </div>
+                `;
+            } else {
+                savedFilters.forEach((filter, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'filter-item';
+                    
+                    const timestamp = new Date(filter.timestamp).toLocaleString('th-TH');
+                    
+                    div.innerHTML = `
+                        <div>
+                            <div class="filter-name">${filter.name}</div>
+                            <div class="filter-date">บันทึกเมื่อ: ${timestamp}</div>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn-filter-action btn-load" onclick="loadFilter(${index})">
+                                <i class="fas fa-download"></i> โหลด
+                            </button>
+                            <button class="btn-filter-action btn-delete" onclick="deleteFilter(${index})">
+                                <i class="fas fa-trash"></i> ลบ
+                            </button>
+                        </div>
+                    `;
+                    filterList.appendChild(div);
+                });
+            }
+
+            document.getElementById('loadFilterModal').style.display = 'block';
+        }
+
+        function closeLoadFilterModal() {
+            document.getElementById('loadFilterModal').style.display = 'none';
+        }
+
+        function loadFilter(index) {
+            if (!gridApi) {
+                alert('กรุณาโหลดข้อมูลก่อน');
+                return;
+            }
+
+            const filter = savedFilters[index];
+            
+            gridApi.setFilterModel(filter.filterModel);
+            
+            if (filter.quickSearch) {
+                document.getElementById('quickSearch').value = filter.quickSearch;
+                gridApi.setQuickFilter(filter.quickSearch);
+            }
+
+            alert('โหลดตัวกรองสำเร็จ');
+            closeLoadFilterModal();
+        }
+
+        function deleteFilter(index) {
+            if (!confirm('ต้องการลบตัวกรองนี้หรือไม่?')) {
+                return;
+            }
+
+            savedFilters.splice(index, 1);
+            localStorage.setItem('shapefileFilters', JSON.stringify(savedFilters));
+            
+            showLoadFilter();
+        }
+
+        // Original export function
         function exportToExcel() {
             if (!gridApi) {
                 alert('ไม่มีข้อมูลที่จะส่งออก');
@@ -384,10 +1658,25 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "ShapefileData");
             
-            // Use original filename for export
             const exportFileName = originalFileName ? `${originalFileName}.xlsx` : 'shapefile_data.xlsx';
             XLSX.writeFile(wb, exportFileName);
         }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + F for quick search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('quickSearch').focus();
+            }
+        });
     </script>
     <script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script> 
 </body>
