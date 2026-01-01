@@ -5,230 +5,480 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prepare PLLU</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* Import Fonts & Variables */
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            /* Color Palette (Blue Theme) */
+            --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+            --primary-solid: #1565c0;
+            --primary-dark: #0d47a1;
+            --primary-light: #e3f2fd;
+            --text-white: #ffffff;
+            --text-yellow: #ffeb3b;
+            
+            /* Glass Effect */
+            --bg-glass: rgba(255, 255, 255, 0.1);
+            --bg-glass-hover: rgba(255, 255, 255, 0.25);
+            --header-height: 70px;
+        }
+
         body {
-            font-family: 'Sarabun', sans-serif;
+            font-family: 'Prompt', sans-serif;
             margin: 0;
-            padding: 20px;
-            background-color: #ffffff;
+            padding-top: var(--header-height);
+            background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
+            color: #333;
+        }
+
+        /* HEADER STRUCTURE */
+        .mapraw-header {
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            height: var(--header-height);
+        }
+        
+        .mapraw-header-content {
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            height: 100%;
+        }
+        
+        /* Logo */
+        .mapraw-logo-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-shrink: 0;
+            padding-right: 15px;
+        }
+        
+        .mapraw-logo-main {
+            color: var(--text-white);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        
+        .mapraw-logo-main span {
+            color: var(--text-yellow);
+            text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+        }
+        
+        .mapraw-page-title {
+            color: #e3f2fd;
+            font-size: 1rem;
+            font-weight: 400;
+            margin: 2px 0 0 0;
+            white-space: nowrap;
+        }
+        
+        /* Navigation Bar */
+        .mapraw-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            height: 100%;
+        }
+        
+        .mapraw-nav-item {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Nav Buttons */
+        .mapraw-nav-btn {
+            background: var(--bg-glass);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Prompt', sans-serif;
+            white-space: nowrap;
+        }
+        
+        .mapraw-nav-btn:hover {
+            background: var(--bg-glass-hover);
+            transform: translateY(-1px);
+        }
+        
+        .mapraw-nav-btn.home-btn {
+            background: rgba(255, 235, 59, 0.15);
+            border-color: #ffeb3b;
+            color: #ffeb3b;
+        }
+        
+        .mapraw-nav-btn.home-btn:hover {
+            background: #ffeb3b;
+            color: #1565c0;
+        }
+
+        /* Dropdown Menu */
+        .mapraw-dropdown {
+            position: absolute;
+            top: calc(100% - 10px);
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+        
+        .mapraw-nav-item:hover .mapraw-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .mapraw-dropdown-item {
+            display: block;
+            padding: 10px 16px;
+            color: #333;
+            text-decoration: none;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .mapraw-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .mapraw-dropdown-item:hover {
+            background: var(--primary-light);
+            color: var(--primary-solid);
+        }
+
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .mobile-menu-toggle .bar {
+            width: 25px;
+            height: 3px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: flex;
+            }
+            
+            .mapraw-nav {
+                position: fixed;
+                top: var(--header-height);
+                left: 0;
+                width: 100%;
+                background: white;
+                flex-direction: column;
+                gap: 0;
+                height: auto;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+            }
+            
+            .mapraw-nav.active {
+                max-height: 500px;
+            }
+            
+            .mapraw-nav-item {
+                width: 100%;
+                height: auto;
+            }
+            
+            .mapraw-nav-btn {
+                background: white;
+                color: #333;
+                border: none;
+                border-radius: 0;
+                padding: 15px 20px;
+                font-size: 1rem;
+                justify-content: space-between;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .mapraw-nav-btn:hover {
+                background: #f5f5f5;
+                color: var(--primary-solid);
+                transform: none;
+            }
+
+            .mapraw-dropdown {
+                position: static;
+                transform: none;
+                visibility: visible;
+                opacity: 1;
+                box-shadow: none;
+                min-width: 100%;
+                background: #f9f9f9;
+                display: none;
+                padding: 0;
+            }
+            
+            .mapraw-nav-item.active .mapraw-dropdown {
+                display: block;
+            }
+
+            .mapraw-dropdown-item {
+                padding-left: 40px;
+                font-size: 0.9rem;
+                color: #666;
+            }
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
+        .page-title {
+            color: var(--primary-dark);
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+            margin: 0 0 20px 0;
         }
 
-        .title {
-            color: #5e17ab;
-            font-size: 24px;
-            margin: 0;
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
         }
 
-        .subtitle {
-            color: #5e17ab;
-            font-size: 18px;
-            margin: 5px 0;
-        }
-
-        .button-container {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .nav-button {
-            background-color: #5e17ab;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 16px;
-            text-decoration: none;
-            display: inline-block;
-            transition: background-color 0.3s ease;
-        }
-
-        .nav-button:hover {
-            background-color: #4a1289;
-        }
-
-        .home-button {
-            background-color: #5e17ab;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-decoration: none;
-            transition: background-color 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .home-button:hover {
-            background-color: #4a1289;
-        }
-
-        .home-button i {
-            font-size: 20px;
-        }
-
-        .manual-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 30px 0;
-            text-decoration: none;
-            color: #5e17ab;
-            padding: 10px;
-            border-radius: 8px;
-            transition: background-color 0.3s ease;
-        }
-
-        .manual-section:hover {
-            background-color: #F3F4F6;
-        }
-
-        .manual-icon {
-            background-color: #f0e6fa;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .manual-icon i {
-            font-size: 20px;
-            color: #5e17ab;
-        }
-
-        .manual-text {
-            font-size: 16px;
-            font-weight: 500;
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
         }
 
         .file-section {
-            margin: 40px 0;
-            padding: 20px;
-            background-color: #F9FAFB;
+            background: white;
             border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(30, 136, 229, 0.1);
+            padding: 20px;
+            border-top: 4px solid var(--primary-solid);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .section-title {
+            color: #333;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
         }
 
         .file-label {
-            color: #5e17ab;
-            font-size: 18px;
-            margin-bottom: 15px;
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 10px;
             display: block;
             font-weight: 500;
         }
 
         .choose-file {
-            border: 2px solid #E5E7EB;
-            border-radius: 6px;
-            padding: 8px;
+            border: 2px dashed #bbdefb;
+            border-radius: 8px;
+            padding: 10px;
             width: 100%;
-            max-width: 400px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            background: #f8fbff;
+        }
+
+        .choose-file:hover {
+            border-color: var(--primary-solid);
+            background: var(--primary-light);
         }
 
         .choose-file::-webkit-file-upload-button {
-            background-color: #5e17ab;
+            background: var(--primary-gradient);
             color: white;
             padding: 8px 16px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.2s ease;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        .choose-file::-webkit-file-upload-button:hover {
+            transform: scale(1.05);
         }
 
         .action-buttons {
-            display: flex;
-            gap: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
         }
 
         .process-button {
-            background-color: #5e17ab;
+            background: var(--primary-gradient);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 10px 16px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(21, 101, 192, 0.3);
+            font-family: 'Prompt', sans-serif;
         }
 
-        .process-button:hover {
-            background-color: #4a1289;
+        .process-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(21, 101, 192, 0.4);
         }
 
-        .benefits-section {
-            margin-top: 40px;
-            display: flex;
-            align-items: flex-start;
-            gap: 25px;
+        .process-button:disabled {
+            background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(30, 136, 229, 0.1);
             padding: 20px;
-            background-color: #F3F4F6;
-            border-radius: 12px;
+            margin-bottom: 15px;
+            border-top: 4px solid var(--primary-solid);
         }
 
-        .benefits-icon {
-            background-color: #5e17ab;
-            padding: 15px;
-            border-radius: 12px;
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
-        .benefits-icon i {
-            font-size: 32px;
+        .info-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
+            font-size: 18px;
         }
 
-        .benefits-text {
-            color: #6B7280;
-            font-size: 16px;
+        .info-title {
+            color: var(--primary-dark);
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .info-text {
+            color: #555;
+            font-size: 14px;
             line-height: 1.6;
         }
 
-        button:disabled {
-            background-color: #D1D5DB;
-            cursor: not-allowed;
+        .info-text strong {
+            color: var(--primary-solid);
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+
+        .info-text strong:first-child {
+            margin-top: 0;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 15px;
             background-color: white;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(30, 136, 229, 0.1);
+            font-size: 14px;
         }
 
         th {
-            background-color: #5e17ab;
+            background: var(--primary-gradient);
             color: white;
-            padding: 12px;
+            padding: 12px 8px;
             text-align: left;
+            font-weight: 600;
         }
 
         td {
-            padding: 12px;
-            border-bottom: 1px solid #E5E7EB;
+            padding: 10px 8px;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         tr:nth-child(even) {
-            background-color: #f8f5fb;
+            background-color: #fafafa;
         }
 
         tr:last-child td {
@@ -237,14 +487,14 @@
 
         .numeric-cell {
             text-align: right;
+            font-variant-numeric: tabular-nums;
         }
 
         .total-row {
-            background-color: #F3F4F6;
-            font-weight: bold;
+            background: linear-gradient(135deg, rgba(30, 136, 229, 0.1) 0%, rgba(21, 101, 192, 0.1) 100%) !important;
+            font-weight: 600;
         }
 
-        /* Modal styles */
         .modal {
             display: none;
             position: fixed;
@@ -253,200 +503,393 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
         }
 
         .modal-content {
-            background-color: white;
-            margin: 10% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 80%;
-            max-width: 600px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: var(--primary-solid);
         }
 
         .modal-title {
-            color: #5e17ab;
-            font-size: 18px;
-            margin: 0;
-        }
-
-        .close-modal {
-            color: #aaa;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close-modal:hover {
-            color: #333;
-        }
-
-        .modal-body {
+            color: var(--primary-dark);
+            font-size: 20px;
             margin-bottom: 20px;
-        }
-
-        .checkbox-container {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #E5E7EB;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
+            font-weight: 600;
         }
 
         .checkbox-item {
-            margin-bottom: 8px;
-        }
-
-        .modal-footer {
+            margin: 10px 0;
             display: flex;
-            justify-content: flex-end;
+            align-items: center;
             gap: 10px;
-        }
-
-        .modal-button {
-            padding: 8px 16px;
+            padding: 8px;
             border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .checkbox-item:hover {
+            background: var(--primary-light);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
             cursor: pointer;
-            border: none;
+            accent-color: var(--primary-solid);
         }
 
-        .modal-confirm {
-            background-color: #5e17ab;
-            color: white;
-        }
-
-        .modal-cancel {
-            background-color: #E5E7EB;
+        .checkbox-item label {
+            cursor: pointer;
+            font-size: 15px;
             color: #333;
+        }
+
+        #plBlock2List {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 2px solid #f0f0f0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        #plBlock2List::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #plBlock2List::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        #plBlock2List::-webkit-scrollbar-thumb {
+            background: var(--primary-solid);
+            border-radius: 4px;
+        }
+
+        .export-option {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 6px;
+            background: var(--primary-light);
+        }
+
+        .export-option label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            color: #333;
+        }
+
+        .export-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--primary-solid);
+        }
+
+        #tableContainer {
+            margin-top: 15px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div>
-                <h1 class="title">Prepare PLLU</h1>
-                <h2 class="subtitle">เตรียมไฟล์ผังการใช้ประโยชน์ที่ดิน</h2>
-            </div>
-            <div class="button-container">
-                <a href="page3.html" class="nav-button">Calculate Landuse</a>
-                <a href="page6.html" class="nav-button">Calculate Pop</a>
-                <a href="index.html" class="home-button">
-                    <i class="fas fa-home"></i>
+    <!-- MAPRAW Header -->
+    <header class="mapraw-header">
+    <div class="mapraw-header-content">
+        <div class="mapraw-logo-section">
+            <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+            <p class="mapraw-page-title">Prepare PLLU</p>
+        </div>
+        
+        <button class="mobile-menu-toggle" id="mobileMenuBtn">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <nav class="mapraw-nav" id="mainNav">
+            <div class="mapraw-nav-item">
+                <a href="index.html" class="mapraw-nav-btn home-btn">
+                    <span>🏠 หน้าหลัก</span>
                 </a>
             </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>📋 เครื่องมือสำรวจ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                    <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                    <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                    <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                    <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                    <a href="page13.html" class="mapraw-dropdown-item">Perpendicular Line</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚙️ เครื่องมือประมวลผล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                    <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                    <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                    <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                    <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚖️ เครื่องมือกฎหมาย</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                    <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🧮 คำนวณเบื้องต้น</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🎯 เครื่องมืออื่นๆ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
+
+    <div class="container">
+        <h1 class="page-title">🗂️ Prepare PLLU</h1>
+
+        <div class="main-content">
+            <!-- Excel Section -->
+            <div class="file-section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <h2 class="section-title">Excel File</h2>
+                </div>
+                <label class="file-label">เลือกไฟล์ Excel (.xlsx, .xls)</label>
+                <input type="file" id="fileInputExcel" class="choose-file" accept=".xlsx,.xls">
+                
+                <div class="action-buttons">
+                    <button id="processExcelBtn" class="process-button">📊 ประมวลผล</button>
+                    <button id="editPLUseBtnExcel" class="process-button" disabled>✏️ แก้ไข PL_USE</button>
+                    <button id="exportExcelBtn" class="process-button" disabled>💾 ส่งออก Excel</button>
+                </div>
+            </div>
+
+            <!-- Shapefile Section -->
+            <div class="file-section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-map"></i>
+                    </div>
+                    <h2 class="section-title">Shapefile</h2>
+                </div>
+                <label class="file-label">เลือกไฟล์ Shapefile (ZIP)</label>
+                <input type="file" id="fileInputShapefile" class="choose-file" accept=".zip">
+                
+                <div class="action-buttons">
+                    <button id="processShapefileBtn" class="process-button">🗺️ ประมวลผล</button>
+                    <button id="editPLUseBtnShapefile" class="process-button" disabled>✏️ แก้ไข PL_USE</button>
+                    <button id="exportExcelFromShapefileBtn" class="process-button" disabled>💾 Excel</button>
+                    <button id="exportShapefileBtn" class="process-button" disabled>🌍 Shapefile</button>
+                </div>
+            </div>
         </div>
 
-        <a href="Prepare PLLU Handbook.pdf" class="manual-section">
-            <div class="manual-icon">
-                <i class="fas fa-book"></i>
+        <!-- Info Section -->
+        <div class="info-section">
+            <div class="info-header">
+                <div class="info-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <h3 class="info-title">คำแนะนำการใช้งาน</h3>
             </div>
-            <span class="manual-text">คู่มือการใช้งาน</span>
-        </a>
-
-        <div class="file-section">
-            <label class="file-label">ไฟล์ pllu (Excel):</label>
-            <input type="file" id="fileInput" accept=".xlsx, .xls" class="choose-file">
-
-            <div class="action-buttons">
-                <button id="processBtn" class="process-button" disabled>Prepare</button>
-                <button id="editPLUseBtn" class="process-button" disabled>แก้ไข PL_USE แบบย่าน</button>
-                <button id="exportBtn" class="process-button" disabled>นำออกข้อมูลแผนผังการใช้ประโยชน์ที่ดิน (Excel)</button>
-            </div>
-        </div>
-
-        <div class="benefits-section">
-            <div class="benefits-icon">
-                <i class="fas fa-star"></i>
-            </div>
-            <div class="benefits-text">
-                เรียงรายการตามบริเวณการใช้ประโยชน์ที่ดิน<br>
-                ปรับข้อมูลบริเวณการใช้ประโยชน์ที่ดินที่มีรายการซ้ำให้เหลือรายการเดียว<br>
-                ในกรณีที่ฟิลด์ AREA มีหน่วยเป็นตารางเมตร สามารถคำนวณพื้นที่ให้มีหน่วยเป็นไร่ได้
+            <div class="info-text">
+                <strong>📑 สำหรับไฟล์ Excel:</strong>
+                เลือกไฟล์ Excel → ประมวลผล → ตรวจสอบตาราง → ส่งออก Excel
+                
+                <strong>🗺️ สำหรับไฟล์ Shapefile:</strong>
+                เลือกไฟล์ ZIP → ประมวลผล → ตรวจสอบตาราง → เลือกส่งออกเป็น Excel หรือ Shapefile 
             </div>
         </div>
 
         <div id="tableContainer"></div>
     </div>
 
-    <!-- Modal for selecting PL_BLOCK2 -->
+    <!-- Modal for PL_USE editing -->
     <div id="plBlock2Modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">เลือกรายการย่านที่ต้องการแก้ไข</h3>
-                <span class="close-modal">&times;</span>
-            </div>
-            <div class="modal-body">
-                <p>เลือกรายการย่านที่ต้องการใช้ในการแก้ไข PL_USE</p>
-                <div class="checkbox-container" id="plBlock2List">
-                    <!-- Checkboxes will be dynamically added here -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-button modal-cancel">ยกเลิก</button>
-                <button class="modal-button modal-confirm">ตกลง</button>
-            </div>
+            <span class="close">&times;</span>
+            <h2 class="modal-title">เลือก PL_BLOCK2 ที่ต้องการแก้ไข</h2>
+            <div id="plBlock2List"></div>
+            <button id="confirmEditBtn" class="process-button">ยืนยัน</button>
         </div>
     </div>
 
-    <!-- Modal for export options -->
+    <!-- Modal for Export options -->
     <div id="exportModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">ตัวเลือกการนำออกข้อมูล</h3>
-                <span class="close-modal">&times;</span>
-            </div>
-            <div class="modal-body">
-                <p>คุณต้องการผลรวมพื้นที่ในไฟล์ Excel หรือไม่?</p>
-                <div class="checkbox-item">
+            <span class="close">&times;</span>
+            <h2 class="modal-title">ตัวเลือกการส่งออก</h2>
+            <div class="export-option">
+                <label>
                     <input type="checkbox" id="includeTotalRow" checked>
-                    <label for="includeTotalRow">ต้องการผลรวมพื้นที่</label>
-                </div>
+                    รวมแถวยอดรวมในไฟล์ที่ส่งออก
+                </label>
             </div>
-            <div class="modal-footer">
-                <button class="modal-button modal-cancel">ยกเลิก</button>
-                <button class="modal-button modal-confirm">นำออกข้อมูล</button>
-            </div>
+            <button id="confirmExportBtn" class="process-button">ส่งออก</button>
         </div>
     </div>
 
     <script>
-        // Initialize everything when the window loads
-        window.onload = function() {
-            // Initialize modal elements
-            plBlock2Modal = document.getElementById('plBlock2Modal');
-            exportModal = document.getElementById('exportModal');
-            plBlock2List = document.getElementById('plBlock2List');
-            
-            // Set up modal event listeners
-            const closeModalBtns = document.querySelectorAll('.close-modal');
-            const cancelBtns = document.querySelectorAll('.modal-cancel');
-            
-            closeModalBtns.forEach(btn => {
-                btn.addEventListener('click', closeModalFunction);
-            });
-            
-            cancelBtns.forEach(btn => {
-                btn.addEventListener('click', closeModalFunction);
-            });
-            
-            // Set up the confirm button for PL_BLOCK2 modal
-            plBlock2Modal.querySelector('.modal-confirm').addEventListener('click', updatePLUseWithSelectedBlocks);
-            
-            // Set up the confirm button for export modal
-            exportModal.querySelector('.modal-confirm').addEventListener('click', exportToExcel);
+        let processedData = [];
+        let currentModal = null;
+        let shapefileData = null; // Store original shapefile data
+        let originalFileName = '';
+        let currentFileType = ''; // 'excel' or 'shapefile'
+
+        const fileInputExcel = document.getElementById('fileInputExcel');
+        const fileInputShapefile = document.getElementById('fileInputShapefile');
+        const processExcelBtn = document.getElementById('processExcelBtn');
+        const processShapefileBtn = document.getElementById('processShapefileBtn');
+        const editPLUseBtnExcel = document.getElementById('editPLUseBtnExcel');
+        const editPLUseBtnShapefile = document.getElementById('editPLUseBtnShapefile');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const exportExcelFromShapefileBtn = document.getElementById('exportExcelFromShapefileBtn');
+        const exportShapefileBtn = document.getElementById('exportShapefileBtn');
+        const tableContainer = document.getElementById('tableContainer');
+        const plBlock2Modal = document.getElementById('plBlock2Modal');
+        const exportModal = document.getElementById('exportModal');
+        const plBlock2List = document.getElementById('plBlock2List');
+
+        // Modal controls
+        const closeButtons = document.querySelectorAll('.close');
+        closeButtons.forEach(btn => {
+            btn.onclick = () => {
+                if (currentModal) {
+                    currentModal.style.display = 'none';
+                    currentModal = null;
+                }
+            };
+        });
+
+        window.onclick = (event) => {
+            if (event.target === currentModal) {
+                currentModal.style.display = 'none';
+                currentModal = null;
+            }
         };
-        
+
+        const closeModalFunction = () => {
+            if (currentModal) {
+                currentModal.style.display = 'none';
+                currentModal = null;
+            }
+        };
+
+        document.getElementById('confirmEditBtn').addEventListener('click', updatePLUseWithSelectedBlocks);
+        document.getElementById('confirmExportBtn').addEventListener('click', exportToExcel);
+
+        // Event listeners for Excel
+        fileInputExcel.addEventListener('change', function(e) {
+            processExcelBtn.disabled = !e.target.files.length;
+            if (e.target.files.length) {
+                // Clear shapefile input
+                fileInputShapefile.value = '';
+                processShapefileBtn.disabled = true;
+            }
+        });
+        processExcelBtn.addEventListener('click', processExcelFile);
+        editPLUseBtnExcel.addEventListener('click', openPLBlock2Modal);
+        exportExcelBtn.addEventListener('click', openExportModal);
+
+        // Event listeners for Shapefile
+        fileInputShapefile.addEventListener('change', function(e) {
+            processShapefileBtn.disabled = !e.target.files.length;
+            if (e.target.files.length) {
+                // Clear excel input
+                fileInputExcel.value = '';
+                processExcelBtn.disabled = true;
+            }
+        });
+        processShapefileBtn.addEventListener('click', processShapefileFileWrapper);
+        editPLUseBtnShapefile.addEventListener('click', openPLBlock2Modal);
+        exportExcelFromShapefileBtn.addEventListener('click', openExportModal);
+        exportShapefileBtn.addEventListener('click', exportToShapefile);
+
+        // PL_USE ordering
         const plUseOrder = {
             '1600': 1, '1110': 2, '1111': 3, '1112': 4, '1113': 5,
             '1120': 6, '1121': 7, '1122': 8, '1123': 9, '1130': 10,
@@ -458,20 +901,6 @@
             '7370': 36, '7410': 37, '7180': 38, '6100': 39, '7390': 40,
             '7380': 41, '7200': 42, '6200': 43, '6300': 44, '6700': 45
         };
-
-        let processedData = [];
-        const fileInput = document.getElementById('fileInput');
-        const processBtn = document.getElementById('processBtn');
-        const editPLUseBtn = document.getElementById('editPLUseBtn');
-        const exportBtn = document.getElementById('exportBtn');
-        const tableContainer = document.getElementById('tableContainer');
-
-        // Modal elements
-        // Will initialize these elements in window.onload
-        let plBlock2Modal;
-        let exportModal;
-        let currentModal;
-        let plBlock2List;
 
         function checkPLBlock(plBlock) {
             if (!plBlock) return '';
@@ -493,7 +922,6 @@
             return '';
         }
 
-        // Function to check if PL_BLOCK follows the pattern (x.1-1, ย.1-1, etc.)
         function checkPLBlockPattern(plBlock) {
             if (!plBlock) return false;
             
@@ -502,7 +930,6 @@
             return regex.test(plBlock);
         }
 
-        // Function to extract text up to and including period from PL_BLOCK
         function extractTextUpToPeriod(plBlock) {
             if (!plBlock) return '';
             
@@ -512,27 +939,18 @@
             return plBlock.substring(0, periodIndex + 1); // Include the period
         }
 
-        fileInput.addEventListener('change', function(e) {
-            processBtn.disabled = !e.target.files.length;
-        });
-
-        processBtn.addEventListener('click', processFile);
-        exportBtn.addEventListener('click', openExportModal);
-        editPLUseBtn.addEventListener('click', openPLBlock2Modal);
-
-        // Close modal event listeners - need to be assigned after DOM elements exist
-        // We'll reassign these in the window.onload event
-
-        function closeModalFunction() {
-            if (currentModal) {
-                currentModal.style.display = 'none';
+        function processExcelFile() {
+            const file = fileInputExcel.files[0];
+            if (!file) {
+                alert('กรุณาเลือกไฟล์ Excel');
+                return;
             }
-        }
 
-        function processFile() {
-            const file = fileInput.files[0];
+            originalFileName = file.name.replace(/\.[^/.]+$/, "");
+            currentFileType = 'excel';
+
             const reader = new FileReader();
-
+            
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
@@ -540,90 +958,146 @@
                 const worksheet = workbook.Sheets[firstSheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-                // Group by PL_USE and PL_BLOCK
-                const groupedData = jsonData.reduce((acc, curr) => {
-                    const plUse = curr.PL_USE ? curr.PL_USE.toString().padStart(4, '0') : '';
-                    if (!plUse || !plUseOrder[plUse]) return acc;
-                    
-                    const key = `${plUse}_${curr.PL_BLOCK}`;
-                    if (!acc[key]) {
-                        acc[key] = {
-                            PL_USE: plUse,
-                            PL_BLOCK: curr.PL_BLOCK || '',
-                            AREA: 0,
-                            order: plUseOrder[plUse],
-                            PL_BLOCK2: checkPLBlock(curr.PL_BLOCK || '')
-                        };
-                    }
-                    acc[key].AREA += parseFloat(curr.AREA || 0) || 0;
-                    return acc;
-                }, {});
-
-                // Convert grouped data to array and sort
-                let initialData = Object.values(groupedData)
-                .sort((a, b) => {
-                    const plUseCompare = a.order - b.order;
-                    if (plUseCompare !== 0) return plUseCompare;
-                    const blockA = (a.PL_BLOCK || '').toString();
-                    const blockB = (b.PL_BLOCK || '').toString();
-                    return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
-                });
-
-                // Check if any records have non-empty PL_BLOCK2 values
-                const hasAnyPLBlock2 = initialData.some(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
+                processDataArray(jsonData);
                 
-                if (hasAnyPLBlock2) {
-                    // Case with PL_BLOCK2 processing
-                    processedData = initialData.map((row, index) => {
-                        // For any rows where PL_BLOCK2 is empty, fill it with text from PL_BLOCK up to and including the period
-                        if (!row.PL_BLOCK2 && row.PL_BLOCK) {
-                            row.PL_BLOCK2 = extractTextUpToPeriod(row.PL_BLOCK);
-                        }
-                        
-                        // Create the base record with original PL_USE value stored in PL_USE_O
-                        const record = {
-                            ลำดับ: index + 1,
-                            PL_BLOCK: row.PL_BLOCK,
-                            PL_USE_O: row.PL_USE,  // Store original PL_USE value in PL_USE_O
-                            PL_USE: row.PL_USE,    // Keep PL_USE as is for now
-                            AREA: row.AREA,
-                            'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2)),
-                            PL_BLOCK2: row.PL_BLOCK2
-                        };
-                        
-                        return record;
-                    });
-
-                    // If any items have PL_BLOCK2, then process the PL_USE field for matching patterns
-                    // Note: removed the check for allHavePLBlock2 since we now fill in missing values
-                    processedData = processedData.map(row => {
-                        // If PL_BLOCK follows the pattern (e.g., ย.1-1), update PL_USE
-                        if (checkPLBlockPattern(row.PL_BLOCK)) {
-                            row.PL_USE = `${row.PL_USE_O}-${row.PL_BLOCK2}`;
-                        }
-                        return row;
-                    });
-                } else {
-                    // Case without PL_BLOCK2 processing (original functionality)
-                    processedData = initialData.map((row, index) => ({
-                        ลำดับ: index + 1,
-                        PL_BLOCK: row.PL_BLOCK,
-                        PL_USE: row.PL_USE,
-                        AREA: row.AREA,
-                        'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2)),
-                        PL_BLOCK2: row.PL_BLOCK2
-                    }));
-                }
-
-                displayTable(processedData);
-                exportBtn.disabled = false;
-                
-                // Enable edit button only if all rows have PL_BLOCK2
+                // Enable Excel buttons
+                exportExcelBtn.disabled = false;
                 const allHavePLBlock2 = processedData.every(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
-                editPLUseBtn.disabled = !allHavePLBlock2 || processedData.length === 0;
+                editPLUseBtnExcel.disabled = !allHavePLBlock2 || processedData.length === 0;
+                
+                // Disable Shapefile buttons
+                exportShapefileBtn.disabled = true;
+                editPLUseBtnShapefile.disabled = true;
+                shapefileData = null;
             };
 
             reader.readAsArrayBuffer(file);
+        }
+
+        async function processShapefileFileWrapper() {
+            const file = fileInputShapefile.files[0];
+            if (!file) {
+                alert('กรุณาเลือกไฟล์ Shapefile');
+                return;
+            }
+
+            originalFileName = file.name.replace(/\.[^/.]+$/, "");
+            currentFileType = 'shapefile';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const geoJSON = await shp(arrayBuffer);
+                
+                // Store original shapefile data including the ZIP file
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                
+                shapefileData = {
+                    geoJSON: geoJSON,
+                    originalZip: zip  // Store the ZIP object to preserve all files
+                };
+
+                // Extract data for processing
+                const data = geoJSON.features.map(feature => ({
+                    PL_BLOCK: feature.properties.PL_BLOCK || '',
+                    PL_USE: feature.properties.PL_USE || '',
+                    AREA: parseFloat(feature.properties.AREA) || 0
+                }));
+
+                processDataArray(data);
+                
+                // Enable Shapefile buttons (both Excel and Shapefile export)
+                exportExcelFromShapefileBtn.disabled = false;
+                exportShapefileBtn.disabled = false;
+                const allHavePLBlock2 = processedData.every(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
+                editPLUseBtnShapefile.disabled = !allHavePLBlock2 || processedData.length === 0;
+                
+                // Disable Excel section buttons
+                exportExcelBtn.disabled = true;
+                editPLUseBtnExcel.disabled = true;
+                
+            } catch (error) {
+                console.error('Error processing shapefile:', error);
+                alert('เกิดข้อผิดพลาดในการอ่านไฟล์ Shapefile');
+            }
+        }
+
+        function processDataArray(jsonData) {
+            // Group by PL_USE and PL_BLOCK
+            const groupedData = jsonData.reduce((acc, curr) => {
+                const plUse = curr.PL_USE ? curr.PL_USE.toString().padStart(4, '0') : '';
+                if (!plUse || !plUseOrder[plUse]) return acc;
+                
+                const key = `${plUse}_${curr.PL_BLOCK}`;
+                if (!acc[key]) {
+                    acc[key] = {
+                        PL_USE: plUse,
+                        PL_BLOCK: curr.PL_BLOCK || '',
+                        AREA: 0,
+                        order: plUseOrder[plUse],
+                        PL_BLOCK2: checkPLBlock(curr.PL_BLOCK || '')
+                    };
+                }
+                acc[key].AREA += parseFloat(curr.AREA || 0) || 0;
+                return acc;
+            }, {});
+
+            // Convert grouped data to array and sort
+            let initialData = Object.values(groupedData)
+            .sort((a, b) => {
+                const plUseCompare = a.order - b.order;
+                if (plUseCompare !== 0) return plUseCompare;
+                const blockA = (a.PL_BLOCK || '').toString();
+                const blockB = (b.PL_BLOCK || '').toString();
+                return blockA.localeCompare(blockB, undefined, {numeric: true, sensitivity: 'base'});
+            });
+
+            // Check if any records have non-empty PL_BLOCK2 values
+            const hasAnyPLBlock2 = initialData.some(item => item.PL_BLOCK2 && item.PL_BLOCK2.trim() !== '');
+            
+            if (hasAnyPLBlock2) {
+                // Case with PL_BLOCK2 processing
+                processedData = initialData.map((row, index) => {
+                    // For any rows where PL_BLOCK2 is empty, fill it with text from PL_BLOCK up to and including the period
+                    if (!row.PL_BLOCK2 && row.PL_BLOCK) {
+                        row.PL_BLOCK2 = extractTextUpToPeriod(row.PL_BLOCK);
+                    }
+                    
+                    // Create the base record with original PL_USE value stored in PL_USE_O
+                    const record = {
+                        ลำดับ: index + 1,
+                        PL_BLOCK: row.PL_BLOCK,
+                        PL_USE_O: row.PL_USE,  // Store original PL_USE value in PL_USE_O
+                        PL_USE: row.PL_USE,    // Keep PL_USE as is for now
+                        AREA: row.AREA,
+                        'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2)),
+                        PL_BLOCK2: row.PL_BLOCK2
+                    };
+                    
+                    return record;
+                });
+
+                // If any items have PL_BLOCK2, then process the PL_USE field for matching patterns
+                processedData = processedData.map(row => {
+                    // If PL_BLOCK follows the pattern (e.g., ย.1-1), update PL_USE
+                    if (checkPLBlockPattern(row.PL_BLOCK)) {
+                        row.PL_USE = `${row.PL_USE_O}-${row.PL_BLOCK2}`;
+                    }
+                    return row;
+                });
+            } else {
+                // Case without PL_BLOCK2 processing (original functionality)
+                processedData = initialData.map((row, index) => ({
+                    ลำดับ: index + 1,
+                    PL_BLOCK: row.PL_BLOCK,
+                    PL_USE_O: row.PL_USE,  // Add PL_USE_O same as PL_USE
+                    PL_USE: row.PL_USE,
+                    AREA: row.AREA,
+                    'AREA(rai)': parseFloat((row.AREA / 1600).toFixed(2)),
+                    PL_BLOCK2: row.PL_BLOCK2
+                }));
+            }
+
+            displayTable(processedData);
         }
 
         function displayTable(data) {
@@ -779,12 +1253,402 @@
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Processed PLLU Data");
-            XLSX.writeFile(wb, "PLLU_Processed.xlsx");
+            XLSX.writeFile(wb, `${originalFileName}_Processed.xlsx`);
             
             // Close the modal after export
             closeModalFunction();
         }
+
+        async function exportToShapefile() {
+            if (!shapefileData) {
+                alert('ไม่พบข้อมูล Shapefile');
+                return;
+            }
+
+            try {
+                // Create a new ZIP with all original files
+                const newZip = new JSZip();
+                
+                // Get the base filename from the original files
+                let baseName = '';
+                shapefileData.originalZip.forEach((relativePath, file) => {
+                    if (relativePath.endsWith('.shp')) {
+                        baseName = relativePath.replace('.shp', '');
+                    }
+                });
+                
+                if (!baseName) {
+                    baseName = originalFileName;
+                }
+                
+                // Copy all original files to new ZIP
+                const copyPromises = [];
+                shapefileData.originalZip.forEach((relativePath, file) => {
+                    // Skip the old DBF file - we'll create a new one
+                    if (!relativePath.toLowerCase().endsWith('.dbf')) {
+                        copyPromises.push(
+                            file.async('arraybuffer').then(content => {
+                                newZip.file(relativePath, content);
+                            })
+                        );
+                    }
+                });
+                
+                // Wait for all files to be copied
+                await Promise.all(copyPromises);
+                
+                // Create lookup map from processed data (using original order)
+                const processedMap = new Map();
+                processedData.forEach(row => {
+                    // Use same key format as grouping: PL_USE_O_PL_BLOCK
+                    const key = `${row.PL_USE_O}_${row.PL_BLOCK}`;
+                    processedMap.set(key, row);
+                });
+
+                // Create array to store matched features with their order
+                const orderedFeatures = [];
+                
+                // First pass: match features with processed data and assign order
+                shapefileData.geoJSON.features.forEach(feature => {
+                    const plUse = feature.properties.PL_USE ? feature.properties.PL_USE.toString().padStart(4, '0') : '';
+                    // Use same key format as grouping: PL_USE_PL_BLOCK
+                    const key = `${plUse}_${feature.properties.PL_BLOCK}`;
+                    const processedRow = processedMap.get(key);
+                    
+                    if (processedRow) {
+                        orderedFeatures.push({
+                            feature: feature,
+                            processedRow: processedRow,
+                            order: processedRow['ลำดับ'] || 999999  // Use the order from processed data
+                        });
+                    } else {
+                        // If no match, put at the end
+                        orderedFeatures.push({
+                            feature: feature,
+                            processedRow: null,
+                            order: 999999
+                        });
+                    }
+                });
+                
+                // Sort by order
+                orderedFeatures.sort((a, b) => a.order - b.order);
+                
+                // Update GeoJSON features with processed data in correct order
+                const updatedFeatures = orderedFeatures.map((item, index) => {
+                    const feature = item.feature;
+                    const processedRow = item.processedRow;
+                    
+                    if (processedRow) {
+                        // Use data from processed table
+                        const newProperties = {
+                            'NO': processedRow['ลำดับ'],
+                            'PL_BLOCK': processedRow.PL_BLOCK,
+                            'PL_USE_O': processedRow.PL_USE_O,  // Use PL_USE_O directly from processed table
+                            'PL_USE': processedRow.PL_USE,
+                            'AREA': processedRow.AREA,  // Use AREA from processed table
+                            'AREA_RAI': processedRow['AREA(rai)'],  // Use AREA_RAI from processed table
+                            'PL_BLOCK2': processedRow.PL_BLOCK2 || ''
+                        };
+                        
+                        // Add remaining original properties that are NOT in the processed data
+                        // Skip geometry-related and duplicate fields
+                        Object.keys(feature.properties).forEach(key => {
+                            const skipFields = ['NO', 'PL_BLOCK', 'PL_USE_O', 'PL_USE', 'AREA', 'AREA_RAI', 'PL_BLOCK2'];
+                            if (!skipFields.includes(key)) {
+                                newProperties[key] = feature.properties[key];
+                            }
+                        });
+                        
+                        return {
+                            ...feature,
+                            properties: newProperties
+                        };
+                    }
+                    
+                    // If no match, keep original values
+                    const plUse = feature.properties.PL_USE ? feature.properties.PL_USE.toString().padStart(4, '0') : '';
+                    const originalArea = feature.properties.AREA || 0;
+                    const newProperties = {
+                        'NO': index + 1,
+                        'PL_BLOCK': feature.properties.PL_BLOCK || '',
+                        'PL_USE_O': plUse,
+                        'PL_USE': plUse,
+                        'AREA': originalArea,
+                        'AREA_RAI': parseFloat((originalArea / 1600).toFixed(2)),
+                        'PL_BLOCK2': ''
+                    };
+                    
+                    // Add remaining original properties
+                    Object.keys(feature.properties).forEach(key => {
+                        const skipFields = ['NO', 'PL_BLOCK', 'PL_USE_O', 'PL_USE', 'AREA', 'AREA_RAI', 'PL_BLOCK2'];
+                        if (!skipFields.includes(key)) {
+                            newProperties[key] = feature.properties[key];
+                        }
+                    });
+                    
+                    return {
+                        ...feature,
+                        properties: newProperties
+                    };
+                });
+
+                // Create updated GeoJSON
+                const updatedGeoJSON = {
+                    ...shapefileData.geoJSON,
+                    features: updatedFeatures
+                };
+                
+                // Get all property names from the updated GeoJSON
+                const properties = Object.keys(updatedGeoJSON.features[0].properties);
+                
+                // Create new DBF file with TIS-620 encoding
+                const dbfData = createCompleteDbfFile(updatedGeoJSON.features, properties);
+                const dbfFileName = baseName.split('/').pop() + '.dbf';
+                newZip.file(dbfFileName, dbfData, {binary: true});
+                
+                // Update or add CPG file for TIS-620 encoding
+                const cpgFileName = baseName.split('/').pop() + '.cpg';
+                newZip.file(cpgFileName, 'TIS-620');
+                
+                // Generate and download zip
+                const zipBlob = await newZip.generateAsync({type: 'blob'});
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${originalFileName}_Processed.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                console.error('Error exporting shapefile:', error);
+                alert('เกิดข้อผิดพลาดในการส่งออก Shapefile');
+            }
+        }
+
+        // Shapefile DBF creation function
+        function createCompleteDbfFile(features, properties) {
+            const numRecords = features.length;
+            
+            // Define field order - matching table display order exactly
+            const orderedFieldNames = ['NO', 'PL_BLOCK', 'PL_USE_O', 'PL_USE', 'AREA', 'AREA_RAI', 'PL_BLOCK2'];
+            
+            // Get remaining properties that are not in ordered list
+            const remainingProps = properties.filter(prop => !orderedFieldNames.includes(prop));
+            
+            // Combine: ordered fields first, then remaining properties
+            const finalFieldOrder = [...orderedFieldNames, ...remainingProps];
+            
+            // Define field structures with proper lengths
+            const fieldDefinitions = [];
+            
+            finalFieldOrder.forEach(prop => {
+                let fieldType = 'C';  // Character (string)
+                let fieldLength = 254;
+                let fieldDecimal = 0;
+                
+                // Check if property exists in any feature
+                const sampleValue = features[0].properties[prop];
+                
+                // Special handling for known fields
+                if (prop === 'NO') {
+                    fieldType = 'N';
+                    fieldLength = 10;
+                    fieldDecimal = 0;
+                } else if (prop === 'AREA') {
+                    fieldType = 'N';
+                    fieldLength = 18;
+                    fieldDecimal = 2;
+                } else if (prop === 'AREA_RAI') {
+                    fieldType = 'N';
+                    fieldLength = 18;
+                    fieldDecimal = 2;
+                } else if (prop === 'PL_USE' || prop === 'PL_USE_O') {
+                    fieldType = 'C';
+                    fieldLength = 50;
+                } else if (prop === 'PL_BLOCK' || prop === 'PL_BLOCK2') {
+                    fieldType = 'C';
+                    fieldLength = 50;
+                } else if (typeof sampleValue === 'number') {
+                    if (Number.isInteger(sampleValue)) {
+                        fieldType = 'N';
+                        fieldLength = 18;
+                        fieldDecimal = 0;
+                    } else {
+                        fieldType = 'F';
+                        fieldLength = 20;
+                        fieldDecimal = 8;
+                    }
+                } else if (sampleValue instanceof Date) {
+                    fieldType = 'D';
+                    fieldLength = 8;
+                    fieldDecimal = 0;
+                }
+                
+                // Limit field name to 10 characters
+                const fieldName = prop.substring(0, 10);
+                
+                fieldDefinitions.push({
+                    name: fieldName,
+                    originalName: prop,
+                    type: fieldType,
+                    length: fieldLength,
+                    decimal: fieldDecimal
+                });
+            });
+            
+            const recordLength = fieldDefinitions.reduce((sum, field) => sum + field.length, 1);
+            const numFields = fieldDefinitions.length;
+            const headerSize = 32 + (numFields * 32) + 1;
+            const totalSize = headerSize + (numRecords * recordLength) + 1;
+            
+            const buffer = new ArrayBuffer(totalSize);
+            const view = new DataView(buffer);
+            const uint8View = new Uint8Array(buffer);
+            
+            view.setUint8(0, 0x03);
+            const now = new Date();
+            view.setUint8(1, now.getFullYear() - 1900);
+            view.setUint8(2, now.getMonth() + 1);
+            view.setUint8(3, now.getDate());
+            view.setUint32(4, numRecords, true);
+            view.setUint16(8, headerSize, true);
+            view.setUint16(10, recordLength, true);
+            
+            let fieldOffset = 32;
+            fieldDefinitions.forEach(field => {
+                for (let i = 0; i < field.name.length && i < 10; i++) {
+                    uint8View[fieldOffset + i] = field.name.charCodeAt(i);
+                }
+                for (let i = field.name.length; i < 11; i++) {
+                    uint8View[fieldOffset + i] = 0x00;
+                }
+                uint8View[fieldOffset + 11] = field.type.charCodeAt(0);
+                view.setUint32(fieldOffset + 12, 0, true);
+                view.setUint8(fieldOffset + 16, field.length);
+                view.setUint8(fieldOffset + 17, field.decimal);
+                fieldOffset += 32;
+            });
+            
+            uint8View[fieldOffset] = 0x0D;
+            
+            let recordOffset = headerSize;
+            features.forEach((feature, index) => {
+                uint8View[recordOffset] = 0x20;
+                recordOffset++;
+                
+                fieldDefinitions.forEach((field) => {
+                    let value = '';
+                    
+                    // Get value using originalName
+                    const propName = field.originalName;
+                    const propValue = feature.properties && feature.properties[propName];
+                    
+                    if (propValue !== undefined && propValue !== null) {
+                        if (field.type === 'D' && propValue instanceof Date) {
+                            const year = propValue.getFullYear().toString().padStart(4, '0');
+                            const month = (propValue.getMonth() + 1).toString().padStart(2, '0');
+                            const day = propValue.getDate().toString().padStart(2, '0');
+                            value = year + month + day;
+                        } else if (field.type === 'N' || field.type === 'F') {
+                            const numValue = typeof propValue === 'number' ? propValue : parseFloat(propValue);
+                            if (!isNaN(numValue)) {
+                                if (field.decimal > 0) {
+                                    value = numValue.toFixed(field.decimal);
+                                } else {
+                                    value = Math.round(numValue).toString();
+                                }
+                            } else {
+                                value = '';
+                            }
+                        } else {
+                            value = propValue.toString();
+                        }
+                    }
+                    
+                    if (field.type === 'N' || field.type === 'F') {
+                        value = value.substring(0, field.length).padStart(field.length, ' ');
+                    } else {
+                        value = value.substring(0, field.length).padEnd(field.length, ' ');
+                    }
+                    
+                    const encodedBytes = encodeToTIS620(value, field.length);
+                    for (let i = 0; i < field.length; i++) {
+                        uint8View[recordOffset + i] = encodedBytes[i];
+                    }
+                    
+                    recordOffset += field.length;
+                });
+            });
+            
+            uint8View[totalSize - 1] = 0x1A;
+            return buffer;
+        }
+
+        function encodeToTIS620(str, length) {
+            const bytes = new Uint8Array(length);
+            bytes.fill(0x20);
+            
+            let byteIndex = 0;
+            for (let i = 0; i < str.length && byteIndex < length; i++) {
+                const char = str.charAt(i);
+                const code = char.charCodeAt(0);
+                
+                if (code <= 0x7F) {
+                    bytes[byteIndex] = code;
+                    byteIndex++;
+                } else if (code >= 0x0E01 && code <= 0x0E5B) {
+                    bytes[byteIndex] = code - 0x0E01 + 0xA1;
+                    byteIndex++;
+                } else if (code === 0x0E3F) {
+                    bytes[byteIndex] = 0xDF;
+                    byteIndex++;
+                } else if (code === 0x00A0) {
+                    bytes[byteIndex] = 0xA0;
+                    byteIndex++;
+                } else if (code < 0x100) {
+                    bytes[byteIndex] = code;
+                    byteIndex++;
+                } else {
+                    bytes[byteIndex] = 0x3F;
+                    byteIndex++;
+                }
+            }
+            
+            return bytes;
+        }
+
     </script>
-    <script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+    
+    <script>
+        // Mobile Menu Toggle
+        document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+            const nav = document.getElementById('mainNav');
+            const btn = this;
+            
+            nav.classList.toggle('active');
+            btn.classList.toggle('active');
+        });
+
+        // Mobile Dropdown Toggle
+        function toggleMobileDropdown(element) {
+            if (window.innerWidth <= 768) {
+                element.classList.toggle('active');
+            }
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const nav = document.getElementById('mainNav');
+            const btn = document.getElementById('mobileMenuBtn');
+            
+            if (!nav.contains(event.target) && !btn.contains(event.target)) {
+                nav.classList.remove('active');
+                btn.classList.remove('active');
+            }
+        });
+    </script>
 </body>
 </html>

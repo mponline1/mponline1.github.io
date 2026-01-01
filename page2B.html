@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
-    <style>
+     <style>
 
     /* ==== 1. IMPORT FONTS & VARIABLES ==== */
     @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
@@ -741,8 +741,7 @@
     </style>
 </head>
 <body>
-
-<header class="mapraw-header">
+    <header class="mapraw-header">
     <div class="mapraw-header-content">
         <div class="mapraw-logo-section">
             <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
@@ -1151,6 +1150,10 @@
         let detectedUTMZone = null; // เก็บข้อมูล UTM Zone ที่ตรวจจับได้
         let isShapefileInput = false; // ตรวจสอบว่าเป็น Shapefile หรือไม่
         let originalProjection = null; // เก็บ projection ดั้งเดิม
+        let originalShpFile = null; // เก็บไฟล์ .shp ต้นฉบับ
+        let originalShxFile = null; // เก็บไฟล์ .shx ต้นฉบับ
+        let originalPrjFile = null; // เก็บไฟล์ .prj ต้นฉบับ
+        let originalCpgFile = null; // เก็บไฟล์ .cpg ต้นฉบับ (ถ้ามี)
 
         // อัพเดทชื่อไฟล์ที่เลือก
         function updateFileName(type) {
@@ -1317,29 +1320,38 @@
                 const arrayBuffer = await file.arrayBuffer();
                 const zip = await JSZip.loadAsync(arrayBuffer);
                 
-                progressBar.style.width = '30%';
-                progressBar.textContent = '30%';
+                progressBar.style.width = '20%';
+                progressBar.textContent = '20%';
                 
-                // ค้นหาไฟล์ .prj เพื่ออ่าน projection
-                let prjContent = null;
+                // เก็บไฟล์ต้นฉบับทั้งหมด
                 for (const [filename, fileData] of Object.entries(zip.files)) {
-                    if (filename.toLowerCase().endsWith('.prj')) {
-                        prjContent = await fileData.async('text');
-                        originalProjection = prjContent;
-                        detectedUTMZone = detectUTMZone(prjContent);
+                    const lowerFilename = filename.toLowerCase();
+                    
+                    if (lowerFilename.endsWith('.shp')) {
+                        originalShpFile = await fileData.async('arraybuffer');
+                        console.log('เก็บไฟล์ .shp ต้นฉบับ');
+                    } else if (lowerFilename.endsWith('.shx')) {
+                        originalShxFile = await fileData.async('arraybuffer');
+                        console.log('เก็บไฟล์ .shx ต้นฉบับ');
+                    } else if (lowerFilename.endsWith('.prj')) {
+                        originalPrjFile = await fileData.async('text');
+                        originalProjection = originalPrjFile;
+                        detectedUTMZone = detectUTMZone(originalPrjFile);
                         console.log('ตรวจจับ UTM Zone:', detectedUTMZone);
-                        break;
+                    } else if (lowerFilename.endsWith('.cpg')) {
+                        originalCpgFile = await fileData.async('text');
+                        console.log('เก็บไฟล์ .cpg ต้นฉบับ');
                     }
                 }
                 
-                progressBar.style.width = '50%';
-                progressBar.textContent = '50%';
+                progressBar.style.width = '40%';
+                progressBar.textContent = '40%';
                 
                 // ใช้ shpjs library เพื่ออ่าน Shapefile จาก ZIP
                 const geoJSON = await shp(arrayBuffer);
                 
-                progressBar.style.width = '70%';
-                progressBar.textContent = '70%';
+                progressBar.style.width = '60%';
+                progressBar.textContent = '60%';
                 
                 // บันทึก GeoJSON สำหรับการ Export
                 geoJSONData = geoJSON;
@@ -1368,8 +1380,8 @@
                     });
                 }
                 
-                progressBar.style.width = '90%';
-                progressBar.textContent = '90%';
+                progressBar.style.width = '80%';
+                progressBar.textContent = '80%';
                 
                 // ประมวลผลข้อมูล
                 processData(originalData, progressBar);
@@ -2207,7 +2219,7 @@
             return null;
         }
 
-        // สร้างไฟล์ .prj (Projection)
+        // สร้างไฟล์ .prj (Projection) - ใช้เฉพาะกรณีไม่มีไฟล์ต้นฉบับ
         function createPrjFile() {
             if (detectedUTMZone === '48N') {
                 return 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",105.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
@@ -2269,26 +2281,58 @@
                 alert('ไม่มีข้อมูล Shapefile ที่จะส่งออก กรุณานำเข้าข้อมูลจาก Shapefile ก่อน');
                 return;
             }
+            
+            if (!originalShpFile || !originalShxFile) {
+                alert('ไม่พบไฟล์ต้นฉบับ กรุณานำเข้าข้อมูล Shapefile ใหม่');
+                return;
+            }
+            
             try {
-                const updatedGeoJSON = {
-                    type: "FeatureCollection",
-                    features: processedData.filter(item => item.geometry).map(item => {
-                        const props = {...item};
-                        delete props.geometry;
-                        
-                        // เพิ่มฟิลด์ class_desc เพื่ออธิบายประเภทอาคาร
-                        props.class_desc = classDescriptions[item.class] || 'ไม่ระบุ';
-                        
-                        return { type: "Feature", properties: props, geometry: item.geometry };
-                    })
-                };
+                // สร้าง ZIP file
                 const zip = new JSZip();
                 const name = 'building_reclass';
-                zip.file(name + '.shp', createShpFile(updatedGeoJSON));
-                zip.file(name + '.shx', createShxFile(updatedGeoJSON));
-                zip.file(name + '.dbf', createDbfFile(updatedGeoJSON));
-                zip.file(name + '.prj', createPrjFile());
+                
+                // ใช้ไฟล์ต้นฉบับสำหรับ .shp และ .shx
+                zip.file(name + '.shp', originalShpFile);
+                zip.file(name + '.shx', originalShxFile);
+                
+                // สร้างไฟล์ .dbf ใหม่ที่มีข้อมูลที่ประมวลผลแล้ว
+                // รวมข้อมูลต้นฉบับกับผลการประมวลผล (JOIN)
+                const updatedFeatures = processedData.map(item => {
+                    const props = {...item};
+                    delete props.geometry; // ลบ geometry ออกจาก properties
+                    
+                    // เพิ่มฟิลด์ class_desc
+                    props.class_desc = classDescriptions[item.class] || 'ไม่ระบุ';
+                    
+                    return props;
+                });
+                
+                // สร้าง GeoJSON structure สำหรับการสร้าง .dbf
+                const geoJSONForDbf = {
+                    type: "FeatureCollection",
+                    features: updatedFeatures.map((props, index) => ({
+                        type: "Feature",
+                        properties: props,
+                        geometry: geoJSONData.features[index]?.geometry || null
+                    }))
+                };
+                
+                // สร้างไฟล์ .dbf ใหม่ด้วย TIS-620 encoding
+                const dbfBuffer = createDbfFile(geoJSONForDbf);
+                zip.file(name + '.dbf', dbfBuffer);
+                
+                // ใช้ไฟล์ .prj ต้นฉบับ (ถ้ามี) หรือสร้างใหม่
+                if (originalPrjFile) {
+                    zip.file(name + '.prj', originalPrjFile);
+                } else {
+                    zip.file(name + '.prj', createPrjFile());
+                }
+                
+                // สร้างไฟล์ .cpg สำหรับระบุ encoding เป็น TIS-620
                 zip.file(name + '.cpg', 'TIS-620');
+                
+                // สร้างไฟล์ ZIP และดาวน์โหลด
                 const blob = await zip.generateAsync({type: 'blob'});
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -2298,6 +2342,7 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                
                 alert('ส่งออก Shapefile สำเร็จ!');
             } catch (error) {
                 console.error('Error exporting Shapefile:', error);
@@ -2634,7 +2679,7 @@
             return buffer;
         }
     </script>
-    <script>
+        <script>
     const menuBtn = document.getElementById('mobileMenuBtn');
     const nav = document.getElementById('mainNav');
 

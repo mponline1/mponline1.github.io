@@ -10,7 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
-    <style>
+        <style>
     /* 1. IMPORT FONTS & VARIABLES */
     @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
 
@@ -663,7 +663,6 @@
     }
     </style>
 </head>
-
 <header class="mapraw-header">
     <div class="mapraw-header-content">
         <div class="mapraw-logo-section">
@@ -821,11 +820,14 @@
                         </div>
                         <!-- Shapefile Input -->
                         <div>
-                            <input type="file" id="shapefileInput" accept=".zip" class="hidden" onchange="updateFileName(this, 'shapefile')">
+                            <input type="file" id="shapefileInput" accept=".zip,.shp,.dbf,.shx,.prj,.cpg" multiple class="hidden" onchange="updateFileName(this, 'shapefile')">
                             <button onclick="document.getElementById('shapefileInput').click()" class="file-button">
                                 Choose Shapefile
                             </button>
                             <div id="fileNameShapefile" class="file-name-display"></div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.25rem;">
+                            
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -854,7 +856,6 @@
         </div>
     </div>
 
-
     <!-- Column Mapping Modal -->
     <div id="columnModal" class="modal">
         <div class="modal-content">
@@ -881,6 +882,7 @@
         let originalShapefileData = null;
         let originalFileName = '';
         let originalProjection = null;
+        let originalShapefileFiles = {}; // เก็บไฟล์ต้นฉบับทั้งหมด (.shp, .dbf, .shx, .prj, .cpg)
         const requiredColumns = ['BL_TYPE', 'BL_USE', 'BL_AREA', 'BL_NSTOREY', 'BL_NUNIT', 'ACQYEAR', 'PL_BLOCK', 'PL_USE'];
 
         // Valid BL_TYPE values
@@ -1151,10 +1153,18 @@
             } else if (type === 'shapefile') {
                 const fileNameDisplay = document.getElementById('fileNameShapefile');
                 const excelDisplay = document.getElementById('fileNameExcel');
-                if (input.files && input.files[0]) {
-                    fileNameDisplay.textContent = input.files[0].name;
+                if (input.files && input.files.length > 0) {
+                    if (input.files.length === 1 && input.files[0].name.endsWith('.zip')) {
+                        fileNameDisplay.textContent = input.files[0].name;
+                        originalFileName = input.files[0].name.replace(/\.[^/.]+$/, "");
+                    } else {
+                        const fileNames = Array.from(input.files).map(f => f.name).join(', ');
+                        fileNameDisplay.textContent = `${input.files.length} ไฟล์: ${fileNames}`;
+                        // ใช้ชื่อไฟล์ .shp เป็นชื่อหลัก
+                        const shpFile = Array.from(input.files).find(f => f.name.endsWith('.shp'));
+                        originalFileName = shpFile ? shpFile.name.replace(/\.[^/.]+$/, "") : 'shapefile';
+                    }
                     excelDisplay.textContent = '';
-                    originalFileName = input.files[0].name.replace(/\.[^/.]+$/, "");
                     isShapefileInput = true;
                 } else {
                     fileNameDisplay.textContent = '';
@@ -1229,12 +1239,12 @@
             if (isShapefileInput) {
                 // Process Shapefile
                 const fileInput = document.getElementById('shapefileInput');
-                const file = fileInput.files[0];
-                if (!file) {
-                    showError('กรุณาเลือกไฟล์ Shapefile (.zip)');
+                const files = fileInput.files;
+                if (!files || files.length === 0) {
+                    showError('กรุณาเลือกไฟล์ Shapefile');
                     return;
                 }
-                await processShapefileData(file);
+                await processShapefileData(files);
             } else {
                 // Process Excel
                 const fileInput = document.getElementById('excelFile');
@@ -1280,23 +1290,63 @@
             reader.readAsArrayBuffer(file);
         }
 
-        async function processShapefileData(file) {
+        async function processShapefileData(files) {
             try {
-                const arrayBuffer = await file.arrayBuffer();
+                let arrayBuffer;
+                let zipContent;
                 
-                // Extract projection from .prj file if available
-                const zip = new JSZip();
-                const zipContent = await zip.loadAsync(arrayBuffer);
-                
-                // Try to find .prj file
-                let prjContent = null;
-                for (const [filename, fileData] of Object.entries(zipContent.files)) {
-                    if (filename.toLowerCase().endsWith('.prj')) {
-                        prjContent = await fileData.async('text');
-                        originalProjection = prjContent;
-                        console.log('Found projection:', prjContent);
-                        break;
+                // ตรวจสอบว่าเป็นไฟล์ .zip หรือไฟล์หลายไฟล์
+                if (files.length === 1 && files[0].name.endsWith('.zip')) {
+                    // กรณีไฟล์ .zip
+                    arrayBuffer = await files[0].arrayBuffer();
+                    const zip = new JSZip();
+                    zipContent = await zip.loadAsync(arrayBuffer);
+                    
+                    // เก็บไฟล์ต้นฉบับทั้งหมด
+                    originalShapefileFiles = {};
+                    for (const [filename, fileData] of Object.entries(zipContent.files)) {
+                        if (!fileData.dir) {
+                            const ext = filename.split('.').pop().toLowerCase();
+                            if (['shp', 'dbf', 'shx', 'prj', 'cpg'].includes(ext)) {
+                                originalShapefileFiles[ext] = await fileData.async('arraybuffer');
+                            }
+                        }
                     }
+                } else {
+                    // กรณีไฟล์หลายไฟล์
+                    originalShapefileFiles = {};
+                    
+                    // อ่านไฟล์แต่ละไฟล์
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const ext = file.name.split('.').pop().toLowerCase();
+                        if (['shp', 'dbf', 'shx', 'prj', 'cpg'].includes(ext)) {
+                            originalShapefileFiles[ext] = await file.arrayBuffer();
+                        }
+                    }
+                    
+                    // ตรวจสอบว่ามีไฟล์ที่จำเป็น
+                    if (!originalShapefileFiles['shp'] || !originalShapefileFiles['dbf']) {
+                        showError('กรุณาเลือกไฟล์ .shp และ .dbf อย่างน้อย');
+                        return;
+                    }
+                    
+                    // สร้าง zip object สำหรับ shpjs
+                    const zip = new JSZip();
+                    const baseName = originalFileName || 'shapefile';
+                    
+                    for (const [ext, buffer] of Object.entries(originalShapefileFiles)) {
+                        zip.file(`${baseName}.${ext}`, buffer);
+                    }
+                    
+                    arrayBuffer = await zip.generateAsync({type: 'arraybuffer'});
+                }
+                
+                // อ่าน projection ถ้ามี
+                if (originalShapefileFiles['prj']) {
+                    const prjText = new TextDecoder('utf-8').decode(originalShapefileFiles['prj']);
+                    originalProjection = prjText;
+                    console.log('Found projection:', prjText);
                 }
                 
                 // Parse shapefile using shpjs
@@ -1570,110 +1620,258 @@
         }
 
         async function exportToShapefile() {
-            if (!originalShapefileData || !processedData) {
+            if (!originalShapefileData || !processedData || !originalShapefileFiles) {
                 showError('ไม่สามารถส่งออก Shapefile ได้ กรุณาตรวจสอบข้อมูล');
                 return;
             }
 
             try {
-                // Update feature properties with processed data
-                const updatedFeatures = originalShapefileData.features.map((feature, index) => {
+                // Join processed data with original properties
+                // สมมติว่า processedData มี index ตรงกับ feature index
+                const joinedData = originalShapefileData.features.map((feature, index) => {
+                    // รวมข้อมูลต้นฉบับกับข้อมูลที่ประมวลผลแล้ว
                     return {
-                        ...feature,
-                        properties: processedData[index]
+                        ...feature.properties,  // ข้อมูลเดิม
+                        ...processedData[index]  // ข้อมูลใหม่ (จะ overwrite ถ้าชื่อ field ซ้ำ)
                     };
                 });
 
-                const updatedGeojson = {
-                    ...originalShapefileData,
-                    features: updatedFeatures
-                };
-
                 // Create zip file
                 const zip = new JSZip();
+                const baseName = originalFileName ? `${originalFileName}_processed` : 'bldg_reclass';
                 
-                // Determine geometry type
-                const firstFeature = updatedGeojson.features[0];
-                const geometryType = firstFeature.geometry.type;
-                
-                let type = 'polygon';
-                if (geometryType === 'Point' || geometryType === 'MultiPoint') {
-                    type = 'point';
-                } else if (geometryType === 'LineString' || geometryType === 'MultiLineString') {
-                    type = 'line';
+                // 1. คัดลอกไฟล์ต้นฉบับทั้งหมด (ยกเว้น DBF ที่จะสร้างใหม่)
+                if (originalShapefileFiles['shp']) {
+                    zip.file(`${baseName}.shp`, originalShapefileFiles['shp'], {binary: true});
+                }
+                if (originalShapefileFiles['shx']) {
+                    zip.file(`${baseName}.shx`, originalShapefileFiles['shx'], {binary: true});
+                }
+                if (originalShapefileFiles['prj']) {
+                    zip.file(`${baseName}.prj`, originalShapefileFiles['prj'], {binary: true});
                 }
                 
-                // Determine PRJ content
-                let prjContent = null;
+                // 2. สร้างไฟล์ DBF ใหม่ด้วยข้อมูลที่ Join แล้ว (TIS-620 encoding)
+                const dbfBuffer = createDBFFile(joinedData);
+                zip.file(`${baseName}.dbf`, dbfBuffer, {binary: true});
                 
-                if (originalProjection) {
-                    // Use original projection from input file
-                    prjContent = originalProjection;
-                    console.log('Using original projection');
-                } else {
-                    // Detect UTM zone from coordinates
-                    const sampleCoord = getFirstCoordinate(updatedGeojson.features[0].geometry);
-                    
-                    if (sampleCoord) {
-                        const lon = sampleCoord[0];
-                        
-                        // Determine UTM zone based on longitude
-                        // UTM Zone 47N: 96°E to 102°E (Western Thailand)
-                        // UTM Zone 48N: 102°E to 108°E (Eastern Thailand)
-                        
-                        if (lon >= 500000 - 100000 && lon <= 500000 + 100000) {
-                            // Likely UTM coordinates (around false easting 500000)
-                            // Try to detect zone from X coordinate range
-                            if (lon < 500000) {
-                                // Likely Zone 47N
-                                prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",99.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
-                                console.log('Auto-detected: UTM Zone 47N');
-                            } else {
-                                // Likely Zone 48N
-                                prjContent = 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",105.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
-                                console.log('Auto-detected: UTM Zone 48N');
-                            }
-                        } else if (lon >= 96 && lon <= 102) {
-                            // Geographic coordinates in Zone 47 range
-                            prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",99.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
-                            console.log('Geographic coords detected: Using UTM Zone 47N');
-                        } else if (lon >= 102 && lon <= 108) {
-                            // Geographic coordinates in Zone 48 range
-                            prjContent = 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",105.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
-                            console.log('Geographic coords detected: Using UTM Zone 48N');
-                        } else {
-                            // Default to UTM Zone 47N (covers most of Thailand)
-                            prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",99.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
-                            console.log('Default: UTM Zone 47N');
-                        }
-                    } else {
-                        // Fallback to UTM Zone 47N
-                        prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",99.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
-                        console.log('Fallback: UTM Zone 47N');
-                    }
-                }
+                // 3. สร้างไฟล์ .cpg เพื่อระบุ encoding เป็น TIS-620
+                const cpgContent = 'TIS-620';
+                zip.file(`${baseName}.cpg`, cpgContent);
                 
-                // Create shapefile using the same method as page11D
-                await createShapefileFromGeoJSON(updatedGeojson, type, zip, prjContent);
-                
-                // Generate zip file
+                // Generate and download zip file
                 const zipBlob = await zip.generateAsync({ type: 'blob' });
                 
-                // Download zip file
                 const url = URL.createObjectURL(zipBlob);
                 const a = document.createElement('a');
                 a.href = url;
-                const exportFileName = originalFileName ? `${originalFileName}_processed.zip` : 'bldg_reclass.zip';
-                a.download = exportFileName;
+                a.download = `${baseName}.zip`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
+                console.log('Shapefile exported successfully with joined data');
+                
             } catch (error) {
                 console.error('Error exporting shapefile:', error);
                 showError('เกิดข้อผิดพลาดในการส่งออก Shapefile: ' + error.message);
             }
+        }
+
+        // สร้างฟังก์ชันสำหรับสร้าง DBF จากข้อมูลที่ Join แล้ว (ไม่มี geometry)
+        function createDBFFile(records) {
+            if (!records || records.length === 0) {
+                throw new Error('No records to create DBF');
+            }
+            
+            const numRecords = records.length;
+            
+            // Get all unique property names from records
+            const allProperties = new Set();
+            records.forEach(record => {
+                Object.keys(record).forEach(key => allProperties.add(key));
+            });
+            const properties = Array.from(allProperties);
+            
+            // Define field structures
+            const fieldDefinitions = [];
+            
+            properties.forEach(prop => {
+                let fieldType = 'C';  // Character (string)
+                let fieldLength = 254;
+                let fieldDecimal = 0;
+                
+                // Find first non-null value to determine type
+                let sampleValue = null;
+                for (let record of records) {
+                    if (record[prop] !== null && record[prop] !== undefined) {
+                        sampleValue = record[prop];
+                        break;
+                    }
+                }
+                
+                if (sampleValue !== null) {
+                    if (typeof sampleValue === 'number') {
+                        // Check if it has decimals
+                        const hasDecimals = !Number.isInteger(sampleValue);
+                        if (hasDecimals) {
+                            fieldType = 'F';
+                            fieldLength = 20;
+                            fieldDecimal = 8;
+                        } else {
+                            fieldType = 'N';
+                            fieldLength = 18;
+                            fieldDecimal = 0;
+                        }
+                    } else if (sampleValue instanceof Date) {
+                        fieldType = 'D';
+                        fieldLength = 8;
+                        fieldDecimal = 0;
+                    } else {
+                        // String type - calculate max length needed
+                        let maxLen = 0;
+                        records.forEach(record => {
+                            const val = record[prop];
+                            if (val !== null && val !== undefined) {
+                                const strLen = val.toString().length;
+                                if (strLen > maxLen) maxLen = strLen;
+                            }
+                        });
+                        fieldLength = Math.min(Math.max(maxLen, 10), 254);
+                    }
+                }
+                
+                // Limit field name to 10 characters
+                const fieldName = prop.substring(0, 10);
+                
+                fieldDefinitions.push({
+                    name: fieldName,
+                    originalName: prop,
+                    type: fieldType,
+                    length: fieldLength,
+                    decimal: fieldDecimal
+                });
+            });
+            
+            // Calculate record length
+            const recordLength = fieldDefinitions.reduce((sum, field) => sum + field.length, 1); // +1 for deletion flag
+            
+            // Calculate header size
+            const numFields = fieldDefinitions.length;
+            const headerSize = 32 + (numFields * 32) + 1; // Header + field descriptors + terminator
+            
+            // Calculate total file size
+            const totalSize = headerSize + (numRecords * recordLength) + 1; // +1 for EOF marker
+            
+            // Create buffer
+            const buffer = new ArrayBuffer(totalSize);
+            const view = new DataView(buffer);
+            const uint8View = new Uint8Array(buffer);
+            
+            // Write Header
+            view.setUint8(0, 0x03); // dBASE Level 5
+            
+            // Last update date
+            const now = new Date();
+            view.setUint8(1, now.getFullYear() - 1900);
+            view.setUint8(2, now.getMonth() + 1);
+            view.setUint8(3, now.getDate());
+            
+            // Number of records
+            view.setUint32(4, numRecords, true);
+            
+            // Header size
+            view.setUint16(8, headerSize, true);
+            
+            // Record size
+            view.setUint16(10, recordLength, true);
+            
+            // Write Field Descriptors
+            let fieldOffset = 32;
+            fieldDefinitions.forEach(field => {
+                // Field name (11 bytes, null-padded)
+                for (let i = 0; i < field.name.length && i < 10; i++) {
+                    uint8View[fieldOffset + i] = field.name.charCodeAt(i);
+                }
+                for (let i = field.name.length; i < 11; i++) {
+                    uint8View[fieldOffset + i] = 0x00;
+                }
+                
+                // Field type
+                uint8View[fieldOffset + 11] = field.type.charCodeAt(0);
+                
+                // Field data address (not used)
+                view.setUint32(fieldOffset + 12, 0, true);
+                
+                // Field length
+                view.setUint8(fieldOffset + 16, field.length);
+                
+                // Decimal count
+                view.setUint8(fieldOffset + 17, field.decimal);
+                
+                fieldOffset += 32;
+            });
+            
+            // Field descriptor terminator
+            uint8View[fieldOffset] = 0x0D;
+            
+            // Write Records
+            let recordOffset = headerSize;
+            
+            records.forEach((record, recordIndex) => {
+                // Deletion flag (not deleted)
+                uint8View[recordOffset] = 0x20;
+                recordOffset++;
+                
+                // Write each field value
+                fieldDefinitions.forEach(field => {
+                    let value = '';
+                    const propValue = record[field.originalName];
+                    
+                    if (propValue !== undefined && propValue !== null) {
+                        if (field.type === 'D' && propValue instanceof Date) {
+                            const year = propValue.getFullYear().toString().padStart(4, '0');
+                            const month = (propValue.getMonth() + 1).toString().padStart(2, '0');
+                            const day = propValue.getDate().toString().padStart(2, '0');
+                            value = year + month + day;
+                        } else if (field.type === 'N' || field.type === 'F') {
+                            const numValue = typeof propValue === 'number' ? propValue : parseFloat(propValue);
+                            if (!isNaN(numValue)) {
+                                if (field.decimal > 0) {
+                                    value = numValue.toFixed(field.decimal);
+                                } else {
+                                    value = Math.round(numValue).toString();
+                                }
+                            } else {
+                                value = '';
+                            }
+                        } else {
+                            value = propValue.toString();
+                        }
+                    }
+                    
+                    // Pad or trim value
+                    if (field.type === 'N' || field.type === 'F') {
+                        value = value.substring(0, field.length).padStart(field.length, ' ');
+                    } else {
+                        value = value.substring(0, field.length).padEnd(field.length, ' ');
+                    }
+                    
+                    // Encode to TIS-620
+                    const encodedBytes = encodeToTIS620(value, field.length);
+                    for (let i = 0; i < field.length; i++) {
+                        uint8View[recordOffset + i] = encodedBytes[i];
+                    }
+                    
+                    recordOffset += field.length;
+                });
+            });
+            
+            // End of file marker
+            uint8View[totalSize - 1] = 0x1A;
+            
+            return buffer;
         }
 
         // Helper function to get first coordinate from geometry
