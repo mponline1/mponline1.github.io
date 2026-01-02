@@ -1022,12 +1022,13 @@
         }
 
         function processDataArray(jsonData) {
-            // Group by PL_USE and PL_BLOCK
+            // Group by PL_BLOCK only (since each PL_BLOCK has only one PL_USE)
             const groupedData = jsonData.reduce((acc, curr) => {
                 const plUse = curr.PL_USE ? curr.PL_USE.toString().padStart(4, '0') : '';
                 if (!plUse || !plUseOrder[plUse]) return acc;
                 
-                const key = `${plUse}_${curr.PL_BLOCK}`;
+                // Use only PL_BLOCK as key since each PL_BLOCK belongs to only one PL_USE
+                const key = curr.PL_BLOCK;
                 if (!acc[key]) {
                     acc[key] = {
                         PL_USE: plUse,
@@ -1297,32 +1298,38 @@
                 // Wait for all files to be copied
                 await Promise.all(copyPromises);
                 
-                // Create lookup map from processed data (using original order)
+                // Create lookup map from processed data
+                // Use only PL_BLOCK as key (each PL_BLOCK has only one PL_USE)
                 const processedMap = new Map();
                 processedData.forEach(row => {
-                    // Use same key format as grouping: PL_USE_O_PL_BLOCK
-                    const key = `${row.PL_USE_O}_${row.PL_BLOCK}`;
-                    processedMap.set(key, row);
+                    const plBlock = row.PL_BLOCK;
+                    processedMap.set(plBlock, row);
                 });
+                
+                console.log('=== JOIN DEBUG ===');
+                console.log('Processed Data Map Keys:', Array.from(processedMap.keys()));
+                console.log('Total processed rows:', processedMap.size);
 
                 // Create array to store matched features with their order
                 const orderedFeatures = [];
+                let matchCount = 0;
+                let noMatchCount = 0;
                 
                 // First pass: match features with processed data and assign order
                 shapefileData.geoJSON.features.forEach(feature => {
-                    const plUse = feature.properties.PL_USE ? feature.properties.PL_USE.toString().padStart(4, '0') : '';
-                    // Use same key format as grouping: PL_USE_PL_BLOCK
-                    const key = `${plUse}_${feature.properties.PL_BLOCK}`;
-                    const processedRow = processedMap.get(key);
+                    const plBlock = feature.properties.PL_BLOCK;
+                    const processedRow = processedMap.get(plBlock);
                     
                     if (processedRow) {
+                        matchCount++;
                         orderedFeatures.push({
                             feature: feature,
                             processedRow: processedRow,
-                            order: processedRow['ลำดับ'] || 999999  // Use the order from processed data
+                            order: processedRow['ลำดับ'] || 999999
                         });
                     } else {
-                        // If no match, put at the end
+                        noMatchCount++;
+                        console.log('No match for PL_BLOCK:', plBlock);
                         orderedFeatures.push({
                             feature: feature,
                             processedRow: null,
@@ -1331,34 +1338,35 @@
                     }
                 });
                 
-                // Sort by order
-                orderedFeatures.sort((a, b) => a.order - b.order);
+                console.log('Match count:', matchCount);
+                console.log('No match count:', noMatchCount);
+                console.log('==================');
                 
-                // Update GeoJSON features with processed data in correct order
+                // DON'T SORT - Keep original Shapefile order
+                // orderedFeatures.sort((a, b) => a.order - b.order);
+                
+                // Update GeoJSON features with processed data in ORIGINAL order
                 const updatedFeatures = orderedFeatures.map((item, index) => {
                     const feature = item.feature;
                     const processedRow = item.processedRow;
                     
                     if (processedRow) {
-                        // Use data from processed table
-                        const newProperties = {
-                            'NO': processedRow['ลำดับ'],
-                            'PL_BLOCK': processedRow.PL_BLOCK,
-                            'PL_USE_O': processedRow.PL_USE_O,  // Use PL_USE_O directly from processed table
-                            'PL_USE': processedRow.PL_USE,
-                            'AREA': processedRow.AREA,  // Use AREA from processed table
-                            'AREA_RAI': processedRow['AREA(rai)'],  // Use AREA_RAI from processed table
-                            'PL_BLOCK2': processedRow.PL_BLOCK2 || ''
-                        };
+                        // Start with all original properties
+                        const newProperties = {};
                         
-                        // Add remaining original properties that are NOT in the processed data
-                        // Skip geometry-related and duplicate fields
+                        // First, copy all original properties
                         Object.keys(feature.properties).forEach(key => {
-                            const skipFields = ['NO', 'PL_BLOCK', 'PL_USE_O', 'PL_USE', 'AREA', 'AREA_RAI', 'PL_BLOCK2'];
-                            if (!skipFields.includes(key)) {
-                                newProperties[key] = feature.properties[key];
-                            }
+                            newProperties[key] = feature.properties[key];
                         });
+                        
+                        // Then, override/add processed data fields
+                        newProperties['NO'] = processedRow['ลำดับ'];  // Use NO from processed table
+                        newProperties['PL_BLOCK'] = processedRow.PL_BLOCK;
+                        newProperties['PL_USE_O'] = processedRow.PL_USE_O;
+                        newProperties['PL_USE'] = processedRow.PL_USE;
+                        newProperties['AREA'] = processedRow.AREA;
+                        newProperties['AREA_RAI'] = processedRow['AREA(rai)'];
+                        newProperties['PL_BLOCK2'] = processedRow.PL_BLOCK2 || '';
                         
                         return {
                             ...feature,
@@ -1366,26 +1374,22 @@
                         };
                     }
                     
-                    // If no match, keep original values
+                    // If no match, keep all original properties and add new fields with default values
                     const plUse = feature.properties.PL_USE ? feature.properties.PL_USE.toString().padStart(4, '0') : '';
                     const originalArea = feature.properties.AREA || 0;
-                    const newProperties = {
-                        'NO': index + 1,
-                        'PL_BLOCK': feature.properties.PL_BLOCK || '',
-                        'PL_USE_O': plUse,
-                        'PL_USE': plUse,
-                        'AREA': originalArea,
-                        'AREA_RAI': parseFloat((originalArea / 1600).toFixed(2)),
-                        'PL_BLOCK2': ''
-                    };
                     
-                    // Add remaining original properties
+                    const newProperties = {};
+                    
+                    // First, copy all original properties
                     Object.keys(feature.properties).forEach(key => {
-                        const skipFields = ['NO', 'PL_BLOCK', 'PL_USE_O', 'PL_USE', 'AREA', 'AREA_RAI', 'PL_BLOCK2'];
-                        if (!skipFields.includes(key)) {
-                            newProperties[key] = feature.properties[key];
-                        }
+                        newProperties[key] = feature.properties[key];
                     });
+                    
+                    // Then, add/override new fields
+                    newProperties['NO'] = index + 1;
+                    newProperties['PL_USE_O'] = plUse;
+                    newProperties['AREA_RAI'] = parseFloat((originalArea / 1600).toFixed(2));
+                    newProperties['PL_BLOCK2'] = '';
                     
                     return {
                         ...feature,
