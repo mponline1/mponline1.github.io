@@ -9,10 +9,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="https://js.arcgis.com/4.22/esri/themes/light/main.css">
+    <!-- Update ArcGIS API to 4.29 for better Draw Tools -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Libraries for Import Functionality -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shpjs/4.0.4/shp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
 
     <style>
         /* ================= HEADER STYLES ================= */
@@ -108,31 +114,36 @@
         .esri-view .esri-view-surface--inset-outline:focus::after { outline: none !important; }
         
         .top-toolbar-container {
-            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; display: flex; flex-direction: column; align-items: center;
+            position: absolute;
+            top: auto;            
+            bottom: 30px;         
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column-reverse; 
+            align-items: center;
         }
 
         .top-toolbar {
             background: white; padding: 5px; border-radius: 5px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; transition: all 0.3s ease;
-            max-height: 60px; overflow: hidden; opacity: 1;
+            max-height: 60px; overflow: hidden; opacity: 1; flex-wrap: nowrap;
         }
         .top-toolbar.collapsed { max-height: 0; padding: 0; opacity: 0; margin: 0; border: none; }
 
         .toolbar-toggle-btn {
-            background: white; border: none; border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 4px rgba(0,0,0,0.2); padding: 0px 15px;
+            background: white; border: none;
+            border-radius: 10px 10px 0 0; 
+            box-shadow: 0 -4px 4px rgba(0,0,0,0.1); 
+            padding: 0px 15px;
             cursor: pointer; color: #666; font-size: 12px; height: 20px;
-            line-height: 20px; margin-top: -2px; z-index: 999;
+            line-height: 20px; 
+            margin-bottom: -2px; 
+            margin-top: 0;
+            z-index: 999;
         }
         .toolbar-toggle-btn:hover { background: #f8f9fa; color: #000; }
-
-        .home-button {
-            position: absolute; top: 80px; right: 10px; z-index: 1000;
-            background: white; padding: 8px; border-radius: 5px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3); cursor: pointer; color: #333;
-        }
-        .home-button:hover { background: #f0f0f0; color: #000; }
 
         .panel {
             position: absolute; background-color: white; padding: 10px;
@@ -140,16 +151,28 @@
             display: none; z-index: 1000;
         }
 
-        #layerPanel { top: 130px; right: 10px; width: 300px; max-height: calc(100vh - 150px); overflow-y: auto; }
+        #layerPanel { top: 130px; right: 10px; width: 320px; max-height: calc(100vh - 150px); overflow-y: auto; }
         #searchPanel { top: 130px; left: 10px; width: 320px; }
-        #addServicePanel { top: 130px; left: 10px; }
+        #addServicePanel { top: 130px; left: 10px; width: 280px; }
+        #importDataPanel { top: 130px; left: 10px; width: 320px; }
+        #selectAttributePanel { top: 130px; right: 60px; width: 320px; }
         #exportPanel { top: 130px; right: 60px; width: 300px; }
         #basemapGalleryPanel, #printPanel { top: 130px; right: 10px; width: 280px; max-height: 400px; overflow-y: auto; }
         
+        /* New Table Panel Style */
+        #attributeTablePanel {
+            top: 130px; left: 50%; transform: translateX(-50%); width: 80%; max-height: 70vh;
+            display: none; z-index: 1002; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .table-container { flex: 1; overflow: auto; margin-top: 10px; border: 1px solid #ddd; }
+        .table-custom th { background-color: #f8f9fa; position: sticky; top: 0; z-index: 1; }
+        .table-custom td[contenteditable="true"]:focus { background-color: #fffde7; outline: 2px solid #ffeb3b; }
+
         .draw-tools {
             position: absolute; top: 130px; left: 10px; z-index: 1000;
             background: white; padding: 10px; border-radius: 5px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 280px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 260px; /* Reduced width */
+            max-width: 90vw; /* Ensure it fits on small screens */
         }
         
         .excel-import-panel {
@@ -158,29 +181,41 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 300px;
         }
 
-        .draw-layer-control { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; }
+        .draw-layer-control { border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 8px; }
         .color-picker { margin: 5px 0; }
-        .buffer-section { margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd; }
+        .buffer-section { margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd; }
         .close-btn { position: absolute; top: 5px; right: 5px; cursor: pointer; font-size: 20px; color: #666; }
-        .layer-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .layer-controls { display: flex; gap: 5px; }
+        
+        /* Layer List Item Styles */
+        .layer-item { display: flex; flex-direction: column; margin-bottom: 8px; border: 1px solid #eee; border-radius: 4px; padding: 8px; }
+        .layer-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 5px; }
+        .layer-controls-row { display: flex; gap: 5px; align-items: center; justify-content: space-between; width: 100%; }
+        .layer-opacity { display: flex; align-items: center; gap: 5px; flex-grow: 1; max-width: 120px; }
+        .layer-actions { display: flex; gap: 4px; }
         
         .custom-modal {
             display: none; position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%); background: white; padding: 20px;
             border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            z-index: 3000; min-width: 350px;
+            z-index: 3000; min-width: 400px; max-height: 80vh; overflow-y: auto;
         }
         .modal-backdrop {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 2999;
         }
         
-        .btn-toolbar-custom { padding: 6px 12px; margin: 0 2px; border: none; background: transparent; color: #333; }
+        .btn-toolbar-custom { padding: 6px 10px; margin: 0 1px; border: none; background: transparent; color: #333; font-size: 1.1em; }
         .btn-toolbar-custom:hover { background: #f0f0f0; }
         .tool-active { background: #e0e0e0; color: #000; }
         
         .search-type-selector { display: flex; gap: 15px; margin-bottom: 10px; }
+        .btn-group-custom { display: flex; gap: 5px; flex-wrap: wrap; }
+
+        /* Color Palette Styles */
+        .color-palette { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; margin-top: 5px; margin-bottom: 8px; }
+        .color-swatch { width: 100%; height: 18px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
+        .color-swatch:hover { border-color: #000; transform: scale(1.1); }
+        .color-swatch.active { border: 2px solid #000; box-shadow: 0 0 3px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
@@ -189,7 +224,7 @@
         <div class="mapraw-header-content">
             <div class="mapraw-logo-section">
                 <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
-                <p class="mapraw-page-title">NoteMap System</p>
+                <p class="mapraw-page-title">NoteMap</p>
             </div>
             
             <button class="mobile-menu-toggle" id="mobileMenuBtn">
@@ -202,6 +237,7 @@
                     <div class="mapraw-nav-btn"><span>📋 เครื่องมือสำรวจ</span><span style="font-size: 0.8em">▼</span></div>
                     <div class="mapraw-dropdown"><a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a><a href="#" class="mapraw-dropdown-item">SURVEY WORK</a></div>
                 </div>
+                <!-- Menus preserved as original -->
                 <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
                     <div class="mapraw-nav-btn"><span>🔧 เครื่องมือเตรียมข้อมูล</span><span style="font-size: 0.8em">▼</span></div>
                     <div class="mapraw-dropdown"><a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a><a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a><a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a><a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a><a href="page13.html" class="mapraw-dropdown-item">Perpendicular Line</a></div>
@@ -232,18 +268,20 @@
         <div class="top-toolbar btn-group" id="mainToolbar">
             <button id="basemapBtn" class="btn btn-toolbar-custom" title="Basemap Gallery"><i class="fas fa-layer-group"></i></button>
             <button id="fullscreenBtn" class="btn btn-toolbar-custom" title="Fullscreen"><i class="fas fa-expand"></i></button>
-            <button id="searchBtn" class="btn btn-toolbar-custom" title="Search"><i class="fas fa-search"></i></button>
+            <button id="searchBtn" class="btn btn-toolbar-custom" title="Search (Lat/Lon, MGRS)"><i class="fas fa-search"></i></button>
+            <button id="selectAttrBtn" class="btn btn-toolbar-custom" title="Select By Attribute"><i class="fas fa-filter"></i></button>
             <button id="printBtn" class="btn btn-toolbar-custom" title="Print"><i class="fas fa-print"></i></button>
             <button id="addServiceBtn" class="btn btn-toolbar-custom" title="Add Service"><i class="fas fa-plus"></i></button>
-            <button id="drawBtn" class="btn btn-toolbar-custom" title="Draw"><i class="fas fa-pen"></i></button>
+            <button id="importDataBtn" class="btn btn-toolbar-custom" title="Import Data (KML, GeoJSON, Shp, Excel)"><i class="fas fa-file-import"></i></button>
+            <button id="drawBtn" class="btn btn-toolbar-custom" title="Draw Tools"><i class="fas fa-pen"></i></button>
             <button id="layerListBtn" class="btn btn-toolbar-custom" title="Layer List"><i class="fas fa-list"></i></button>
             <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location"><i class="fas fa-location-dot"></i></button> 
             <button id="exportPanelBtn" class="btn btn-toolbar-custom" title="Export Data"><i class="fas fa-download"></i></button> 
-            <button id="excelImportBtn" class="btn btn-toolbar-custom" title="Import Excel"><i class="fas fa-file-excel"></i></button>
         </div>
-        <button id="toolbarToggleBtn" class="toolbar-toggle-btn" title="Show/Hide Toolbar"><i class="fas fa-chevron-up" id="toggleIcon"></i></button>
+        <button id="toolbarToggleBtn" class="toolbar-toggle-btn" title="Show/Hide Toolbar"><i class="fas fa-chevron-down" id="toggleIcon"></i></button>
     </div>
 
+    <!-- DRAW TOOLS PANEL -->
     <div id="drawTools" class="draw-tools">
         <span class="close-btn" onclick="closePanel('drawTools')">×</span>
         <h6 class="fw-bold"><i class="fas fa-pencil-alt"></i> Draw Tools</h6>
@@ -255,10 +293,19 @@
                 <input type="text" id="newLayerName" class="form-control" placeholder="Layer Name">
                 <button class="btn btn-primary" id="createLayerBtn">Create</button>
             </div>
-            <div class="color-picker d-flex align-items-center gap-2">
-                <label class="small fw-bold mb-0">Color:</label>
-                <input type="color" id="drawColor" value="#ff0000" class="form-control form-control-color form-control-sm" title="Choose your color">
+            
+            <label class="small fw-bold mb-1">Select Color:</label>
+            <div id="colorPalette" class="color-palette">
+                <!-- 24 Colors generated by JS -->
             </div>
+            
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <label class="small fw-bold mb-0">Hex:</label>
+                <input type="text" id="hexColorInput" class="form-control form-control-sm" placeholder="#ff0000" style="width: 80px;">
+                <input type="color" id="drawColor" value="#ff0000" class="form-control form-control-color form-control-sm">
+            </div>
+            
+            <button id="updateLayerColorBtn" class="btn btn-outline-primary btn-sm w-100 mb-2">Apply Color to Active Layer</button>
         </div>
         <div class="buffer-section">
             <h6 class="fw-bold small"><i class="fas fa-bullseye"></i> Buffer Tool</h6>
@@ -274,12 +321,30 @@
         </div>
     </div>
 
+    <!-- LAYER LIST PANEL -->
     <div id="layerPanel" class="panel">
         <span class="close-btn" onclick="closePanel('layerPanel')">×</span>
         <h5>Layer List</h5>
-        <ul id="layerList" class="list-group"></ul>
+        <div id="layerList" class="list-group" style="max-height: 400px; overflow-y: auto;"></div>
     </div>
 
+    <!-- ATTRIBUTE TABLE PANEL (NEW) -->
+    <div id="attributeTablePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('attributeTablePanel')">×</span>
+        <h5 id="tableLayerName">Attribute Table</h5>
+        <div class="table-container">
+            <table class="table table-bordered table-sm table-hover table-custom" id="featureTable">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-2">
+            <button class="btn btn-sm btn-secondary" onclick="closePanel('attributeTablePanel')">Close</button>
+            <button id="saveTableBtn" class="btn btn-sm btn-primary">Save Changes</button>
+        </div>
+    </div>
+
+    <!-- SEARCH PANEL -->
     <div id="searchPanel" class="panel">
         <span class="close-btn" onclick="closePanel('searchPanel')">×</span>
         <h5>Search Location</h5>
@@ -297,6 +362,41 @@
         <button id="searchCoordBtn" class="btn btn-primary btn-sm w-100">Search</button>
     </div>
 
+    <!-- SELECT BY ATTRIBUTE PANEL -->
+    <div id="selectAttributePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('selectAttributePanel')">×</span>
+        <h5>Select by Attribute</h5>
+        <div class="mb-2">
+            <label class="form-label small">Layer:</label>
+            <select id="selectAttrLayer" class="form-select form-select-sm"></select>
+        </div>
+        <div class="mb-2">
+            <label class="form-label small">Field:</label>
+            <select id="selectAttrField" class="form-select form-select-sm"></select>
+        </div>
+        
+        <!-- Updated: Operator Dropdown -->
+        <div class="mb-2">
+            <label class="form-label small">Operator:</label>
+            <select id="selectOperator" class="form-select form-select-sm">
+                <option value="=">Equal (=)</option>
+                <option value="contains">Contains (Like)</option>
+                <option value=">">Greater than (>)</option>
+                <option value="<">Less than (<)</option>
+                <option value=">=">Greater or Equal (>=)</option>
+                <option value="<=">Less or Equal (<=)</option>
+            </select>
+        </div>
+
+        <div class="mb-2">
+            <label class="form-label small">Value:</label>
+            <input type="text" id="selectAttrValue" class="form-control form-control-sm">
+        </div>
+        <button id="executeSelectAttrBtn" class="btn btn-info btn-sm w-100 text-white">Select</button>
+        <div id="selectResultMsg" class="mt-2 small text-danger"></div>
+    </div>
+
+    <!-- EXPORT PANEL -->
     <div id="exportPanel" class="panel">
         <span class="close-btn" onclick="closePanel('exportPanel')">×</span>
         <h5>Export Data</h5>
@@ -315,19 +415,70 @@
         <button id="confirmExportBtn" class="btn btn-success btn-sm w-100">Export Selected</button>
     </div>
 
+    <!-- ADD SERVICE PANEL (FROM PAGE 2) -->
     <div id="addServicePanel" class="panel">
         <span class="close-btn" onclick="closePanel('addServicePanel')">×</span>
-        <div class="mb-3"><input type="text" id="serviceUrl" class="form-control" placeholder="Service URL (e.g., .../MapServer/0)"></div>
-        <div class="mb-3">
-            <select id="serviceType" class="form-select">
-                <option value="featureLayer">Feature Layer</option>
-                <option value="mapImageLayer">Map Image Layer</option>
-                <option value="wmsLayer">WMS Layer</option>
-                <option value="tileLayer">Tile Layer</option>
+        <h5>Add Service</h5>
+        <div class="mb-2">
+            <label class="form-label small">Service URL:</label>
+            <input type="text" id="serviceUrl" class="form-control form-control-sm" placeholder="https://...">
+        </div>
+        <div class="mb-2">
+            <label class="form-label small">Service Type:</label>
+            <select id="serviceType" class="form-select form-select-sm">
+                <option value="feature">Feature Layer</option>
+                <option value="map-image">Map Image Layer</option>
+                <option value="wms">WMS Layer</option>
+                <option value="tile">Tile Layer</option>
             </select>
         </div>
-        <p class="small text-muted">* Select <b>Feature Layer</b> to enable "Copy to Draw Layer" function.</p>
-        <button id="addServiceConfirmBtn" class="btn btn-primary btn-sm">Add Service</button>
+        <button id="btnAddService" class="btn btn-success btn-sm w-100">Add to Map</button>
+    </div>
+
+    <!-- NEW IMPORT PANEL (Consolidated) -->
+    <div id="importDataPanel" class="panel">
+        <span class="close-btn" onclick="closePanel('importDataPanel')">×</span>
+        <h5>Import Data</h5>
+        <ul class="nav nav-tabs small mb-2" id="importTabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active p-2" id="file-tab" data-bs-toggle="tab" data-bs-target="#fileImport" type="button">Vector Files</button></li>
+            <li class="nav-item"><button class="nav-link p-2" id="excel-tab" data-bs-toggle="tab" data-bs-target="#excelImport" type="button">Excel</button></li>
+        </ul>
+        
+        <div class="tab-content" id="importTabContent">
+            <!-- Vector File Import -->
+            <div class="tab-pane fade show active" id="fileImport" role="tabpanel">
+                <div class="alert alert-info py-2 small">
+                    Support: .kml, .kmz, .geojson, .zip (Shapefile)
+                </div>
+                <div class="mb-2">
+                    <input type="file" id="vectorFile" class="form-control form-control-sm" accept=".kml,.kmz,.json,.geojson,.zip">
+                </div>
+                <button id="importVectorBtn" class="btn btn-primary btn-sm w-100">Import to Map</button>
+            </div>
+            
+            <!-- Excel Import -->
+            <div class="tab-pane fade" id="excelImport" role="tabpanel">
+                <div class="mb-2 border-bottom pb-2">
+                    <h6 class="small fw-bold">Excel (Lat/Lon)</h6>
+                    <input type="file" id="excelFile" class="form-control form-control-sm mb-1" accept=".xlsx, .xls">
+                    <div class="row g-1">
+                        <div class="col-4"><select id="latColumn" class="form-select form-select-sm"><option value="">Lat</option></select></div>
+                        <div class="col-4"><select id="lonColumn" class="form-select form-select-sm"><option value="">Lon</option></select></div>
+                        <div class="col-4"><select id="labelColumn" class="form-select form-select-sm"><option value="">Label</option></select></div>
+                    </div>
+                    <button id="importExcelBtn" class="btn btn-success btn-sm w-100 mt-1" disabled>Import Points</button>
+                </div>
+                <div>
+                    <h6 class="small fw-bold">Excel (MGRS)</h6>
+                    <input type="file" id="mgrsExcelFile" class="form-control form-control-sm mb-1" accept=".xlsx, .xls">
+                    <div class="row g-1">
+                        <div class="col-6"><select id="mgrsColumn" class="form-select form-select-sm"><option value="">MGRS Col</option></select></div>
+                        <div class="col-6"><select id="mgrsLabelColumn" class="form-select form-select-sm"><option value="">Label</option></select></div>
+                    </div>
+                    <button id="importMgrsExcelBtn" class="btn btn-success btn-sm w-100 mt-1" disabled>Import MGRS</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="basemapGalleryPanel" class="panel">
@@ -341,33 +492,16 @@
         <div id="printDiv"></div>
     </div>
 
-    <div id="excelImportPanel" class="excel-import-panel">
-        <span class="close-btn" onclick="closePanel('excelImportPanel')">×</span>
-        <h5>Import Excel Points</h5>
-        <div class="mb-3"><input type="file" id="excelFile" class="form-control" accept=".xlsx, .xls"></div>
-        <div class="column-select">
-            <label>Latitude Column:</label><select id="latColumn" class="form-select mb-2"></select>
-            <label>Longitude Column:</label><select id="lonColumn" class="form-select mb-2"></select>
-            <label>Label Column (optional):</label><select id="labelColumn" class="form-select"></select>
-        </div>
-        <button id="importExcelBtn" class="btn btn-primary" disabled>Import Points</button>
-    </div>
-
     <div class="modal-backdrop" id="modalBackdrop"></div>
+    <!-- Updated Dynamic Attribute Modal -->
     <div class="custom-modal" id="attributeModal">
         <h5>Feature Attributes</h5>
         <form id="attributeForm">
-            <div class="row mb-2">
-                <div class="col-6"><label class="form-label small">Latitude (Center)</label><input type="text" class="form-control form-control-sm" id="attrLat" readonly></div>
-                <div class="col-6"><label class="form-label small">Longitude (Center)</label><input type="text" class="form-control form-control-sm" id="attrLon" readonly></div>
+            <input type="hidden" id="attrGraphicUid">
+            <div id="attributeDynamicFields" style="max-height: 400px; overflow-y: auto;">
+                <!-- Dynamic fields will be inserted here -->
             </div>
-            <div class="mb-2"><label class="form-label small">MGRS (Center)</label><input type="text" class="form-control form-control-sm" id="attrMgrs" readonly></div>
-            <div class="row mb-2">
-                <div class="col-6"><label class="form-label small">UTM Z47 (E, N)</label><input type="text" class="form-control form-control-sm" id="attrUtm47" readonly></div>
-                <div class="col-6"><label class="form-label small">UTM Z48 (E, N)</label><input type="text" class="form-control form-control-sm" id="attrUtm48" readonly></div>
-            </div>
-            <div class="mb-3"><label for="description" class="form-label">Description / Name</label><input type="text" class="form-control" id="description" required></div>
-            <div class="d-flex justify-content-end gap-2">
+            <div class="d-flex justify-content-end gap-2 mt-3">
                 <button type="button" class="btn btn-secondary" onclick="closeAttributeModal()">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save</button>
             </div>
@@ -380,22 +514,37 @@
         menuBtn.addEventListener('click', () => { menuBtn.classList.toggle('active'); nav.classList.toggle('active'); });
         function toggleMobileDropdown(element) { if (window.innerWidth <= 1200) { element.classList.toggle('active'); } }
         document.addEventListener('click', (e) => { if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) { nav.classList.remove('active'); menuBtn.classList.remove('active'); } });
+        
+        // Bootstrap Tab Trigger
+        document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(t => {
+            t.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('show', 'active'));
+                document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelector(this.getAttribute('data-bs-target')).classList.add('show', 'active');
+            })
+        });
     </script>
 
- <script src="https://js.arcgis.com/4.22/"></script>
+ <script src="https://js.arcgis.com/4.29/"></script>
     <script>
         require([
             "esri/Map", "esri/views/MapView", "esri/widgets/BasemapGallery", "esri/widgets/Search", "esri/widgets/Print",
             "esri/layers/FeatureLayer", "esri/layers/MapImageLayer", "esri/layers/WMSLayer", "esri/layers/TileLayer",
             "esri/widgets/Sketch", "esri/layers/GraphicsLayer", "esri/Graphic", "esri/geometry/geometryEngine",
             "esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleFillSymbol", "esri/symbols/TextSymbol",
-            "esri/widgets/Track", "esri/geometry/Point", "esri/geometry/support/webMercatorUtils",
-            "esri/geometry/coordinateFormatter", "esri/geometry/projection"          
+            "esri/widgets/Track", "esri/geometry/Point", "esri/geometry/Polygon", "esri/geometry/Polyline", "esri/geometry/Multipoint",
+            "esri/geometry/support/webMercatorUtils",
+            "esri/geometry/coordinateFormatter", "esri/geometry/projection",
+            "esri/geometry/SpatialReference", "esri/core/reactiveUtils"
         ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, 
                    Sketch, GraphicsLayer, Graphic, geometryEngine, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, TextSymbol,
-                   Track, Point, webMercatorUtils, coordinateFormatter, projection) {
+                   Track, Point, Polygon, Polyline, Multipoint, webMercatorUtils, coordinateFormatter, projection,
+                   SpatialReference, reactiveUtils 
+        ) {
             
-            // 1. Load Projection Engine & Coordinate Formatter (สำคัญมากสำหรับการแปลงพิกัด)
+            // 1. Load Projection Engine & Coordinate Formatter
             Promise.all([coordinateFormatter.load(), projection.load()]).then(() => { 
                 console.log("Projection modules loaded"); 
             });
@@ -408,6 +557,11 @@
             var activeColor = "#ff0000";
             var sketch;
 
+            // Define Action for Popup to Edit Attributes
+            var editAttributeAction = { title: "Edit Attributes", id: "edit-attributes", className: "esri-icon-edit" };
+            // Define Action for Copy to Draw
+            var copyToDrawAction = { title: "Copy to Draw Layer", id: "copy-to-draw", className: "esri-icon-duplicate" };
+
             var searchGraphicsLayer = new GraphicsLayer({ id: "system_search_layer", title: "Search History", listMode: "show", isDrawLayer: true });
             map.add(searchGraphicsLayer);
             var locationLabelLayer = new GraphicsLayer({ id: "location_label_layer", listMode: "hide" });
@@ -418,17 +572,263 @@
             view.ui.move("zoom", "bottom-right");
             var basemapGallery = new BasemapGallery({ view: view, container: "basemapGalleryDiv" });
 
+            // --- FUNCTION DECLARATIONS (Hoisted to be available globally in require) ---
+            
+            function hexToRgba(hex, alpha) {
+                var r = parseInt(hex.substr(1,2), 16), g = parseInt(hex.substr(3,2), 16), b = parseInt(hex.substr(5,2), 16);
+                return [r, g, b, alpha];
+            }
+
+            function updateSketchSymbols() {
+                if (sketch) {
+                    sketch.viewModel.pointSymbol = new SimpleMarkerSymbol({ color: activeColor, size: "8px", outline: { color: [255, 255, 255], width: 1 } });
+                    sketch.viewModel.polylineSymbol = new SimpleLineSymbol({ color: activeColor, width: 2 });
+                    sketch.viewModel.polygonSymbol = new SimpleFillSymbol({ color: hexToRgba(activeColor, 0.3), outline: { color: activeColor, width: 2 } });
+                }
+            }
+
+            function initializeSketch() {
+                if (sketch) {
+                    view.ui.remove(sketch);
+                    sketch.destroy();
+                }
+                if (!activeDrawingLayer) return;
+
+                sketch = new Sketch({
+                    layer: activeDrawingLayer,
+                    view: view,
+                    // Enable new features in 4.x
+                    creationMode: "single",
+                    defaultUpdateOptions: {
+                        tool: "reshape",
+                        enableRotation: true,
+                        enableScaling: true,
+                        multipleSelectionEnabled: true,
+                        toggleToolOnClick: false
+                    },
+                    visibleElements: {
+                        createTools: {
+                            point: true,
+                            polyline: true,
+                            polygon: true,
+                            rectangle: true,
+                            circle: true
+                        },
+                        selectionTools: {
+                            "lasso-selection": true,
+                            "rectangle-selection": true
+                        },
+                        settingsMenu: true,  // Show settings
+                        undoRedoMenu: true,
+                        snappingControls: true // Show snapping controls
+                    },
+                    // Enable snapping
+                    snappingOptions: {
+                        enabled: true,
+                        selfEnabled: true,
+                        featureEnabled: true,
+                        featureSources: [{ layer: activeDrawingLayer }]
+                    }
+                });
+
+                updateSketchSymbols();
+
+                sketch.on("create", function(event) {
+                    if (event.state === "complete") {
+                        handleGraphicCreation(event.graphic, false);
+                    }
+                });
+                view.ui.add(sketch, "top-left");
+            }
+
+            function createSymbol(type, color) {
+                if (type === "point") return new SimpleMarkerSymbol({ color: color, size: "8px", outline: { color: "white", width: 1 } });
+                if (type === "polyline") return new SimpleLineSymbol({ color: color, width: 2 });
+                if (type === "polygon") return new SimpleFillSymbol({ color: hexToRgba(color, 0.3), outline: { color: color, width: 2 } });
+                return null;
+            }
+
+            function updateLayerList() {
+                var list = document.getElementById("layerList"); list.innerHTML = "";
+                map.layers.toArray().reverse().forEach((l,i) => {
+                    if(l.listMode!=="hide"){
+                        var li = document.createElement("div"); li.className="layer-item";
+                        if(l===activeDrawingLayer) li.style.borderColor = "#0d6efd";
+                        
+                        var visIcon = l.visible ? "fa-eye" : "fa-eye-slash";
+                        var visColor = l.visible ? "text-primary" : "text-muted";
+                        
+                        li.innerHTML = `
+                            <div class="layer-header">
+                                <span class="fw-bold small text-truncate" style="max-width: 180px;">${l.title}</span>
+                                <div class="layer-actions">
+                                    <button class="btn btn-sm btn-light border" title="Toggle Visibility" onclick="toggleLayerVisibility('${l.id}')">
+                                        <i class="fas ${visIcon} ${visColor}"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-info text-white" title="Attribute Table" onclick="openAttributeTable('${l.id}')">
+                                        <i class="fas fa-table"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" title="Remove" onclick="removeLayer('${l.id}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="layer-controls-row">
+                                <div class="layer-opacity">
+                                    <i class="fas fa-adjust small text-muted"></i>
+                                    <input type="range" class="form-range" min="0" max="1" step="0.1" value="${l.opacity}" onchange="changeLayerOpacity('${l.id}', this.value)">
+                                </div>
+                            </div>
+                        `;
+                        list.appendChild(li);
+                    }
+                });
+            }
+
+            // Expose global functions needed for HTML inline onclick handlers
+            window.removeLayer = function(id) { map.remove(map.findLayerById(id)); updateLayerList(); populateDrawLayerSelect(); };
+            
+            window.toggleLayerVisibility = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                if(layer) {
+                    layer.visible = !layer.visible;
+                    updateLayerList();
+                }
+            }
+
+            window.changeLayerOpacity = function(layerId, val) {
+                var layer = map.findLayerById(layerId);
+                if(layer) {
+                    layer.opacity = parseFloat(val);
+                }
+            }
+
+            window.openAttributeTable = function(layerId) {
+                var layer = map.findLayerById(layerId);
+                if(!layer || !layer.graphics || layer.graphics.length === 0) {
+                    alert("No data in this layer."); return;
+                }
+                
+                currentTableLayerId = layerId;
+                document.getElementById("tableLayerName").textContent = "Table: " + layer.title;
+                
+                var graphics = layer.graphics.toArray();
+                var tableHead = document.querySelector("#featureTable thead");
+                var tableBody = document.querySelector("#featureTable tbody");
+                tableHead.innerHTML = ""; tableBody.innerHTML = "";
+                
+                // Get all unique keys
+                var keys = new Set();
+                graphics.forEach(g => {
+                    if(g.attributes) Object.keys(g.attributes).forEach(k => keys.add(k));
+                });
+                var columns = Array.from(keys);
+                
+                // Build Header
+                var trHead = document.createElement("tr");
+                columns.forEach(col => {
+                    var th = document.createElement("th"); th.textContent = col; trHead.appendChild(th);
+                });
+                tableHead.appendChild(trHead);
+                
+                // Build Body
+                graphics.forEach((g, index) => {
+                    var tr = document.createElement("tr");
+                    tr.dataset.uid = g.uid; // Store UID for saving
+                    columns.forEach(col => {
+                        var td = document.createElement("td");
+                        td.textContent = (g.attributes[col] !== undefined && g.attributes[col] !== null) ? g.attributes[col] : "";
+                        td.contentEditable = true; // Allow editing
+                        td.dataset.col = col;
+                        tr.appendChild(td);
+                    });
+                    tableBody.appendChild(tr);
+                });
+                
+                togglePanel("attributeTablePanel");
+            }
+
+            function createNewDrawingLayer(name) {
+                var newLayer = new GraphicsLayer({ title: name, isDrawLayer: true });
+                map.add(newLayer);
+                activeDrawingLayer = newLayer;
+                updateLayerList();
+                populateDrawLayerSelect();
+            }
+
+            function populateDrawLayerSelect() {
+                var select = document.getElementById("drawLayerSelect"); select.innerHTML = "";
+                var bufferSelect = document.getElementById("bufferTargetLayer"); bufferSelect.innerHTML = "";
+                var attrSelect = document.getElementById("selectAttrLayer"); attrSelect.innerHTML = '<option value="">Select Layer</option>';
+                var fieldSelect = document.getElementById("selectAttrField"); fieldSelect.innerHTML = ""; // Clear Fields on layer reload
+
+                map.layers.forEach(function(layer) {
+                    if (layer.isDrawLayer) {
+                        var option = document.createElement("option"); option.value = layer.id; option.textContent = layer.title;
+                        if (activeDrawingLayer && layer.id === activeDrawingLayer.id) option.selected = true;
+                        select.appendChild(option);
+                        
+                        var bufferOption = document.createElement("option"); bufferOption.value = layer.id; bufferOption.textContent = layer.title;
+                        bufferSelect.appendChild(bufferOption);
+
+                        var attrOption = document.createElement("option"); attrOption.value = layer.id; attrOption.textContent = layer.title;
+                        attrSelect.appendChild(attrOption);
+                    }
+                });
+            }
+
+            function handleCopyToDraw() {
+                if (!activeDrawingLayer) { alert("Please create or select a 'Draw Layer' first."); return; }
+                var selectedFeature = view.popup.selectedFeature;
+                if (selectedFeature) {
+                    var clonedGeometry = selectedFeature.geometry.clone();
+                    var sym = null;
+                    if (clonedGeometry.type === "point") sym = new SimpleMarkerSymbol({ color: activeColor, size: "8px", outline: { color: "white", width: 1 } });
+                    else if (clonedGeometry.type === "polyline") sym = new SimpleLineSymbol({ color: activeColor, width: 2 });
+                    else if (clonedGeometry.type === "polygon") sym = new SimpleFillSymbol({ color: hexToRgba(activeColor, 0.3), outline: { color: activeColor, width: 2 } });
+
+                    var newAttributes = Object.assign({}, selectedFeature.attributes);
+                    delete newAttributes.latitude; delete newAttributes.longitude;
+                    delete newAttributes.mgrs; delete newAttributes.utmz47; delete newAttributes.utmz48;
+
+                    var newGraphic = new Graphic({ geometry: clonedGeometry, symbol: sym, attributes: newAttributes });
+                    newGraphic.attributes.color = activeColor;
+                    handleGraphicCreation(newGraphic, false); 
+                    activeDrawingLayer.add(newGraphic);
+                    alert("Feature copied to: " + activeDrawingLayer.title); 
+                    view.popup.close();
+                    updateLayerList(); 
+                }
+            }
+
+            function updateSelectAttributeOptions() {
+                var layerSelect = document.getElementById("selectAttrLayer");
+                var fieldSelect = document.getElementById("selectAttrField");
+                populateDrawLayerSelect(); 
+            }
+
+            // --- END FUNCTION DECLARATIONS ---
+
             document.getElementById("toolbarToggleBtn").addEventListener("click", function() {
                 var toolbar = document.getElementById("mainToolbar");
                 var icon = document.getElementById("toggleIcon");
-                if (toolbar.classList.contains("collapsed")) { toolbar.classList.remove("collapsed"); icon.classList.remove("fa-chevron-down"); icon.classList.add("fa-chevron-up"); }
-                else { toolbar.classList.add("collapsed"); icon.classList.remove("fa-chevron-up"); icon.classList.add("fa-chevron-down"); }
+                if (toolbar.classList.contains("collapsed")) { 
+                    toolbar.classList.remove("collapsed"); 
+                    icon.classList.remove("fa-chevron-up"); 
+                    icon.classList.add("fa-chevron-down");
+                } else { 
+                    toolbar.classList.add("collapsed"); 
+                    icon.classList.remove("fa-chevron-down"); 
+                    icon.classList.add("fa-chevron-up");
+                }
             });
 
             function togglePanel(panelId) {
-                document.querySelectorAll('.panel, .draw-tools, .excel-import-panel').forEach(p => { if (p.id !== panelId) p.style.display = 'none'; });
+                document.querySelectorAll('.panel, .draw-tools, .excel-import-panel, #attributeTablePanel').forEach(p => { if (p.id !== panelId) p.style.display = 'none'; });
                 var panel = document.getElementById(panelId);
-                panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none';
+                panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'flex' : 'none';
+                if(panelId !== "attributeTablePanel") panel.style.display = (panel.style.display === 'flex') ? 'block' : 'none'; 
+                if(panelId === "attributeTablePanel" && panel.style.display === 'flex') panel.style.flexDirection = 'column';
             }
             window.closePanel = function(panelId) { document.getElementById(panelId).style.display = 'none'; }
 
@@ -438,8 +838,59 @@
             document.getElementById("printBtn").addEventListener("click", () => togglePanel("printPanel"));
             document.getElementById("layerListBtn").addEventListener("click", () => { togglePanel("layerPanel"); updateLayerList(); });
             document.getElementById("exportPanelBtn").addEventListener("click", () => { togglePanel("exportPanel"); updateExportLayerList(); });
+            document.getElementById("importDataBtn").addEventListener("click", () => { togglePanel("importDataPanel"); });
+            document.getElementById("selectAttrBtn").addEventListener("click", () => { togglePanel("selectAttributePanel"); updateSelectAttributeOptions(); });
+
+            // --- FIX: USE REACTIVE UTILS FOR POPUP EVENTS ---
+            view.when(() => {
+                reactiveUtils.on(
+                    () => view.popup,
+                    "trigger-action",
+                    (event) => {
+                        if (event.action.id === "edit-attributes") {
+                            var selectedFeature = view.popup.selectedFeature;
+                            if (selectedFeature) {
+                                showAttributeModal(selectedFeature);
+                            }
+                        } else if (event.action.id === "copy-to-draw") {
+                            handleCopyToDraw();
+                        }
+                    }
+                );
+            });
 
             // --- DRAW SYSTEM ---
+            const popularColors = [
+                "#ff0000", "#ff7f00", "#ffff00", "#00ff00", "#0000ff", "#4b0082", "#9400d3", "#000000",
+                "#ffffff", "#808080", "#a52a2a", "#ffc0cb", "#00ffff", "#ff00ff", "#ffd700", "#c0c0c0",
+                "#008000", "#800000", "#808000", "#008080", "#000080", "#ffa500", "#dc143c", "#40e0d0"
+            ];
+            
+            const paletteDiv = document.getElementById("colorPalette");
+            popularColors.forEach(color => {
+                const swatch = document.createElement("div");
+                swatch.className = "color-swatch";
+                swatch.style.backgroundColor = color;
+                swatch.title = color;
+                swatch.onclick = () => {
+                    activeColor = color;
+                    updateColorInputs(color);
+                    updateSketchSymbols();
+                };
+                paletteDiv.appendChild(swatch);
+            });
+
+            document.getElementById("drawColor").addEventListener("input", function(e) { activeColor = e.target.value; updateColorInputs(activeColor); updateSketchSymbols(); });
+            document.getElementById("hexColorInput").addEventListener("change", function(e) { 
+                let val = e.target.value;
+                if(!val.startsWith("#")) val = "#" + val;
+                if(/^#[0-9A-F]{6}$/i.test(val)) {
+                    activeColor = val;
+                    updateColorInputs(val);
+                    updateSketchSymbols();
+                }
+            });
+
             document.getElementById("drawBtn").addEventListener("click", function() {
                 var drawTools = document.getElementById("drawTools");
                 var button = document.getElementById("drawBtn");
@@ -467,29 +918,17 @@
                 if (layer) { activeDrawingLayer = layer; initializeSketch(); updateLayerList(); }
             });
 
-            function createNewDrawingLayer(name) {
-                var newLayer = new GraphicsLayer({ title: name, isDrawLayer: true });
-                map.add(newLayer);
-                activeDrawingLayer = newLayer;
-                updateLayerList();
-                populateDrawLayerSelect();
-            }
-
-            function populateDrawLayerSelect() {
-                var select = document.getElementById("drawLayerSelect"); select.innerHTML = "";
-                var bufferSelect = document.getElementById("bufferTargetLayer"); bufferSelect.innerHTML = "";
-                map.layers.forEach(function(layer) {
-                    if (layer.isDrawLayer && layer.id !== "system_search_layer") {
-                        var option = document.createElement("option"); option.value = layer.id; option.textContent = layer.title;
-                        if (activeDrawingLayer && layer.id === activeDrawingLayer.id) option.selected = true;
-                        select.appendChild(option);
-                        var bufferOption = document.createElement("option"); bufferOption.value = layer.id; bufferOption.textContent = layer.title;
-                        bufferSelect.appendChild(bufferOption);
-                    }
-                });
-            }
-
-            document.getElementById("drawColor").addEventListener("change", function(e) { activeColor = e.target.value; updateSketchSymbols(); });
+            document.getElementById("updateLayerColorBtn").addEventListener("click", function() {
+                if(!activeDrawingLayer) return;
+                const conf = confirm("Update ALL graphics in layer '" + activeDrawingLayer.title + "' to current color?");
+                if(conf) {
+                    activeDrawingLayer.graphics.forEach(g => {
+                        g.symbol = createSymbol(g.geometry.type, activeColor);
+                        g.attributes.color = activeColor;
+                    });
+                    alert("Layer color updated.");
+                }
+            });
 
             // --- BUFFER TOOL ---
             document.getElementById("executeBufferBtn").addEventListener("click", function() {
@@ -520,33 +959,22 @@
                 } else { alert("Selected layer is empty."); }
             });
 
-            function initializeSketch() {
-                if (sketch) { view.ui.remove(sketch); sketch.destroy(); }
-                if (!activeDrawingLayer) return;
-                sketch = new Sketch({ layer: activeDrawingLayer, view: view, creationMode: "single", updateOnGraphicClick: false, availableCreateTools: ["point", "polyline", "polygon"], visibleElements: { createTools: { point: true, polyline: true, polygon: true }, selectionTools: { "lasso-selection": false, "rectangle-selection": false }, settingsMenu: false, undoRedoMenu: true } });
-                updateSketchSymbols();
-                sketch.on("create", function(event) {
-                    if (event.state === "complete") { handleGraphicCreation(event.graphic, false); }
-                });
-                view.ui.add(sketch, "top-left");
-            }
-
-            // --- CENTRALIZED COORDINATE ATTRIBUTE HANDLER (หัวใจสำคัญของการแปลงพิกัด) ---
+            // --- CENTRALIZED COORDINATE ATTRIBUTE HANDLER ---
             function getUTMAttributes(pointWGS84) {
                 var result = { utmz47: "-", utmz48: "-" };
                 try {
-                    // แปลงเป็น UTM Zone 47N (EPSG:32647)
-                    var p47 = projection.project(pointWGS84, { wkid: 32647 });
+                    var sr47 = new SpatialReference({ wkid: 32647 });
+                    var sr48 = new SpatialReference({ wkid: 32648 });
+                    
+                    var p47 = projection.project(pointWGS84, sr47);
                     if (p47) result.utmz47 = `${p47.x.toFixed(2)}, ${p47.y.toFixed(2)}`;
                     
-                    // แปลงเป็น UTM Zone 48N (EPSG:32648)
-                    var p48 = projection.project(pointWGS84, { wkid: 32648 });
+                    var p48 = projection.project(pointWGS84, sr48);
                     if (p48) result.utmz48 = `${p48.x.toFixed(2)}, ${p48.y.toFixed(2)}`;
                 } catch (e) { console.error("Projection Error:", e); }
                 return result;
             }
 
-// --- UPDATED CENTRALIZED ATTRIBUTE HANDLER ---
             function handleGraphicCreation(graphic, isBuffer) {
                 graphic.attributes = graphic.attributes || {};
                 graphic.attributes.color = graphic.attributes.color || activeColor;
@@ -555,28 +983,22 @@
                 var geom = graphic.geometry;
                 var centerPoint = (geom.type === "point") ? geom : geom.extent.center;
                 
-                // **แก้ไขจุดสำคัญ: ตรวจสอบระบบพิกัดก่อนแปลง**
                 var latLon;
                 if (centerPoint.spatialReference.isWebMercator) {
-                    // กรณีมาจาก Draw Tool (WebMercator -> WGS84)
                     latLon = webMercatorUtils.webMercatorToGeographic(centerPoint);
                 } else {
-                    // กรณีมาจาก Search หรือ Excel (เป็น WGS84 อยู่แล้ว)
                     latLon = centerPoint;
                 }
                 
-                // 1. คำนวณ UTM 47N & 48N (จาก WGS84)
                 var utmAttrs = getUTMAttributes(latLon);
                 graphic.attributes.utmz47 = utmAttrs.utmz47;
                 graphic.attributes.utmz48 = utmAttrs.utmz48;
 
-                // 2. เก็บค่า Lat/Lon (WGS84)
                 var lat = latLon.latitude.toFixed(6);
                 var lon = latLon.longitude.toFixed(6);
                 graphic.attributes.latitude = lat;
                 graphic.attributes.longitude = lon;
 
-                // 3. คำนวณ MGRS (จาก WGS84)
                 var mgrsStr = "";
                 try { mgrsStr = coordinateFormatter.toMgrs(latLon, "automatic", 5); } catch(e) { mgrsStr = "Error"; }
                 graphic.attributes.mgrs = mgrsStr;
@@ -586,7 +1008,6 @@
                     graphic.attributes.timestamp = new Date().toISOString();
                 }
 
-                // ตั้งค่า Popup Template ให้แสดงครบทุกค่าเหมือนกันหมด
                 graphic.popupTemplate = {
                     title: "{description}",
                     content: [{
@@ -600,17 +1021,16 @@
                             { fieldName: "type", label: "Type" },
                             { fieldName: "LayerName", label: "Layer" }
                         ]
-                    }]
+                    }],
+                    actions: [editAttributeAction]
                 };
 
-                // ถ้าไม่ใช่ Buffer และยังไม่มีชื่อ ให้เด้ง Modal (เฉพาะกรณีวาดมือ)
-                // กรณี Search/Excel เรามักจะใส่ชื่อมาให้แล้ว จึงไม่เด้ง Modal
                 if (!isBuffer && !graphic.attributes.description) {
-                    showAttributeModal(graphic, lat, lon, mgrsStr, utmAttrs.utmz47, utmAttrs.utmz48, geom.type);
+                    // showAttributeModal(graphic); // Optional: auto open
                 }
             }
 
-            // --- SEARCH SYSTEM (UPDATED) ---
+            // --- SEARCH SYSTEM ---
             document.querySelectorAll('input[name="searchType"]').forEach((elem) => { 
                 elem.addEventListener("change", (e) => { 
                     document.getElementById("searchInput").placeholder = e.target.value === "latlon" ? "e.g. 13.7, 100.5" : "e.g. 47Q LA 377 437"; 
@@ -624,14 +1044,12 @@
                 if (searchType === "latlon") {
                     var coords = input.split(",");
                     if (coords.length === 2 && !isNaN(parseFloat(coords[0])) && !isNaN(parseFloat(coords[1]))) {
-                        // Input: Lat, Lon
                         executeSearch(parseFloat(coords[1].trim()), parseFloat(coords[0].trim()));
                     } else { alert("Invalid Lat/Lon format. Use: lat,lon"); }
                 } else if (searchType === "mgrs") {
                     if (coordinateFormatter.isSupported()) {
                         try { 
-                            // Convert MGRS to Point (WGS84)
-                            var p = coordinateFormatter.fromMgrs(input, { wkid: 4326 }, "automatic"); 
+                            var p = coordinateFormatter.fromMgrs(input, new SpatialReference({ wkid: 4326 }), "automatic"); 
                             if(p) {
                                 executeSearch(p.longitude, p.latitude); 
                             } else { alert("Invalid MGRS coordinate"); }
@@ -640,14 +1058,11 @@
                 }
             });
 
-            // ฟังก์ชัน Execute Search ที่เรียกใช้ระบบคำนวณพิกัดกลาง (handleGraphicCreation)
-// --- UPDATED SEARCH EXECUTION ---
             function executeSearch(lon, lat) {
-                // สร้างจุดแบบ WGS84 อย่างชัดเจน
                 var point = new Point({ 
                     latitude: lat, 
                     longitude: lon,
-                    spatialReference: { wkid: 4326 } // ระบุว่าเป็น WGS84
+                    spatialReference: new SpatialReference({ wkid: 4326 }) 
                 });
                 
                 var graphic = new Graphic({ 
@@ -660,7 +1075,6 @@
                     } 
                 });
 
-                // เรียกใช้ฟังก์ชันกลางเพื่อคำนวณ UTM/MGRS ให้ครบ
                 handleGraphicCreation(graphic, false); 
                 
                 searchGraphicsLayer.add(graphic);
@@ -669,36 +1083,180 @@
                 updateExportLayerList();
             }
 
-            // --- HELPER FUNCTIONS ---
-            function updateSketchSymbols() {
-                if (sketch) {
-                    sketch.viewModel.pointSymbol = new SimpleMarkerSymbol({ color: activeColor, size: "8px", outline: { color: [255, 255, 255], width: 1 } });
-                    sketch.viewModel.polylineSymbol = new SimpleLineSymbol({ color: activeColor, width: 2 });
-                    sketch.viewModel.polygonSymbol = new SimpleFillSymbol({ color: hexToRgba(activeColor, 0.3), outline: { color: activeColor, width: 2 } });
-                }
-            }
-            function hexToRgba(hex, alpha) {
-                var r = parseInt(hex.substr(1,2), 16), g = parseInt(hex.substr(3,2), 16), b = parseInt(hex.substr(5,2), 16);
-                return [r, g, b, alpha];
-            }
+            // --- DYNAMIC ATTRIBUTE EDITING LOGIC (UPDATED) ---
+            var currentEditingGraphic = null;
 
-            window.showAttributeModal = function(graphic, lat, lon, mgrs, utm47, utm48, type) {
+            window.showAttributeModal = function(graphic) {
+                currentEditingGraphic = graphic;
+                var attrs = graphic.attributes || {};
+                
+                var container = document.getElementById("attributeDynamicFields");
+                container.innerHTML = ""; // Clear old fields
+
+                // Define system fields that should perhaps be read-only or handled specifically
+                const systemFields = ["latitude", "longitude", "mgrs", "utmz47", "utmz48", "color", "type", "timestamp", "isBuffer"];
+
+                // Create fields for all attributes
+                Object.keys(attrs).forEach(key => {
+                    // Skip geometry object if it appears in attributes (it shouldn't, but safety check)
+                    if(key === "geometry") return;
+
+                    var div = document.createElement("div");
+                    div.className = "mb-2";
+                    
+                    var label = document.createElement("label");
+                    label.className = "form-label small fw-bold";
+                    label.textContent = key;
+                    
+                    var input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "form-control form-control-sm";
+                    input.id = "attr_input_" + key;
+                    input.name = key;
+                    input.value = (attrs[key] !== undefined && attrs[key] !== null) ? attrs[key] : "";
+                    
+                    // Mark system fields as read-only (optional, remove this if you want EVERYTHING editable)
+                    // if(systemFields.includes(key)) {
+                    //    input.readOnly = true;
+                    //    input.classList.add("bg-light");
+                    // }
+
+                    div.appendChild(label);
+                    div.appendChild(input);
+                    container.appendChild(div);
+                });
+
+                // Add button to add new field
+                var addFieldDiv = document.createElement("div");
+                addFieldDiv.className = "mt-3 border-top pt-2";
+                addFieldDiv.innerHTML = `
+                    <label class="small text-muted">Add New Field:</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" id="new_attr_key" class="form-control" placeholder="Field Name">
+                        <input type="text" id="new_attr_value" class="form-control" placeholder="Value">
+                        <button class="btn btn-outline-secondary" type="button" onclick="addNewAttributeField()">Add</button>
+                    </div>
+                `;
+                container.appendChild(addFieldDiv);
+
                 document.getElementById('modalBackdrop').style.display = 'block';
                 document.getElementById('attributeModal').style.display = 'block';
-                document.getElementById('attrLat').value = lat; document.getElementById('attrLon').value = lon;
-                document.getElementById('attrMgrs').value = mgrs; document.getElementById('attrUtm47').value = utm47;
-                document.getElementById('attrUtm48').value = utm48; document.getElementById('description').focus();
-                document.getElementById('attributeForm').onsubmit = function(e) {
-                    e.preventDefault();
-                    graphic.attributes.description = document.getElementById('description').value;
-                    closeAttributeModal();
-                };
             }
+
+            window.addNewAttributeField = function() {
+                var key = document.getElementById("new_attr_key").value.trim();
+                var val = document.getElementById("new_attr_value").value.trim();
+                if(key) {
+                    if(currentEditingGraphic) {
+                        currentEditingGraphic.attributes[key] = val;
+                        // Refresh modal
+                        showAttributeModal(currentEditingGraphic);
+                    }
+                }
+            }
+
+            document.getElementById('attributeForm').onsubmit = function(e) {
+                e.preventDefault();
+                if (currentEditingGraphic) {
+                    var container = document.getElementById("attributeDynamicFields");
+                    var inputs = container.querySelectorAll("input:not(#new_attr_key):not(#new_attr_value)");
+                    
+                    inputs.forEach(input => {
+                        currentEditingGraphic.attributes[input.name] = input.value;
+                    });
+
+                    // Special update for 'description' to update title
+                    if(currentEditingGraphic.attributes.description) {
+                         if (view.popup.selectedFeature === currentEditingGraphic) {
+                            view.popup.title = currentEditingGraphic.attributes.description;
+                        }
+                    }
+
+                    closeAttributeModal();
+                }
+            };
+
             window.closeAttributeModal = function() {
                 document.getElementById('modalBackdrop').style.display = 'none';
                 document.getElementById('attributeModal').style.display = 'none';
                 document.getElementById('attributeForm').reset();
+                currentEditingGraphic = null;
             }
+
+            // --- SELECT BY ATTRIBUTE (UPDATED WITH OPERATORS) ---
+            document.getElementById("selectAttrLayer").addEventListener("change", function(e) {
+                var layerId = e.target.value;
+                var fieldSelect = document.getElementById("selectAttrField");
+                fieldSelect.innerHTML = "";
+                
+                if (layerId) {
+                    var layer = map.findLayerById(layerId);
+                    if (layer && layer.graphics.length > 0) {
+                        var firstGraphic = layer.graphics.getItemAt(0);
+                        var keys = Object.keys(firstGraphic.attributes);
+                        keys.forEach(key => {
+                            if (key !== "geometry") { 
+                                var opt = document.createElement("option");
+                                opt.value = key; opt.textContent = key;
+                                fieldSelect.appendChild(opt);
+                            }
+                        });
+                    }
+                }
+            });
+
+            document.getElementById("executeSelectAttrBtn").addEventListener("click", function() {
+                var layerId = document.getElementById("selectAttrLayer").value;
+                var field = document.getElementById("selectAttrField").value;
+                var operator = document.getElementById("selectOperator").value;
+                var val = document.getElementById("selectAttrValue").value.trim();
+                var resultMsg = document.getElementById("selectResultMsg");
+                resultMsg.textContent = "";
+
+                if (!layerId || !field || !val) { resultMsg.textContent = "Please fill all fields."; return; }
+
+                var layer = map.findLayerById(layerId);
+                var foundGraphics = [];
+                
+                layer.graphics.forEach(function(g) {
+                    var attrVal = g.attributes[field];
+                    var match = false;
+
+                    // Convert to number for comparison if possible
+                    var numAttr = parseFloat(attrVal);
+                    var numVal = parseFloat(val);
+                    var isNumber = !isNaN(numAttr) && !isNaN(numVal);
+
+                    if(operator === "=") {
+                         // Loose equality for string/number mix
+                        match = (String(attrVal).toLowerCase() === String(val).toLowerCase());
+                    } else if (operator === "contains") {
+                        match = String(attrVal).toLowerCase().includes(String(val).toLowerCase());
+                    } else if (isNumber) {
+                        if (operator === ">") match = numAttr > numVal;
+                        else if (operator === "<") match = numAttr < numVal;
+                        else if (operator === ">=") match = numAttr >= numVal;
+                        else if (operator === "<=") match = numAttr <= numVal;
+                    }
+
+                    if (match) {
+                        foundGraphics.push(g);
+                    }
+                });
+
+                if (foundGraphics.length > 0) {
+                    view.goTo(foundGraphics);
+                    view.popup.open({
+                        features: foundGraphics,
+                        featureMenuOpen: true
+                    });
+                    resultMsg.textContent = `Found ${foundGraphics.length} features.`;
+                    resultMsg.className = "mt-2 small text-success";
+                } else {
+                    resultMsg.textContent = "No features found.";
+                    resultMsg.className = "mt-2 small text-danger";
+                }
+            });
 
             // --- EXPORT SYSTEM ---
             function updateExportLayerList() {
@@ -728,7 +1286,6 @@
                 else if (exportType === "excel") exportSelectedLayersToExcel(layerIds);
             });
 
-            // --- EXPORT EXCEL (With UTM/MGRS) ---
             function exportSelectedLayersToExcel(layerIds) {
                 var wb = XLSX.utils.book_new();
                 var hasData = false;
@@ -739,7 +1296,6 @@
                         layer.graphics.forEach(function(graphic) {
                             var attrs = graphic.attributes || {};
                             var row = Object.assign({}, attrs);
-                            // Ensure coords exist even if somehow missing
                             if (!row.latitude) {
                                 var geom = graphic.geometry;
                                 var center = (geom.type === "point") ? geom : geom.extent.center;
@@ -815,10 +1371,11 @@
             function exportSelectedLayersToGeoJSON(layerIds, wkid) {
                 var features = [];
                 var crsObj = null;
-                // Define CRS Name for GeoJSON
+                var sr = new SpatialReference({ wkid: wkid });
+
                 if (wkid === 32647) crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32647" } };
                 else if (wkid === 32648) crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32648" } };
-                else crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }; // Standard WGS84
+                else crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }; 
 
                 layerIds.forEach(function(id) {
                     var layer = map.findLayerById(id);
@@ -827,10 +1384,9 @@
                             var attrs = graphic.attributes || {};
                             var properties = Object.assign({}, attrs);
                             
-                            // PROJECT GEOMETRY BASED ON SELECTED FORMAT
                             var projectedGeom = (wkid === 4326) 
                                 ? webMercatorUtils.webMercatorToGeographic(graphic.geometry) 
-                                : projection.project(graphic.geometry, { wkid: wkid });
+                                : projection.project(graphic.geometry, sr);
                             
                             var geoJsonGeom = null;
                             if (projectedGeom) {
@@ -855,81 +1411,194 @@
                 closePanel('exportPanel');
             }
 
-            // --- TRACK LOCATION ---
-            var track = new Track({ view: view, graphic: new Graphic({ symbol: { type: "simple-marker", size: "14px", color: "blue", outline: { color: "white", width: 2 } } }), useHeadingEnabled: false });
-            track.on("track", function(trackEvent) {
-                view.goTo({ target: trackEvent.position, zoom: 18 });
-                var geom = trackEvent.position.geometry;
-                var geographic = webMercatorUtils.webMercatorToGeographic(geom);
-                var mgrs = ""; try { mgrs = coordinateFormatter.toMgrs(geographic, "automatic", 5); } catch(e) {}
-                var labelText = `Lat: ${geographic.latitude.toFixed(5)}\nLon: ${geographic.longitude.toFixed(5)}\nMGRS: ${mgrs}`;
-                var textGraphic = new Graphic({ geometry: geom, symbol: { type: "text", color: "black", haloColor: "white", haloSize: "2px", text: labelText, xoffset: 0, yoffset: -25, font: { size: 10, weight: "bold" } } });
-                locationLabelLayer.removeAll(); locationLabelLayer.add(textGraphic);
-            });
-            document.getElementById("locationBtn").addEventListener("click", function() {
-                if (!track.tracking) { track.start(); this.classList.add("tool-active"); } 
-                else { track.stop(); this.classList.remove("tool-active"); locationLabelLayer.removeAll(); }
-            });
-
-            // --- SERVICES & COPY TO DRAW ---
-            document.getElementById("addServiceBtn").addEventListener("click", () => togglePanel("addServicePanel"));
-            var copyToDrawAction = { title: "Copy to Draw Layer", id: "copy-to-draw", className: "esri-icon-duplicate" };
-
-            view.popup.on("trigger-action", function(event) {
-                if (event.action.id === "copy-to-draw") {
-                    if (!activeDrawingLayer) { alert("Please create or select a 'Draw Layer' first."); return; }
-                    var selectedFeature = view.popup.selectedFeature;
-                    if (selectedFeature) {
-                        var clonedGeometry = selectedFeature.geometry.clone();
-                        var sym = null;
-                        if (clonedGeometry.type === "point") sym = new SimpleMarkerSymbol({ color: activeColor, size: "8px", outline: { color: "white", width: 1 } });
-                        else if (clonedGeometry.type === "polyline") sym = new SimpleLineSymbol({ color: activeColor, width: 2 });
-                        else if (clonedGeometry.type === "polygon") sym = new SimpleFillSymbol({ color: hexToRgba(activeColor, 0.3), outline: { color: activeColor, width: 2 } });
-
-                        // Clone attrs but REMOVE old coordinate fields to force recalculation
-                        var newAttributes = Object.assign({}, selectedFeature.attributes);
-                        delete newAttributes.latitude; delete newAttributes.longitude;
-                        delete newAttributes.mgrs; delete newAttributes.utmz47; delete newAttributes.utmz48;
-
-                        var newGraphic = new Graphic({ geometry: clonedGeometry, symbol: sym, attributes: newAttributes });
-                        newGraphic.attributes.color = activeColor;
-                        handleGraphicCreation(newGraphic, false); // Force Recalculate Coords
-                        activeDrawingLayer.add(newGraphic);
-                        alert("Feature copied to: " + activeDrawingLayer.title); view.popup.close();
+            // --- IMPORT VECTOR FILES (KML, KMZ, GeoJSON, Shp Zip) ---
+            document.getElementById("importVectorBtn").addEventListener("click", function() {
+                try {
+                    var fileInput = document.getElementById("vectorFile");
+                    if (!fileInput.files || fileInput.files.length === 0) { 
+                        alert("Please select a file."); 
+                        return; 
                     }
+                    
+                    var file = fileInput.files[0];
+                    var fileName = file.name.toLowerCase(); // Use lower case for check
+                    var fileNameOriginal = file.name;
+                    var fileNameNoExt = fileNameOriginal.split('.').slice(0, -1).join('.');
+                    
+                    console.log("Attempting to import: " + fileNameOriginal);
+
+                    // Create a dedicated layer for this import
+                    createNewDrawingLayer("Import: " + fileNameNoExt);
+                    
+                    var reader = new FileReader();
+
+                    if (fileName.endsWith(".zip")) {
+                        // Shapefile (requires ArrayBuffer)
+                        reader.onload = function(e) {
+                            if (typeof shp === 'undefined') { alert("Shapefile library (shpjs) not loaded."); return; }
+                            shp(e.target.result).then(function(geojson){
+                                if (Array.isArray(geojson)) {
+                                    geojson.forEach(fc => addGeoJsonToLayer(fc));
+                                } else {
+                                    addGeoJsonToLayer(geojson);
+                                }
+                            }).catch(err => {
+                                console.error(err);
+                                alert("Shapefile parsing error: " + err);
+                            });
+                        };
+                        reader.readAsArrayBuffer(file);
+                    } else if (fileName.endsWith(".kmz")) {
+                        // KMZ (Unzip -> find KML)
+                        reader.onload = function(e) {
+                            if (typeof JSZip === 'undefined') { alert("JSZip library not loaded."); return; }
+                            JSZip.loadAsync(e.target.result).then(function(zip) {
+                                var kmlFile = Object.values(zip.files).find(f => f.name.toLowerCase().endsWith(".kml"));
+                                if (kmlFile) {
+                                    kmlFile.async("string").then(function(kmlText) {
+                                        parseKmlText(kmlText);
+                                    });
+                                } else { alert("No KML file found in KMZ."); }
+                            }).catch(err => alert("KMZ error: " + err));
+                        };
+                        reader.readAsArrayBuffer(file);
+                    } else if (fileName.endsWith(".kml")) {
+                        // KML
+                        reader.onload = function(e) {
+                            parseKmlText(e.target.result);
+                        };
+                        reader.readAsText(file);
+                    } else if (fileName.endsWith(".geojson") || fileName.endsWith(".json")) {
+                        // GeoJSON
+                        reader.onload = function(e) {
+                            try {
+                                var json = JSON.parse(e.target.result);
+                                addGeoJsonToLayer(json);
+                            } catch(err) { alert("Invalid JSON: " + err); }
+                        };
+                        reader.readAsText(file);
+                    } else {
+                        alert("Unsupported file type. Please use .zip (Shapefile), .kml, .kmz, or .geojson");
+                    }
+                } catch (e) {
+                    console.error("Import button error:", e);
+                    alert("Error initiating import: " + e.message);
                 }
             });
 
-            document.getElementById("addServiceConfirmBtn").addEventListener("click", function() {
-                var url = document.getElementById("serviceUrl").value.trim();
-                var type = document.getElementById("serviceType").value;
-                var layer;
-                if (url) {
-                    if(type==="wmsLayer") layer = new WMSLayer({url:url, customParameters:{transparent:true}});
-                    else if(type==="featureLayer") layer = new FeatureLayer({ url: url, outFields: ["*"], popupTemplate: { title: "{*}", content: "{*}", actions: [copyToDrawAction] } });
-                    else if(type==="mapImageLayer") layer = new MapImageLayer({url:url});
-                    else if(type==="tileLayer") layer = new TileLayer({url:url});
-                    if(layer){ map.add(layer); updateLayerList(); closePanel('addServicePanel'); }
-                }
-            });
+            function parseKmlText(kmlText) {
+                try {
+                    var parser = new DOMParser();
+                    var kml = parser.parseFromString(kmlText, "text/xml");
+                    // Check if toGeoJSON exists
+                    if (typeof toGeoJSON === 'undefined') {
+                        if(typeof window.toGeoJSON !== 'undefined') toGeoJSON = window.toGeoJSON; // Fallback
+                        else { alert("toGeoJSON library not loaded."); return; }
+                    }
+                    var geojson = toGeoJSON.kml(kml);
+                    addGeoJsonToLayer(geojson);
+                } catch(err) { alert("KML Parsing error: " + err); }
+            }
 
-            function updateLayerList() {
-                var list = document.getElementById("layerList"); list.innerHTML = "";
-                map.layers.toArray().reverse().forEach((l,i) => {
-                    if(l.listMode!=="hide"){
-                        var li=document.createElement("li"); li.className="list-group-item layer-item";
-                        if(l===activeDrawingLayer) li.classList.add("border-primary","border");
-                        li.innerHTML=`<span>${l.title}</span><div class="layer-controls"><button class="btn btn-sm btn-danger" onclick="removeLayer('${l.id}')"><i class="fas fa-trash"></i></button></div>`;
-                        list.appendChild(li);
+            // --- ADDED FUNCTION: Extract WKID from GeoJSON CRS ---
+            function getWkidFromCrs(crs) {
+                if (!crs || !crs.properties || !crs.properties.name) return 4326; // Default to WGS84 if no CRS
+                // Try to find EPSG code in the string (e.g., "urn:ogc:def:crs:EPSG::32647" or "EPSG:32647")
+                var match = crs.properties.name.match(/EPSG\D+(\d+)/i);
+                if (match && match[1]) {
+                    return parseInt(match[1], 10);
+                }
+                return 4326; // Fallback
+            }
+
+            function addGeoJsonToLayer(geojson) {
+                if (!activeDrawingLayer) return;
+                var graphicsToAdd = [];
+                var features = geojson.features || (geojson.type === "Feature" ? [geojson] : []);
+
+                // 1. Determine Input Spatial Reference from GeoJSON CRS object
+                var wkid = getWkidFromCrs(geojson.crs);
+                var sourceSR = new SpatialReference({ wkid: wkid });
+
+                features.forEach(f => {
+                    var geom = f.geometry;
+                    // FIX: Check if geometry exists
+                    if (!geom) return; 
+
+                    var props = f.properties || {};
+                    var esriGeom = null;
+
+                    // Improved Geometry Conversion with validation
+                    try {
+                        // NOTE: Use 'x' and 'y' instead of 'longitude'/'latitude' to support non-WGS84 coordinates (like UTM)
+                        // Also attach the sourceSR to the geometry so the projection engine knows what it is.
+
+                        if (geom.type === "Point" && geom.coordinates && geom.coordinates.length >= 2) {
+                            esriGeom = new Point({ x: geom.coordinates[0], y: geom.coordinates[1], spatialReference: sourceSR });
+                        } else if (geom.type === "MultiPoint" && geom.coordinates) {
+                             esriGeom = new Multipoint({ points: geom.coordinates, spatialReference: sourceSR });
+                        } else if (geom.type === "LineString" && geom.coordinates) {
+                            esriGeom = new Polyline({ paths: [geom.coordinates], spatialReference: sourceSR });
+                        } else if (geom.type === "MultiLineString" && geom.coordinates) {
+                            esriGeom = new Polyline({ paths: geom.coordinates, spatialReference: sourceSR });
+                        } else if (geom.type === "Polygon" && geom.coordinates) {
+                            esriGeom = new Polygon({ rings: geom.coordinates, spatialReference: sourceSR });
+                        } else if (geom.type === "MultiPolygon" && geom.coordinates) {
+                            var rings = [];
+                            geom.coordinates.forEach(polyRings => {
+                                polyRings.forEach(ring => rings.push(ring));
+                            });
+                            esriGeom = new Polygon({ rings: rings, spatialReference: sourceSR });
+                        }
+                    } catch (err) {
+                        console.warn("Geometry conversion error for feature:", f, err);
+                        return;
+                    }
+                    
+                    if (esriGeom) {
+                        // 2. Reproject if necessary
+                        // If the input is NOT WGS84 (4326) and NOT WebMercator (3857/102100), try to project it to the view's SR
+                        if (wkid !== 4326 && wkid !== 3857 && wkid !== 102100) {
+                            try {
+                                var projected = projection.project(esriGeom, view.spatialReference);
+                                if (projected) {
+                                    esriGeom = projected;
+                                }
+                            } catch (e) {
+                                console.warn("Projection failed:", e);
+                                // Continue with original geometry, map might fail to render if SR is wildly different
+                            }
+                        }
+
+                        var g = new Graphic({
+                            geometry: esriGeom,
+                            attributes: props
+                        });
+                        
+                        // Set symbol based on type
+                        if (esriGeom.type === "point" || esriGeom.type === "multipoint") g.symbol = new SimpleMarkerSymbol({color: activeColor, size: "8px", outline: {color:"white"}});
+                        else if (esriGeom.type === "polyline") g.symbol = new SimpleLineSymbol({color: activeColor, width: 2});
+                        else if (esriGeom.type === "polygon") g.symbol = new SimpleFillSymbol({color: hexToRgba(activeColor, 0.3), outline: {color: activeColor, width: 2}});
+                        
+                        if (!g.attributes.description && g.attributes.name) g.attributes.description = g.attributes.name;
+                        
+                        handleGraphicCreation(g, false);
+                        graphicsToAdd.push(g);
                     }
                 });
-            }
-            window.removeLayer = function(id) { map.remove(map.findLayerById(id)); updateLayerList(); populateDrawLayerSelect(); };
 
-            // --- EXCEL IMPORT ---
-            var excelPointsLayer = new GraphicsLayer({ title: "Excel Points", listMode: "show", isDrawLayer: true }); 
-            map.add(excelPointsLayer);
-            document.getElementById("excelImportBtn").addEventListener("click", () => togglePanel("excelImportPanel"));
+                if (graphicsToAdd.length > 0) {
+                    activeDrawingLayer.addMany(graphicsToAdd);
+                    view.goTo(graphicsToAdd);
+                    alert(`Imported ${graphicsToAdd.length} features.`);
+                    closePanel('importDataPanel');
+                    updateLayerList();
+                } else {
+                    alert("No valid features found to import.");
+                }
+            }
+
+            // --- EXCEL IMPORT HANDLERS (UPDATED WITH PAGE 2 LOGIC) ---
             document.getElementById("excelFile").addEventListener("change", function(e) {
                 var file = e.target.files[0];
                 if (file) {
@@ -941,8 +1610,14 @@
                         if (json.length > 0) {
                             var headers = json[0];
                             ['latColumn', 'lonColumn', 'labelColumn'].forEach(id => {
-                                var sel = document.getElementById(id); sel.innerHTML = '<option value="">Select Column</option>';
-                                headers.forEach((h,i) => { var op=document.createElement('option'); op.value=i; op.textContent=h; sel.appendChild(op); });
+                                var sel = document.getElementById(id);
+                                sel.innerHTML = '<option value="">Select Column</option>';
+                                headers.forEach((h, i) => { 
+                                    var op = document.createElement('option'); 
+                                    op.value = i; 
+                                    op.textContent = h; 
+                                    sel.appendChild(op); 
+                                });
                             });
                             document.getElementById("importExcelBtn").disabled = false;
                         }
@@ -950,13 +1625,13 @@
                     reader.readAsArrayBuffer(file);
                 }
             });
-            // --- UPDATED EXCEL IMPORT LISTENER ---
+
             document.getElementById("importExcelBtn").addEventListener("click", function() {
                 var file = document.getElementById("excelFile").files[0];
                 var latI = parseInt(document.getElementById("latColumn").value);
                 var lonI = parseInt(document.getElementById("lonColumn").value);
                 var lblI = parseInt(document.getElementById("labelColumn").value);
-                
+
                 if (file && !isNaN(latI) && !isNaN(lonI)) {
                     var reader = new FileReader();
                     reader.onload = function(e) {
@@ -964,67 +1639,176 @@
                         var wb = XLSX.read(data, { type: 'array' });
                         var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
                         var headers = json[0];
-                        
-                        excelPointsLayer.removeAll();
+
+                        // Create New Layer Logic from Page 2
+                        var layerName = "Excel: " + file.name;
+                        createNewDrawingLayer(layerName);
                         var pts = [];
-                        
+
                         for (var i = 1; i < json.length; i++) {
                             var row = json[i];
                             var lat = parseFloat(row[latI]);
                             var lon = parseFloat(row[lonI]);
-                            
+
                             if (!isNaN(lat) && !isNaN(lon)) {
-                                // สร้างจุด WGS84
                                 var point = new Point({
-                                    latitude: lat, 
+                                    latitude: lat,
                                     longitude: lon,
-                                    spatialReference: { wkid: 4326 }
+                                    spatialReference: new SpatialReference({ wkid: 4326 })
                                 });
-                                
-                                var attributes = {}; 
-                                // เก็บค่าเดิมจาก Excel
+                                var attributes = {};
                                 headers.forEach((h, idx) => attributes[h] = row[idx]);
-                                
-                                attributes.color = "#ff0000"; // สีแดงสำหรับ Excel
-                                attributes.LayerName = "Excel Import";
-                                
-                                if (!isNaN(lblI)) {
-                                    attributes.description = row[lblI];
-                                } else {
-                                    attributes.description = "Point " + i;
-                                }
-                                
-                                var graphic = new Graphic({ 
-                                    geometry: point, 
-                                    symbol: new SimpleMarkerSymbol({color:"red", size:"10px", outline:{color:"white", width:1}}), 
-                                    attributes: attributes 
+                                attributes.color = "#ff0000";
+                                attributes.LayerName = layerName;
+                                attributes.description = !isNaN(lblI) ? row[lblI] : "Point " + i;
+
+                                var graphic = new Graphic({
+                                    geometry: point,
+                                    symbol: new SimpleMarkerSymbol({ color: "red", size: "10px", outline: { color: "white", width: 1 } }),
+                                    attributes: attributes
                                 });
-                                
-                                // **เรียกฟังก์ชันกลางเพื่อคำนวณ MGRS, UTM เพิ่มเติมลงใน attributes**
-                                handleGraphicCreation(graphic, false); 
-                                
+                                handleGraphicCreation(graphic, false);
                                 pts.push(graphic);
                             }
                         }
-                        
-                        excelPointsLayer.addMany(pts); 
-                        if(pts.length > 0) view.goTo(pts); 
-                        
-                        updateLayerList(); 
-                        updateExportLayerList(); 
-                        closePanel('excelImportPanel');
-                        alert("Imported " + pts.length + " points with full coordinates.");
+                        activeDrawingLayer.addMany(pts);
+                        if (pts.length > 0) view.goTo(pts);
+                        updateLayerList();
+                        closePanel('importDataPanel'); 
+                        alert("Imported " + pts.length + " points.");
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    alert("Please select Lat/Lon columns.");
+                }
+            });
+
+            document.getElementById("mgrsExcelFile").addEventListener("change", function(e) {
+                var file = e.target.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var data = new Uint8Array(e.target.result);
+                        var wb = XLSX.read(data, { type: 'array' });
+                        var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                        if (json.length > 0) {
+                            var headers = json[0];
+                            ['mgrsColumn', 'mgrsLabelColumn'].forEach(id => {
+                                var sel = document.getElementById(id);
+                                sel.innerHTML = '<option value="">Select Column</option>';
+                                headers.forEach((h, i) => { 
+                                    var op = document.createElement('option'); 
+                                    op.value = i; 
+                                    op.textContent = h; 
+                                    sel.appendChild(op); 
+                                });
+                            });
+                            document.getElementById("importMgrsExcelBtn").disabled = false;
+                        }
                     };
                     reader.readAsArrayBuffer(file);
                 }
+            });
+
+            document.getElementById("importMgrsExcelBtn").addEventListener("click", function() {
+                var file = document.getElementById("mgrsExcelFile").files[0];
+                var mgrsI = parseInt(document.getElementById("mgrsColumn").value);
+                var lblI = parseInt(document.getElementById("mgrsLabelColumn").value);
+
+                if (file && !isNaN(mgrsI)) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var data = new Uint8Array(e.target.result);
+                        var wb = XLSX.read(data, { type: 'array' });
+                        var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                        var headers = json[0];
+
+                        // Create New Layer Logic from Page 2
+                        var layerName = "MGRS: " + file.name;
+                        createNewDrawingLayer(layerName);
+                        var pts = [];
+
+                        for (var i = 1; i < json.length; i++) {
+                            var row = json[i];
+                            var mgrsString = row[mgrsI];
+                            if (mgrsString) {
+                                try {
+                                    var point = coordinateFormatter.fromMgrs(mgrsString.toString().trim(), new SpatialReference({ wkid: 4326 }), "automatic");
+                                    if (point) {
+                                        var attributes = {};
+                                        headers.forEach((h, idx) => attributes[h] = row[idx]);
+                                        attributes.color = "#008000";
+                                        attributes.LayerName = layerName;
+                                        attributes.description = !isNaN(lblI) ? row[lblI] : "Point " + i;
+
+                                        var graphic = new Graphic({
+                                            geometry: point,
+                                            symbol: new SimpleMarkerSymbol({ color: "green", size: "10px", outline: { color: "white", width: 1 } }),
+                                            attributes: attributes
+                                        });
+                                        handleGraphicCreation(graphic, false);
+                                        pts.push(graphic);
+                                    }
+                                } catch (err) {}
+                            }
+                        }
+                        activeDrawingLayer.addMany(pts);
+                        if (pts.length > 0) view.goTo(pts);
+                        updateLayerList();
+                        closePanel('importDataPanel'); 
+                        alert("Imported " + pts.length + " MGRS points.");
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    alert("Please select MGRS column.");
+                }
+            });
+
+            // --- ADD SERVICE HANDLER (IMPROVED - From Page 2) ---
+            document.getElementById("btnAddService").addEventListener("click", function() {
+                var url = document.getElementById("serviceUrl").value.trim();
+                var type = document.getElementById("serviceType").value;
+                var layer;
+
+                if (url) {
+                    try {
+                        if (type === "wms") layer = new WMSLayer({ url: url, customParameters: { transparent: true } });
+                        else if (type === "feature") layer = new FeatureLayer({ url: url, outFields: ["*"], popupTemplate: { title: "{*}", content: "{*}", actions: [copyToDrawAction] } });
+                        else if (type === "map-image") layer = new MapImageLayer({ url: url });
+                        else if (type === "tile") layer = new TileLayer({ url: url });
+
+                        if (layer) {
+                            map.add(layer);
+                            updateLayerList();
+                            closePanel('addServicePanel');
+                        }
+                    } catch (err) {
+                        alert("Error adding service: " + err.message);
+                    }
+                } else {
+                    alert("Please enter a Service URL.");
+                }
+            });
+
+            // --- TRACK LOCATION (Original) ---
+            var track = new Track({ view: view, graphic: new Graphic({ symbol: { type: "simple-marker", size: "14px", color: "blue", outline: { color: "white", width: 2 } } }), useHeadingEnabled: false });
+            track.on("track", function(trackEvent) {
+                view.goTo({ target: trackEvent.position, zoom: 18 });
+                var geom = trackEvent.position.geometry;
+                var geographic = webMercatorUtils.webMercatorToGeographic(geom);
+                var mgrs = ""; try { mgrs = coordinateFormatter.toMgrs(geographic, "automatic", 5); } catch(e) {}
+                var labelText = `Lat: ${geographic.latitude.toFixed(5)}\nLon: ${geographic.longitude.toFixed(5)}\nMGRS: ${mgrs}`;
+                var textGraphic = new Graphic({ geometry: geom, symbol: { type: "text", color: "black", haloColor: "white", haloSize: "2px", text: labelText, xoffset: 0, yoffset: -25, font: { size: 10, weight: "bold" } } });
+                locationLabelLayer.removeAll(); locationLabelLayer.add(textGraphic);
+            });
+
+            document.getElementById("locationBtn").addEventListener("click", function() {
+                if (!track.tracking) { track.start(); this.classList.add("tool-active"); } 
+                else { track.stop(); this.classList.remove("tool-active"); locationLabelLayer.removeAll(); }
             });
             
             view.when(() => { document.querySelectorAll('.panel, .draw-tools, .excel-import-panel').forEach(p => p.style.display = 'none'); });
         });
     </script>
 </body>
-
 </html>
-
-
-
