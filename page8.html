@@ -12,6 +12,46 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
  
+    /* สถานะปกติ: ซ่อนอยู่ขวาสุด (ล้นจอออกไป -100%) */
+.mapraw-nav {
+    /* ... */
+    right: -100%;  
+    transition: right 0.3s ease; /* สั่งให้เลื่อนนิ่มๆ */
+}
+
+/* สถานะ Active: เมื่อ Script แปะ class active ปุ๊บ มันจะเลื่อนกลับมาที่ 0 (เห็นเต็มจอ) */
+.mapraw-nav.active {
+    right: 0; 
+}
+
+    /* เส้นกลางหายไป */
+.mobile-menu-toggle.active .bar:nth-child(2) {
+    opacity: 0;
+}
+/* เส้นบนหมุน 45 องศา */
+.mobile-menu-toggle.active .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+/* เส้นล่างหมุน -45 องศา */
+.mobile-menu-toggle.active .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+    /* ปกติซ่อน */
+.mapraw-dropdown {
+    /* ... */
+    display: none;
+}
+
+/* พอแม่มัน (nav-item) มี class active ให้ลูก (dropdown) แสดงออกมา */
+.mapraw-nav-item.active .mapraw-dropdown {
+    display: block;
+}
+
+@media (max-width: 1200px) {
+   /* กฎทั้งหมดข้างบนนี้ จะทำงานเฉพาะเมื่อจอเล็กกว่า 1200px เท่านั้น */
+}
+
     /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
 
@@ -1677,7 +1717,29 @@
                 document.getElementById('quickSearch').focus();
             }
         });
-    </script>
-    <script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script> 
+    </script> 
+    <script>
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const nav = document.getElementById('mainNav');
+
+    menuBtn.addEventListener('click', () => {
+        menuBtn.classList.toggle('active');
+        nav.classList.toggle('active');
+    });
+
+    function toggleMobileDropdown(element) {
+        if (window.innerWidth <= 1200) {
+            element.classList.toggle('active');
+        }
+    }
+    
+    // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
+    document.addEventListener('click', (e) => {
+        if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
+            nav.classList.remove('active');
+            menuBtn.classList.remove('active');
+        }
+    });
+</script>
 </body>
 </html>
