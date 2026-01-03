@@ -8,6 +8,290 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
         <style>
+
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --text-white: #ffffff;
+        --text-yellow: #ffeb3b;
+        --bg-glass: rgba(255, 255, 255, 0.1);
+        --bg-glass-hover: rgba(255, 255, 255, 0.25);
+        --header-height: 70px;
+    }
+    
+    body {
+        margin: 0;
+        padding-top: var(--header-height);
+    }
+
+    /* Header Structure */
+    .mapraw-header {
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        font-family: 'Prompt', sans-serif;
+        height: var(--header-height);
+    }
+    
+    .mapraw-header-content {
+        max-width: 100%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        height: 100%;
+    }
+    
+    /* Logo Section */
+    .mapraw-logo-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-shrink: 0;
+        padding-right: 15px;
+    }
+    
+    .mapraw-logo-main {
+        color: var(--text-white);
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    
+    .mapraw-logo-main span {
+        color: var(--text-yellow);
+        text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+    }
+    
+    .mapraw-page-title {
+        color: #e3f2fd;
+        font-size: 1rem;
+        font-weight: 400;
+        margin: 2px 0 0 0;
+        white-space: nowrap;
+    }
+    
+    /* Navigation Section */
+    .mapraw-nav {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        height: 100%;
+    }
+    
+    .mapraw-nav-item {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Buttons */
+    .mapraw-nav-btn {
+        background: var(--bg-glass);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Prompt', sans-serif;
+        white-space: nowrap;
+    }
+    
+    .mapraw-nav-btn:hover {
+        background: var(--bg-glass-hover);
+        transform: translateY(-1px);
+    }
+    
+    .mapraw-nav-btn.home-btn {
+        background: rgba(255, 235, 59, 0.15);
+        border-color: #ffeb3b;
+        color: #ffeb3b;
+    }
+    
+    .mapraw-nav-btn.home-btn:hover {
+        background: #ffeb3b;
+        color: #1565c0;
+    }
+
+    /* Dropdown */
+    .mapraw-dropdown {
+        position: absolute;
+        top: calc(100% - 10px);
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        min-width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        padding: 5px 0;
+        z-index: 1001;
+    }
+    
+    /* Hover Logic for Desktop */
+    @media (min-width: 1201px) {
+        .mapraw-nav-item:hover .mapraw-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+    
+    .mapraw-dropdown-item {
+        display: block;
+        padding: 10px 20px;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+        white-space: nowrap;
+    }
+    
+    .mapraw-dropdown-item:hover {
+        background: #f1f8ff;
+        color: #1565c0;
+    }
+
+    /* Hamburger Menu Toggle */
+    .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        z-index: 1002;
+    }
+    
+    .bar {
+        display: block;
+        width: 25px;
+        height: 3px;
+        margin: 5px auto;
+        background-color: white;
+        transition: all 0.3s ease-in-out;
+        border-radius: 2px;
+    }
+
+    /* ==== Responsive Styles ==== */
+    
+    @media (max-width: 1400px) {
+        .mapraw-nav-btn {
+            padding: 6px 8px;
+            font-size: 0.8rem;
+        }
+        .mapraw-nav {
+            gap: 4px;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .mobile-menu-toggle {
+            display: block;
+        }
+
+        .mapraw-nav {
+            position: fixed;
+            top: var(--header-height);
+            right: -100%;
+            width: 280px;
+            height: calc(100vh - var(--header-height));
+            background: white;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            padding: 10px 0;
+            transition: right 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .mapraw-nav.active {
+            right: 0;
+        }
+
+        .mapraw-nav-item {
+            height: auto;
+            flex-direction: column;
+            width: 100%;
+            display: block;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mapraw-nav-btn {
+            background: white;
+            color: #333;
+            border: none;
+            border-radius: 0;
+            padding: 15px 20px;
+            font-size: 1rem;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mapraw-nav-btn:hover {
+            background: #f5f5f5;
+            color: #1565c0;
+            transform: none;
+        }
+
+        .mapraw-dropdown {
+            position: static;
+            transform: none;
+            visibility: visible;
+            opacity: 1;
+            box-shadow: none;
+            min-width: 100%;
+            background: #f9f9f9;
+            display: none;
+            padding: 0;
+        }
+        
+        .mapraw-nav-item.active .mapraw-dropdown {
+            display: block;
+        }
+
+        .mapraw-dropdown-item {
+            padding-left: 40px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .mobile-menu-toggle.active .bar:nth-child(2) {
+            opacity: 0;
+        }
+        .mobile-menu-toggle.active .bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .mobile-menu-toggle.active .bar:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .mapraw-logo-main { font-size: 1rem; }
+        .mapraw-page-title { font-size: 0.75rem; }
+    }
+
             * {
                 margin: 0;
                 padding: 0;
@@ -254,9 +538,11 @@
             }
     
             .table-container {
-                overflow-x: auto;
+                overflow: auto;
                 margin-top: 2rem;
                 display: none;
+                max-height: 600px;
+                position: relative;
             }
     
             table {
@@ -276,14 +562,50 @@
                 color: #333;
                 font-weight: bold;
                 white-space: nowrap;
+                position: sticky;
+            }
+
+            /* ล็อกหัวตาราง 2 แถว */
+            thead tr:first-child th {
+                top: 0;
+                z-index: 3;
+            }
+
+            thead tr:nth-child(2) th {
+                top: 49px; /* ความสูงของแถวแรก */
+                z-index: 3;
+            }
+
+            /* ล็อกคอลัมน์แรก (บริเวณกริด) */
+            tbody tr td:first-child {
+                position: sticky;
+                left: 0;
+                background-color: white;
+                z-index: 2;
+                font-weight: 500;
+            }
+
+            /* ล็อกเซลล์มุมซ้ายบน (บริเวณกริด ในหัวตาราง) */
+            thead tr:first-child th:first-child {
+                left: 0;
+                z-index: 4;
+            }
+
+            /* สีพื้นหลังแถวคู่ */
+            tbody tr:nth-child(even) td:first-child {
+                background-color: #f8f9fa;
             }
     
             tr:nth-child(even) {
                 background-color: #f8f9fa;
             }
     
-            tr:hover {
+            tbody tr:hover {
                 background-color: #f5f5f5;
+            }
+
+            tbody tr:hover td:first-child {
+                background-color: #e9ecef;
             }
     
             .status-message {
@@ -339,22 +661,98 @@
         </style>
     </head>
     <body>
-        <header class="header">
-            <div class="title-section">
-                <h1>Calculate Population</h1>
-                <h2>คำนวณประชากร</h2>
-            </div>
-            <div class="nav-buttons">
-                <a href="page2.html" class="nav-button reclass-button">Reclass BLDG</a>
-                <a href="page5.html" class="nav-button prepare-button">Prepare PLLU</a>
-                <a href="index.html" class="nav-button home-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                    </svg>
+           <header class="mapraw-header">
+    <div class="mapraw-header-content">
+        <div class="mapraw-logo-section">
+            <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+            <p class="mapraw-page-title">Calculate Population</p>
+        </div>
+        
+        <button class="mobile-menu-toggle" id="mobileMenuBtn">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <nav class="mapraw-nav" id="mainNav">
+            <div class="mapraw-nav-item">
+                <a href="index.html" class="mapraw-nav-btn home-btn">
+                    <span>🏠 หน้าหลัก</span>
                 </a>
             </div>
-        </header>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>📋 เครื่องมือสำรวจ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                    <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                    <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                    <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                    <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                    <a href="page13.html" class="mapraw-dropdown-item">Perpendicular Line</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚙️ เครื่องมือประมวลผล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                    <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                    <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                    <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                    <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚖️ เครื่องมือกฎหมาย</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                    <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🧮 คำนวณเบื้องต้น</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🎯 เครื่องมืออื่นๆ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
     
         <a href="https://1drv.ms/v/c/b492e72c8b6a5bca/ETjs351tvVZGopDK4mcnVUsBWGe1MQIHbU5lC76ieOBIBg?e=4rBvNT" class="manual-section">
             <div class="book-icon">
@@ -449,6 +847,28 @@
     <script>
 const _0x383122=_0x1673;function _0x146b(){const _0x3cde93=['change','checked','ประชากร\x20(เรือนแพ)','จำนวนอาคาร\x20(บ้านแฝด)','shophouse','4100','duplexHouse','1310','จำนวนอาคาร\x20(บ้านเดี่ยว)','style','length','label','26915dRumpN','resultTable','sort','กรุณาเลือกรหัสอาคารอย่างน้อย\x201\x20รายการ','#blUseCheckboxes\x20input[type=\x22checkbox\x22]:checked','type','1193277kRFvEu','toLocaleString','กรุณาอัพโหลดไฟล์ให้ครบถ้วน','4300','\x20จาก\x20','4120','1101','area','reduce','slice','4121','1300','result','children','จำนวนอาคาร\x20(อื่นๆ)','readAsBinaryString','\x20รายการ)','htmlFor','checkbox','statusMessage','ประชากร\x20(อื่นๆ)','ประมวลผลข้อมูลสำเร็จ\x20(','th-TH','book_append_sheet','กำลังสร้างข้อมูล\x20Excel...','#blUseCheckboxes\x20input[type=\x22checkbox\x22]','BL_USE','.export-button','input','read','กำลังประมวลผลอยู่\x20กรุณารอสักครู่...','filter','log','population','utils','singleHouse','1132','get','totalArea','map','cloneNode','blUse_','ประชากร\x20(ทาวน์เฮาส์)','1340','sheet_to_json','จำนวนอาคารรวม','จำนวนห้อง\x20(อาคารพักอาศัย)','\x20กริด...','querySelectorAll','className','จำนวนอาคาร\x20(ทาวน์เฮาส์)','ประชากร\x20(ห้องแถว)','6134KBONFT','getElementsByTagName','totalBuildings','totalPopulation','time','BL_TYPE','click','กำลังอ่านไฟล์\x20PLLU...','Filtering\x20data','townhouse','กำลังเตรียมข้อมูลสำหรับ\x20Excel...','1131','1100','พื้นที่ทั้งหมด(ไร่)','onload','trim','div','clearAll','count','Creating\x20indexes','inline-block','householdSize','4180','apartment','odd-row','clear','files','4122','createElement','กำลังอ่านไฟล์อาคาร...','ประมวลผลข้อมูล\x20','SheetNames','commercial','tbody','\x20กริด)','Population\x20calculation','อัพโหลดไฟล์\x20PLLU\x20สำเร็จ\x20(','toISOString','กำลังประมวลผลข้อมูล\x20','includes','binary','split','even-row','ความหนาแน่นประชากร(คน/ไร่)','none','ข้อมูลประชากร','7QLZxaZ','appendChild','1103','เกิดข้อผิดพลาดในการอ่านไฟล์\x20PLLU','population_calculation_','BL_NUNIT','จำนวนอาคาร\x20(ห้องแถว)','querySelector','ประชากร\x20(บ้านแฝด)','รวม','.xlsx','display','blUseCheckboxes','133MREYCc','progressContainer','error','toFixed','keypress','createDocumentFragment','tableContainer','166608KaexyH','เกิดข้อผิดพลาดในการอ่านไฟล์อาคาร','values','rooms','1102','กำลังกรองข้อมูล...','buildingFile','Enter','progressText','จำนวนอาคาร\x20(อาคารพักอาศัย)','value','1122','density','ประมวลผลกริด\x20','Sheets','houseboat','stats','textContent','Table\x20rendering','set','checkbox-item','เสร็จสิ้น','floor','innerHTML','forEach','Filtered\x20buildings:\x20','book_new','จำนวนอาคาร\x20(เรือนแพ)','aoa_to_sheet','313512xCPgnY','อัพโหลดไฟล์อาคารสำเร็จ\x20(','ประชากร\x20(อาคารพักอาศัย)','addEventListener','timeEnd','total-row','block','target','has','2011736KeYxwz','PL_BLOCK','1350','1569740uFfTgh','เกิดข้อผิดพลาดในการประมวลผลข้อมูล','others','push','plBlock','บริเวณกริด','4123','60ipzSyB','success','getElementById'];_0x146b=function(){return _0x3cde93;};return _0x146b();}(function(_0x1eba8b,_0x48d35d){const _0x3ebbc2=_0x1673,_0x35458d=_0x1eba8b();while(!![]){try{const _0x18cf80=parseInt(_0x3ebbc2(0x1bf))/0x1*(-parseInt(_0x3ebbc2(0x184))/0x2)+parseInt(_0x3ebbc2(0x150))/0x3+-parseInt(_0x3ebbc2(0x128))/0x4+-parseInt(_0x3ebbc2(0x14a))/0x5*(parseInt(_0x3ebbc2(0x13b))/0x6)+parseInt(_0x3ebbc2(0x1b2))/0x7*(parseInt(_0x3ebbc2(0x131))/0x8)+-parseInt(_0x3ebbc2(0x1c6))/0x9+parseInt(_0x3ebbc2(0x134))/0xa;if(_0x18cf80===_0x48d35d)break;else _0x35458d['push'](_0x35458d['shift']());}catch(_0x3e1ca2){_0x35458d['push'](_0x35458d['shift']());}}}(_0x146b,0x3c711));let buildingData=[],plluData=[],filteredBuildings=[],filteredPllu=[],processedResults=[],isProcessing=![],buildingIndexByBlock=new Map(),buildingIndexByUse=new Map();const residentialCodes=[_0x383122(0x190),_0x383122(0x156),_0x383122(0x1ca),_0x383122(0x1b4),'1121',_0x383122(0x1d1),'1123',_0x383122(0x18f),_0x383122(0x174),_0x383122(0x15b),_0x383122(0x145),'1320','1330',_0x383122(0x17b),_0x383122(0x133),_0x383122(0x143),'4110',_0x383122(0x155),_0x383122(0x15a),_0x383122(0x19f),_0x383122(0x13a),_0x383122(0x19a),_0x383122(0x153)];let selectedBlUse=[...residentialCodes];document[_0x383122(0x13d)](_0x383122(0x1cc))[_0x383122(0x12b)](_0x383122(0x13e),handleBuildingFile),document[_0x383122(0x13d)]('plluFile')[_0x383122(0x12b)](_0x383122(0x13e),handlePlluFile),document[_0x383122(0x13d)](_0x383122(0x199))[_0x383122(0x12b)](_0x383122(0x1c3),function(_0x317a18){const _0x200ac2=_0x383122;_0x317a18['key']===_0x200ac2(0x1cd)&&processData();}),document[_0x383122(0x13d)]('selectAll')[_0x383122(0x12b)](_0x383122(0x18a),selectAllBlUse),document[_0x383122(0x13d)](_0x383122(0x195))[_0x383122(0x12b)](_0x383122(0x18a),clearAllBlUse);function normalizeBuildingType(_0x1e068c){const _0x1c946e=_0x383122,_0x40fa90=String(_0x1e068c)[_0x1c946e(0x193)](),_0x10ad4f={'1':0x1,'บ้านเดี่ยว':0x1,'2':0x2,'บ้านแฝด':0x2,'3':0x3,'ทาวน์เฮาส์':0x3,'4':0x4,'ห้องแถว':0x4,'5':0x5,'ตึกแถว':0x5,'6':0x6,'อาคารพักอาศัย':0x6,'7':0x7,'เรือนแพ':0x7,'8':0x8,'อื่นๆ':0x8,'98':0x62};return _0x10ad4f[_0x40fa90]||null;}function formatNumber(_0x5534fe,_0x2e9b1f=0x0){const _0x3752d4=_0x383122;return _0x5534fe[_0x3752d4(0x151)](_0x3752d4(0x166),{'minimumFractionDigits':_0x2e9b1f,'maximumFractionDigits':_0x2e9b1f});}function createIndexes(){const _0x445cd2=_0x383122;console[_0x445cd2(0x188)](_0x445cd2(0x197)),buildingIndexByBlock[_0x445cd2(0x19d)](),buildingIndexByUse[_0x445cd2(0x19d)](),filteredBuildings[_0x445cd2(0x123)]((_0x202d1f,_0x55ef0a)=>{const _0xfcc677=_0x445cd2,_0x101e2b=String(_0x202d1f[_0xfcc677(0x132)])[_0xfcc677(0x193)]();!buildingIndexByBlock[_0xfcc677(0x130)](_0x101e2b)&&buildingIndexByBlock[_0xfcc677(0x1d9)](_0x101e2b,[]),buildingIndexByBlock['get'](_0x101e2b)['push'](_0x55ef0a);}),console['timeEnd']('Creating\x20indexes');}async function handleBuildingFile(_0x1b289c){const _0x27947c=_0x383122;try{const _0x22a375=_0x1b289c[_0x27947c(0x12f)][_0x27947c(0x19e)][0x0];showProgress(0x0,_0x27947c(0x1a1)),buildingData=await readExcelFile(_0x22a375),updateBlUseCheckboxes(),hideProgress(),showStatus(_0x27947c(0x129)+buildingData['length'][_0x27947c(0x151)]()+_0x27947c(0x160),_0x27947c(0x13c));}catch(_0x45112d){hideProgress(),handleError(_0x45112d,_0x27947c(0x1c7));}}async function handlePlluFile(_0x2f8bb6){const _0x532854=_0x383122;try{const _0x2717a9=_0x2f8bb6['target'][_0x532854(0x19e)][0x0];showProgress(0x0,_0x532854(0x18b)),plluData=await readExcelFile(_0x2717a9),hideProgress(),showStatus(_0x532854(0x1a8)+plluData[_0x532854(0x148)][_0x532854(0x151)]()+'\x20รายการ)',_0x532854(0x13c));}catch(_0x9b2425){hideProgress(),handleError(_0x9b2425,_0x532854(0x1b5));}}async function readExcelFile(_0x3786cc){return new Promise((_0x3274c7,_0x4a012c)=>{const _0x559b0c=_0x1673,_0x56d02d=new FileReader();_0x56d02d[_0x559b0c(0x192)]=_0x34e728=>{const _0x117b8a=_0x559b0c;try{const _0x298a8a=_0x34e728[_0x117b8a(0x12f)][_0x117b8a(0x15c)],_0x5cc380=XLSX[_0x117b8a(0x16d)](_0x298a8a,{'type':_0x117b8a(0x1ac)}),_0x1d5d18=_0x5cc380[_0x117b8a(0x1a3)][0x0],_0x22924f=_0x5cc380[_0x117b8a(0x1d4)][_0x1d5d18],_0x483d58=XLSX[_0x117b8a(0x172)][_0x117b8a(0x17c)](_0x22924f);_0x3274c7(_0x483d58);}catch(_0x35501a){_0x4a012c(_0x35501a);}},_0x56d02d['onerror']=_0x4a012c,_0x56d02d[_0x559b0c(0x15f)](_0x3786cc);});}function updateBlUseCheckboxes(){const _0x4b5cfc=_0x383122,_0x1874f7=document['getElementById'](_0x4b5cfc(0x1be));_0x1874f7[_0x4b5cfc(0x122)]='';const _0x17f6f9=new Set();for(const _0x59160e of buildingData){const _0x503402=String(_0x59160e[_0x4b5cfc(0x16a)])[_0x4b5cfc(0x193)]();residentialCodes['includes'](_0x503402)&&_0x17f6f9['add'](_0x503402);}[..._0x17f6f9][_0x4b5cfc(0x14c)]()[_0x4b5cfc(0x123)](_0x3d966c=>{const _0x2dcaad=_0x4b5cfc,_0x39b5a2=document[_0x2dcaad(0x1a0)](_0x2dcaad(0x194));_0x39b5a2['className']=_0x2dcaad(0x1da);const _0x11d193=document[_0x2dcaad(0x1a0)](_0x2dcaad(0x16c));_0x11d193[_0x2dcaad(0x14f)]=_0x2dcaad(0x162),_0x11d193['id']='blUse_'+_0x3d966c,_0x11d193['value']=_0x3d966c,_0x11d193[_0x2dcaad(0x13f)]=selectedBlUse[_0x2dcaad(0x1ab)](_0x3d966c),_0x11d193[_0x2dcaad(0x12b)](_0x2dcaad(0x13e),updateSelectedBlUse);const _0x20c54c=document['createElement'](_0x2dcaad(0x149));_0x20c54c[_0x2dcaad(0x161)]=_0x2dcaad(0x179)+_0x3d966c,_0x20c54c[_0x2dcaad(0x1d7)]=_0x3d966c,_0x39b5a2[_0x2dcaad(0x1b3)](_0x11d193),_0x39b5a2['appendChild'](_0x20c54c),_0x1874f7[_0x2dcaad(0x1b3)](_0x39b5a2);});}function updateSelectedBlUse(){const _0x3ea04f=_0x383122;selectedBlUse=[];const _0x20ca0d=document[_0x3ea04f(0x180)](_0x3ea04f(0x14e));_0x20ca0d[_0x3ea04f(0x123)](_0x3f62b7=>{selectedBlUse['push'](_0x3f62b7['value']);}),buildingData[_0x3ea04f(0x148)]>0x0&&filterData();}function selectAllBlUse(){const _0x574e2a=_0x383122,_0x2a8a34=document['querySelectorAll'](_0x574e2a(0x169));_0x2a8a34[_0x574e2a(0x123)](_0xd1146b=>{const _0x2c444c=_0x574e2a;_0xd1146b[_0x2c444c(0x13f)]=!![];}),updateSelectedBlUse();}function clearAllBlUse(){const _0x4961b4=_0x383122,_0x3da747=document[_0x4961b4(0x180)](_0x4961b4(0x169));_0x3da747[_0x4961b4(0x123)](_0x524f38=>{const _0x47a8fd=_0x4961b4;_0x524f38[_0x47a8fd(0x13f)]=![];}),updateSelectedBlUse();}function filterData(){const _0x41b4dc=_0x383122;console[_0x41b4dc(0x188)](_0x41b4dc(0x18c));const _0x50f676=new Set(selectedBlUse);filteredBuildings=buildingData['filter'](_0x364026=>{const _0x464871=_0x41b4dc,_0x4e91ec=String(_0x364026[_0x464871(0x16a)])['trim']();return _0x50f676[_0x464871(0x130)](_0x4e91ec);}),filteredPllu=[...plluData],console['timeEnd'](_0x41b4dc(0x18c)),console[_0x41b4dc(0x170)](_0x41b4dc(0x124)+filteredBuildings[_0x41b4dc(0x148)][_0x41b4dc(0x151)]()),createIndexes();}function showProgress(_0x2fdce5,_0x340c16){const _0x395ad3=_0x383122,_0x3a8da0=document[_0x395ad3(0x13d)](_0x395ad3(0x1c0)),_0x135fe4=document[_0x395ad3(0x13d)]('progressFill'),_0x498d37=document['getElementById'](_0x395ad3(0x1ce));_0x3a8da0[_0x395ad3(0x147)][_0x395ad3(0x1bd)]=_0x395ad3(0x12e),_0x135fe4[_0x395ad3(0x147)]['width']=_0x2fdce5+'%',_0x498d37[_0x395ad3(0x1d7)]=_0x340c16;}function hideProgress(){const _0x894e6e=_0x383122;document['getElementById'](_0x894e6e(0x1c0))[_0x894e6e(0x147)][_0x894e6e(0x1bd)]='none';}function showStatus(_0x4ffdeb,_0x3f36ff){const _0x481533=_0x383122,_0x1d4f70=document[_0x481533(0x13d)](_0x481533(0x163));_0x1d4f70['textContent']=_0x4ffdeb,_0x1d4f70[_0x481533(0x181)]='status-message\x20'+_0x3f36ff,_0x1d4f70[_0x481533(0x147)][_0x481533(0x1bd)]='block',setTimeout(()=>{const _0x282fbd=_0x481533;_0x1d4f70[_0x282fbd(0x147)]['display']=_0x282fbd(0x1b0);},0xbb8);}function handleError(_0x449717,_0x2b2408){const _0x9d5f3=_0x383122;console[_0x9d5f3(0x1c1)](_0x449717),showStatus(_0x2b2408,_0x9d5f3(0x1c1));}async function processData(){const _0x222c3b=_0x383122;try{if(isProcessing){showStatus(_0x222c3b(0x16e),_0x222c3b(0x1c1));return;}if(!buildingData[_0x222c3b(0x148)]||!plluData[_0x222c3b(0x148)]){showStatus(_0x222c3b(0x152),_0x222c3b(0x1c1));return;}if(selectedBlUse[_0x222c3b(0x148)]===0x0){showStatus(_0x222c3b(0x14d),_0x222c3b(0x1c1));return;}const _0x35e6d3=parseFloat(document[_0x222c3b(0x13d)](_0x222c3b(0x199))[_0x222c3b(0x1d0)]);if(!_0x35e6d3||_0x35e6d3<=0x0){showStatus('กรุณากรอกขนาดครัวเรือนเฉลี่ยให้ถูกต้อง','error');return;}isProcessing=!![],filteredBuildings[_0x222c3b(0x148)]===0x0&&(showProgress(0xa,_0x222c3b(0x1cb)),await sleep(0xa),filterData()),showProgress(0x1e,_0x222c3b(0x1aa)+filteredPllu[_0x222c3b(0x148)][_0x222c3b(0x151)]()+_0x222c3b(0x17f)),await sleep(0xa),await calculatePopulationAsync(),showProgress(0x5a,'กำลังสร้างตาราง...'),await sleep(0xa),renderTable(),showProgress(0x64,_0x222c3b(0x1db)),setTimeout(hideProgress,0x1f4),document[_0x222c3b(0x13d)](_0x222c3b(0x1c5))[_0x222c3b(0x147)]['display']=_0x222c3b(0x12e),document[_0x222c3b(0x1b9)](_0x222c3b(0x16b))['style'][_0x222c3b(0x1bd)]=_0x222c3b(0x198),showStatus(_0x222c3b(0x165)+processedResults[_0x222c3b(0x148)]['toLocaleString']()+_0x222c3b(0x1a6),_0x222c3b(0x13c));}catch(_0x340998){hideProgress(),handleError(_0x340998,_0x222c3b(0x135));}finally{isProcessing=![];}}function sleep(_0x3b1dd6){return new Promise(_0x3effc0=>setTimeout(_0x3effc0,_0x3b1dd6));}async function calculatePopulationAsync(){const _0x4721b4=_0x383122;console[_0x4721b4(0x188)](_0x4721b4(0x1a7));const _0x22ffb8=parseFloat(document[_0x4721b4(0x13d)]('householdSize')['value']),_0x4b29bf=0x3e8;processedResults=[];for(let _0xe4c142=0x0;_0xe4c142<filteredPllu[_0x4721b4(0x148)];_0xe4c142+=_0x4b29bf){const _0x5291c9=filteredPllu[_0x4721b4(0x159)](_0xe4c142,_0xe4c142+_0x4b29bf),_0x61bf19=Math[_0x4721b4(0x121)](_0xe4c142/filteredPllu[_0x4721b4(0x148)]*0x3c)+0x1e;showProgress(_0x61bf19,_0x4721b4(0x1d3)+(_0xe4c142+0x1)+'-'+Math['min'](_0xe4c142+_0x4b29bf,filteredPllu[_0x4721b4(0x148)])+_0x4721b4(0x154)+filteredPllu[_0x4721b4(0x148)][_0x4721b4(0x151)]());const _0x561b55=_0x5291c9[_0x4721b4(0x177)](_0x417e0b=>calculateSingleGrid(_0x417e0b,_0x22ffb8));processedResults['push'](..._0x561b55),_0xe4c142%(_0x4b29bf*0x5)===0x0&&await sleep(0x1);}console[_0x4721b4(0x12c)]('Population\x20calculation');}function calculateSingleGrid(_0x544383,_0x3a7639){const _0x25b713=_0x383122,_0x21625d=String(_0x544383['PL_BLOCK'])[_0x25b713(0x193)](),_0x5dfe32=buildingIndexByBlock[_0x25b713(0x175)](_0x21625d)||[],_0x47ffa5=_0x5dfe32[_0x25b713(0x177)](_0x27dfdf=>filteredBuildings[_0x27dfdf])[_0x25b713(0x16f)](_0x8e0210=>{const _0x153d2e=_0x25b713,_0x5165c8=normalizeBuildingType(_0x8e0210[_0x153d2e(0x189)]);return _0x5165c8>=0x1&&_0x5165c8<=0x8;}),_0x54d150=new Map();_0x47ffa5['forEach'](_0x5d02b6=>{const _0x4cfcab=_0x25b713,_0x4604e5=normalizeBuildingType(_0x5d02b6[_0x4cfcab(0x189)]);!_0x54d150[_0x4cfcab(0x130)](_0x4604e5)&&_0x54d150[_0x4cfcab(0x1d9)](_0x4604e5,[]),_0x54d150[_0x4cfcab(0x175)](_0x4604e5)[_0x4cfcab(0x137)](_0x5d02b6);});const _0x5e79d9=_0x51791d=>{const _0x473448=_0x25b713,_0x286f0b=_0x54d150[_0x473448(0x175)](_0x51791d)||[],_0x1cbe7f=_0x286f0b['length'];let _0x513328=0x0;switch(_0x51791d){case 0x1:_0x513328=_0x1cbe7f*(_0x3a7639+0.15);break;case 0x2:_0x513328=_0x1cbe7f*_0x3a7639;break;case 0x3:case 0x4:case 0x5:_0x513328=_0x1cbe7f*(_0x3a7639-0.1);break;case 0x6:const _0x301481=_0x286f0b[_0x473448(0x158)]((_0x10e5b3,_0x538dee)=>_0x10e5b3+(parseFloat(_0x538dee[_0x473448(0x1b7)])||0x0),0x0);_0x513328=_0x301481*0x2;return{'count':_0x1cbe7f,'rooms':_0x301481,'population':_0x513328};case 0x7:_0x513328=_0x1cbe7f*(_0x3a7639+0.15);break;case 0x8:case 0x62:_0x513328=_0x1cbe7f*_0x3a7639*0x2;break;}return{'count':_0x1cbe7f,'population':_0x513328};},_0x4e2bdb={'singleHouse':_0x5e79d9(0x1),'duplexHouse':_0x5e79d9(0x2),'townhouse':_0x5e79d9(0x3),'shophouse':_0x5e79d9(0x4),'commercial':_0x5e79d9(0x5),'houseboat':_0x5e79d9(0x7),'apartment':_0x5e79d9(0x6),'others':{'count':(_0x54d150[_0x25b713(0x175)](0x8)||[])['length']+(_0x54d150['get'](0x62)||[])[_0x25b713(0x148)],'population':((_0x54d150[_0x25b713(0x175)](0x8)||[])[_0x25b713(0x148)]+(_0x54d150[_0x25b713(0x175)](0x62)||[])[_0x25b713(0x148)])*_0x3a7639*0x2}},_0x1a3d48=Object[_0x25b713(0x1c8)](_0x4e2bdb)[_0x25b713(0x158)]((_0xa92230,_0x57ca53)=>_0xa92230+_0x57ca53[_0x25b713(0x196)],0x0),_0x1da47d=Object[_0x25b713(0x1c8)](_0x4e2bdb)[_0x25b713(0x158)]((_0x31ea90,_0x30518d)=>_0x31ea90+_0x30518d[_0x25b713(0x171)],0x0),_0xe3f6bd=parseFloat(_0x544383['AREA_rai'])||0x0,_0xba5635=_0xe3f6bd>0x0?_0x1da47d/_0xe3f6bd:0x0;return{'plBlock':_0x544383[_0x25b713(0x132)],'stats':_0x4e2bdb,'totalBuildings':_0x1a3d48,'totalPopulation':_0x1da47d,'area':_0xe3f6bd,'density':_0xba5635};}async function renderTable(){const _0x484142=_0x383122;console['time'](_0x484142(0x1d8));const _0xb825e9=document['getElementById'](_0x484142(0x14b))[_0x484142(0x185)](_0x484142(0x1a5))[0x0];_0xb825e9[_0x484142(0x122)]='';const _0x6b558b=document[_0x484142(0x1c4)](),_0x3dcae7=0x1f4;for(let _0x4722a5=0x0;_0x4722a5<processedResults[_0x484142(0x148)];_0x4722a5+=_0x3dcae7){const _0x2fd2be=processedResults['slice'](_0x4722a5,_0x4722a5+_0x3dcae7);_0x2fd2be['forEach']((_0x4b2cc4,_0xabd4e9)=>{const _0x4af6c6=_0x484142,_0x368492=document[_0x4af6c6(0x1a0)]('tr');_0x368492[_0x4af6c6(0x181)]=(_0x4722a5+_0xabd4e9)%0x2===0x0?_0x4af6c6(0x1ae):_0x4af6c6(0x19c);const _0x2ec468=[_0x4b2cc4[_0x4af6c6(0x138)],formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)][_0x4af6c6(0x173)]['count']),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)][_0x4af6c6(0x173)][_0x4af6c6(0x171)],0x2),formatNumber(_0x4b2cc4['stats'][_0x4af6c6(0x144)][_0x4af6c6(0x196)]),formatNumber(_0x4b2cc4['stats'][_0x4af6c6(0x144)][_0x4af6c6(0x171)],0x2),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)]['townhouse'][_0x4af6c6(0x196)]),formatNumber(_0x4b2cc4['stats']['townhouse'][_0x4af6c6(0x171)],0x2),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)][_0x4af6c6(0x142)][_0x4af6c6(0x196)]),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)]['shophouse'][_0x4af6c6(0x171)],0x2),formatNumber(_0x4b2cc4['stats'][_0x4af6c6(0x1a4)][_0x4af6c6(0x196)]),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)][_0x4af6c6(0x1a4)][_0x4af6c6(0x171)],0x2),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)][_0x4af6c6(0x1d5)][_0x4af6c6(0x196)]),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)][_0x4af6c6(0x1d5)][_0x4af6c6(0x171)],0x2),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)][_0x4af6c6(0x19b)]['count']),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)]['apartment'][_0x4af6c6(0x1c9)]||0x0),formatNumber(_0x4b2cc4['stats'][_0x4af6c6(0x19b)]['population'],0x2),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)][_0x4af6c6(0x136)][_0x4af6c6(0x196)]),formatNumber(_0x4b2cc4[_0x4af6c6(0x1d6)][_0x4af6c6(0x136)][_0x4af6c6(0x171)],0x2),formatNumber(_0x4b2cc4[_0x4af6c6(0x186)]),formatNumber(_0x4b2cc4[_0x4af6c6(0x187)],0x2),formatNumber(_0x4b2cc4[_0x4af6c6(0x157)],0x2),formatNumber(_0x4b2cc4['density'],0x2)];_0x2ec468[_0x4af6c6(0x123)](_0x576e0e=>{const _0x3fce1e=_0x4af6c6,_0x130a4b=document[_0x3fce1e(0x1a0)]('td');_0x130a4b[_0x3fce1e(0x1d7)]=_0x576e0e,_0x368492[_0x3fce1e(0x1b3)](_0x130a4b);}),_0x6b558b[_0x4af6c6(0x1b3)](_0x368492);}),_0x4722a5%(_0x3dcae7*0x2)===0x0&&(_0xb825e9['appendChild'](_0x6b558b[_0x484142(0x178)](!![])),_0x6b558b[_0x484142(0x122)]='',await sleep(0x1));}_0x6b558b[_0x484142(0x15d)][_0x484142(0x148)]>0x0&&_0xb825e9[_0x484142(0x1b3)](_0x6b558b),addTotalRowOptimized(),console[_0x484142(0x12c)](_0x484142(0x1d8));}function _0x1673(_0x3c68cb,_0xd3b382){const _0x146bf9=_0x146b();return _0x1673=function(_0x167305,_0x53538f){_0x167305=_0x167305-0x121;let _0x9cb575=_0x146bf9[_0x167305];return _0x9cb575;},_0x1673(_0x3c68cb,_0xd3b382);}function addTotalRowOptimized(){const _0x34fd32=_0x383122,_0x2cc76d=document[_0x34fd32(0x13d)](_0x34fd32(0x14b))['getElementsByTagName'](_0x34fd32(0x1a5))[0x0],_0x137b19=document['createElement']('tr');_0x137b19['className']=_0x34fd32(0x12d);const _0x1bcdfa=processedResults[_0x34fd32(0x158)]((_0x4bee6e,_0x1e843e)=>{const _0x4be631=_0x34fd32;return _0x4bee6e['singleHouse'][_0x4be631(0x196)]+=_0x1e843e[_0x4be631(0x1d6)][_0x4be631(0x173)]['count'],_0x4bee6e['singleHouse'][_0x4be631(0x171)]+=_0x1e843e[_0x4be631(0x1d6)]['singleHouse'][_0x4be631(0x171)],_0x4bee6e[_0x4be631(0x144)]['count']+=_0x1e843e[_0x4be631(0x1d6)][_0x4be631(0x144)][_0x4be631(0x196)],_0x4bee6e[_0x4be631(0x144)][_0x4be631(0x171)]+=_0x1e843e[_0x4be631(0x1d6)]['duplexHouse'][_0x4be631(0x171)],_0x4bee6e[_0x4be631(0x18d)][_0x4be631(0x196)]+=_0x1e843e[_0x4be631(0x1d6)][_0x4be631(0x18d)][_0x4be631(0x196)],_0x4bee6e[_0x4be631(0x18d)][_0x4be631(0x171)]+=_0x1e843e[_0x4be631(0x1d6)][_0x4be631(0x18d)][_0x4be631(0x171)],_0x4bee6e[_0x4be631(0x142)][_0x4be631(0x196)]+=_0x1e843e[_0x4be631(0x1d6)]['shophouse'][_0x4be631(0x196)],_0x4bee6e[_0x4be631(0x142)]['population']+=_0x1e843e[_0x4be631(0x1d6)]['shophouse']['population'],_0x4bee6e[_0x4be631(0x1a4)][_0x4be631(0x196)]+=_0x1e843e[_0x4be631(0x1d6)][_0x4be631(0x1a4)][_0x4be631(0x196)],_0x4bee6e[_0x4be631(0x1a4)][_0x4be631(0x171)]+=_0x1e843e[_0x4be631(0x1d6)][_0x4be631(0x1a4)][_0x4be631(0x171)],_0x4bee6e['houseboat']['count']+=_0x1e843e['stats'][_0x4be631(0x1d5)][_0x4be631(0x196)],_0x4bee6e[_0x4be631(0x1d5)][_0x4be631(0x171)]+=_0x1e843e['stats']['houseboat'][_0x4be631(0x171)],_0x4bee6e[_0x4be631(0x19b)][_0x4be631(0x196)]+=_0x1e843e['stats'][_0x4be631(0x19b)]['count'],_0x4bee6e[_0x4be631(0x19b)][_0x4be631(0x1c9)]+=_0x1e843e[_0x4be631(0x1d6)][_0x4be631(0x19b)][_0x4be631(0x1c9)]||0x0,_0x4bee6e[_0x4be631(0x19b)][_0x4be631(0x171)]+=_0x1e843e[_0x4be631(0x1d6)][_0x4be631(0x19b)][_0x4be631(0x171)],_0x4bee6e[_0x4be631(0x136)][_0x4be631(0x196)]+=_0x1e843e['stats']['others'][_0x4be631(0x196)],_0x4bee6e[_0x4be631(0x136)]['population']+=_0x1e843e[_0x4be631(0x1d6)][_0x4be631(0x136)]['population'],_0x4bee6e['totalBuildings']+=_0x1e843e['totalBuildings'],_0x4bee6e['totalPopulation']+=_0x1e843e['totalPopulation'],_0x4bee6e[_0x4be631(0x176)]+=_0x1e843e[_0x4be631(0x157)],_0x4bee6e;},{'singleHouse':{'count':0x0,'population':0x0},'duplexHouse':{'count':0x0,'population':0x0},'townhouse':{'count':0x0,'population':0x0},'shophouse':{'count':0x0,'population':0x0},'commercial':{'count':0x0,'population':0x0},'houseboat':{'count':0x0,'population':0x0},'apartment':{'count':0x0,'rooms':0x0,'population':0x0},'others':{'count':0x0,'population':0x0},'totalBuildings':0x0,'totalPopulation':0x0,'totalArea':0x0}),_0x5df7d6=[_0x34fd32(0x1bb),formatNumber(_0x1bcdfa[_0x34fd32(0x173)][_0x34fd32(0x196)]),formatNumber(_0x1bcdfa[_0x34fd32(0x173)][_0x34fd32(0x171)],0x2),formatNumber(_0x1bcdfa['duplexHouse'][_0x34fd32(0x196)]),formatNumber(_0x1bcdfa['duplexHouse'][_0x34fd32(0x171)],0x2),formatNumber(_0x1bcdfa['townhouse'][_0x34fd32(0x196)]),formatNumber(_0x1bcdfa[_0x34fd32(0x18d)]['population'],0x2),formatNumber(_0x1bcdfa[_0x34fd32(0x142)]['count']),formatNumber(_0x1bcdfa[_0x34fd32(0x142)][_0x34fd32(0x171)],0x2),formatNumber(_0x1bcdfa['commercial'][_0x34fd32(0x196)]),formatNumber(_0x1bcdfa['commercial'][_0x34fd32(0x171)],0x2),formatNumber(_0x1bcdfa[_0x34fd32(0x1d5)]['count']),formatNumber(_0x1bcdfa['houseboat'][_0x34fd32(0x171)],0x2),formatNumber(_0x1bcdfa[_0x34fd32(0x19b)][_0x34fd32(0x196)]),formatNumber(_0x1bcdfa[_0x34fd32(0x19b)][_0x34fd32(0x1c9)]),formatNumber(_0x1bcdfa['apartment'][_0x34fd32(0x171)],0x2),formatNumber(_0x1bcdfa[_0x34fd32(0x136)][_0x34fd32(0x196)]),formatNumber(_0x1bcdfa[_0x34fd32(0x136)][_0x34fd32(0x171)],0x2),formatNumber(_0x1bcdfa['totalBuildings']),formatNumber(_0x1bcdfa['totalPopulation'],0x2),formatNumber(_0x1bcdfa[_0x34fd32(0x176)],0x2),formatNumber(_0x1bcdfa[_0x34fd32(0x176)]>0x0?_0x1bcdfa[_0x34fd32(0x187)]/_0x1bcdfa[_0x34fd32(0x176)]:0x0,0x2)];_0x5df7d6['forEach'](_0x2cde79=>{const _0x1bc413=_0x34fd32,_0x11a1ec=document[_0x1bc413(0x1a0)]('td');_0x11a1ec[_0x1bc413(0x1d7)]=_0x2cde79,_0x137b19[_0x1bc413(0x1b3)](_0x11a1ec);}),_0x2cc76d['appendChild'](_0x137b19);}function exportToExcel(){const _0x18b939=_0x383122;try{showProgress(0x0,_0x18b939(0x18e));const _0x502de4=XLSX[_0x18b939(0x172)][_0x18b939(0x125)](),_0x10ffcd=[_0x18b939(0x139),_0x18b939(0x146),'ประชากร\x20(บ้านเดี่ยว)',_0x18b939(0x141),_0x18b939(0x1ba),_0x18b939(0x182),_0x18b939(0x17a),_0x18b939(0x1b8),_0x18b939(0x183),'จำนวนอาคาร\x20(ตึกแถว)','ประชากร\x20(ตึกแถว)',_0x18b939(0x126),_0x18b939(0x140),_0x18b939(0x1cf),_0x18b939(0x17e),_0x18b939(0x12a),_0x18b939(0x15e),_0x18b939(0x164),_0x18b939(0x17d),'ประชากรรวม',_0x18b939(0x191),_0x18b939(0x1af)];showProgress(0x14,_0x18b939(0x168));const _0xbc2e67=[_0x10ffcd],_0x11e01e=0x3e8;let _0x36c252=0x0;for(let _0x11a754=0x0;_0x11a754<processedResults[_0x18b939(0x148)];_0x11a754+=_0x11e01e){const _0x5643e7=processedResults['slice'](_0x11a754,_0x11a754+_0x11e01e);_0x5643e7[_0x18b939(0x123)](_0x102164=>{const _0x55c284=_0x18b939,_0xf99bd9=[_0x102164['plBlock'],_0x102164['stats']['singleHouse'][_0x55c284(0x196)],Number(_0x102164['stats']['singleHouse'][_0x55c284(0x171)][_0x55c284(0x1c2)](0x2)),_0x102164['stats'][_0x55c284(0x144)][_0x55c284(0x196)],Number(_0x102164[_0x55c284(0x1d6)][_0x55c284(0x144)][_0x55c284(0x171)][_0x55c284(0x1c2)](0x2)),_0x102164[_0x55c284(0x1d6)][_0x55c284(0x18d)][_0x55c284(0x196)],Number(_0x102164[_0x55c284(0x1d6)][_0x55c284(0x18d)][_0x55c284(0x171)][_0x55c284(0x1c2)](0x2)),_0x102164[_0x55c284(0x1d6)]['shophouse'][_0x55c284(0x196)],Number(_0x102164[_0x55c284(0x1d6)][_0x55c284(0x142)]['population'][_0x55c284(0x1c2)](0x2)),_0x102164[_0x55c284(0x1d6)][_0x55c284(0x1a4)][_0x55c284(0x196)],Number(_0x102164[_0x55c284(0x1d6)]['commercial']['population'][_0x55c284(0x1c2)](0x2)),_0x102164['stats'][_0x55c284(0x1d5)][_0x55c284(0x196)],Number(_0x102164[_0x55c284(0x1d6)][_0x55c284(0x1d5)][_0x55c284(0x171)][_0x55c284(0x1c2)](0x2)),_0x102164[_0x55c284(0x1d6)][_0x55c284(0x19b)][_0x55c284(0x196)],_0x102164['stats']['apartment']['rooms']||0x0,Number(_0x102164[_0x55c284(0x1d6)][_0x55c284(0x19b)]['population'][_0x55c284(0x1c2)](0x2)),_0x102164[_0x55c284(0x1d6)][_0x55c284(0x136)][_0x55c284(0x196)],Number(_0x102164[_0x55c284(0x1d6)][_0x55c284(0x136)][_0x55c284(0x171)]['toFixed'](0x2)),_0x102164[_0x55c284(0x186)],Number(_0x102164[_0x55c284(0x187)][_0x55c284(0x1c2)](0x2)),Number(_0x102164['area']['toFixed'](0x2)),Number(_0x102164[_0x55c284(0x1d2)][_0x55c284(0x1c2)](0x2))];_0xbc2e67[_0x55c284(0x137)](_0xf99bd9);}),_0x36c252+=_0x5643e7['length'];const _0x49b621=0x14+Math[_0x18b939(0x121)](_0x36c252/processedResults[_0x18b939(0x148)]*0x3c);showProgress(_0x49b621,_0x18b939(0x1a2)+_0x36c252['toLocaleString']()+'/'+processedResults[_0x18b939(0x148)][_0x18b939(0x151)]());}showProgress(0x55,'กำลังสร้างไฟล์\x20Excel...');const _0x2d9df3=XLSX[_0x18b939(0x172)][_0x18b939(0x127)](_0xbc2e67),_0x230399=_0x10ffcd[_0x18b939(0x177)](()=>({'wch':0xf}));_0x230399[0x0]['wch']=0x19,_0x2d9df3['!cols']=_0x230399,XLSX[_0x18b939(0x172)][_0x18b939(0x167)](_0x502de4,_0x2d9df3,_0x18b939(0x1b1)),showProgress(0x5f,'กำลังบันทึกไฟล์...');const _0x1c188d=_0x18b939(0x1b6)+new Date()[_0x18b939(0x1a9)]()[_0x18b939(0x1ad)]('T')[0x0]+_0x18b939(0x1bc);XLSX['writeFile'](_0x502de4,_0x1c188d),hideProgress(),showStatus('ส่งออกข้อมูลสำเร็จ',_0x18b939(0x13c));}catch(_0x5a4bb4){hideProgress(),console[_0x18b939(0x1c1)]('Error\x20exporting\x20to\x20Excel:',_0x5a4bb4),handleError(_0x5a4bb4,'เกิดข้อผิดพลาดในการส่งออกข้อมูล');}}
     </script>
- <script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>   
+ <script>
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const nav = document.getElementById('mainNav');
+
+    menuBtn.addEventListener('click', () => {
+        menuBtn.classList.toggle('active');
+        nav.classList.toggle('active');
+    });
+
+    function toggleMobileDropdown(element) {
+        if (window.innerWidth <= 1200) {
+            element.classList.toggle('active');
+        }
+    }
+    
+    // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
+    document.addEventListener('click', (e) => {
+        if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
+            nav.classList.remove('active');
+            menuBtn.classList.remove('active');
+        }
+    });
+</script>  
 </body>
 </html>
