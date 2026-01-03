@@ -151,7 +151,7 @@
             display: none; z-index: 1000;
         }
 
-        #layerPanel { top: 130px; right: 10px; width: 320px; max-height: calc(100vh - 150px); overflow-y: auto; }
+        #layerPanel { top: 130px; right: 10px; width: 340px; max-height: calc(100vh - 150px); overflow-y: auto; }
         #searchPanel { top: 130px; left: 10px; width: 320px; }
         #addServicePanel { top: 130px; left: 10px; }
         #importDataPanel { top: 130px; left: 10px; width: 320px; }
@@ -159,23 +159,34 @@
         #exportPanel { top: 130px; right: 60px; width: 300px; }
         #basemapGalleryPanel, #printPanel { top: 130px; right: 10px; width: 280px; max-height: 400px; overflow-y: auto; }
         
-        /* New Table Panel Style */
+        /* New Table Panel Style (Updated for Sticky Header) */
         #attributeTablePanel {
-            top: 130px; left: 50%; transform: translateX(-50%); width: 80%; max-height: 70vh;
+            top: 130px; left: 50%; transform: translateX(-50%); width: 85%; max-height: 70vh;
             display: none; z-index: 1002; overflow: hidden; display: flex; flex-direction: column;
         }
-        .table-container { flex: 1; overflow: auto; margin-top: 10px; border: 1px solid #ddd; }
-        .table-custom th { background-color: #f8f9fa; position: sticky; top: 0; z-index: 1; }
+        .table-container { 
+            flex: 1; overflow: auto; margin-top: 5px; border: 1px solid #ddd; position: relative;
+        }
+        .table-custom { margin-bottom: 0; }
+        .table-custom th { 
+            background-color: #f8f9fa; 
+            position: sticky; top: 0; 
+            z-index: 10; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
         .table-custom td[contenteditable="true"]:focus { background-color: #fffde7; outline: 2px solid #ffeb3b; }
+        
+        .table-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .column-select-dropdown {
+            max-height: 250px; overflow-y: auto; min-width: 200px;
+        }
 
         /* FIXED: Draw Tools Style for 16:9 Screens */
         .draw-tools {
             position: absolute; top: 130px; left: 10px; z-index: 1000;
             background: white; padding: 10px; border-radius: 5px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 260px; /* Reduced width */
-            max-width: 90vw; /* Ensure it fits on small screens */
-            max-height: calc(100vh - 150px); /* Limit height to fit screen */
-            overflow-y: auto; /* Enable vertical scrolling */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 260px;
+            max-width: 90vw; max-height: calc(100vh - 150px); overflow-y: auto;
         }
         
         .excel-import-panel {
@@ -195,6 +206,17 @@
         .layer-controls-row { display: flex; gap: 5px; align-items: center; justify-content: space-between; width: 100%; }
         .layer-opacity { display: flex; align-items: center; gap: 5px; flex-grow: 1; max-width: 120px; }
         .layer-actions { display: flex; gap: 4px; }
+        
+        /* Label Settings Box */
+        .layer-label-settings {
+            margin-top: 8px;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            display: none; /* Hidden by default */
+        }
+        .layer-label-settings.active { display: block; }
         
         .custom-modal {
             display: none; position: fixed; top: 50%; left: 50%;
@@ -219,6 +241,9 @@
         .color-swatch { width: 100%; height: 18px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .color-swatch:hover { border-color: #000; transform: scale(1.1); }
         .color-swatch.active { border: 2px solid #000; box-shadow: 0 0 3px rgba(0,0,0,0.5); }
+        
+        /* Highlighting selected row */
+        tr.table-active-row { background-color: #e3f2fd !important; }
     </style>
 </head>
 <body>
@@ -307,6 +332,11 @@
             </div>
             
             <button id="updateLayerColorBtn" class="btn btn-outline-primary btn-sm w-100 mb-2">Apply Color to Active Layer</button>
+            
+            <!-- NEW: Button for Bulk Editing -->
+            <button id="editSelectedAttributesBtn" class="btn btn-outline-secondary btn-sm w-100 mb-2">
+                <i class="fas fa-edit"></i> Edit Selected Attributes
+            </button>
         </div>
 
         <!-- NEW 3-POINT RECTANGLE & SPLIT TOOL SECTION -->
@@ -360,7 +390,23 @@
     <!-- ATTRIBUTE TABLE PANEL (NEW) -->
     <div id="attributeTablePanel" class="panel">
         <span class="close-btn" onclick="closePanel('attributeTablePanel')">×</span>
-        <h5 id="tableLayerName">Attribute Table</h5>
+        <div class="table-toolbar">
+            <h5 id="tableLayerName" class="mb-0 me-2">Attribute Table</h5>
+            <div class="d-flex gap-1">
+                <!-- Column Visibility Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="columnSelectBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                        Columns
+                    </button>
+                    <ul class="dropdown-menu column-select-dropdown p-2" id="columnSelectMenu" aria-labelledby="columnSelectBtn">
+                        <!-- Checkboxes will be injected here -->
+                    </ul>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" id="toggleSelectedRowsBtn" title="Show only selected rows">
+                    <i class="fas fa-filter"></i> Show Selected
+                </button>
+            </div>
+        </div>
         <div class="table-container">
             <table class="table table-bordered table-sm table-hover table-custom" id="featureTable">
                 <thead></thead>
@@ -565,6 +611,8 @@
             var activeDrawingLayer = null;
             var activeColor = "#ff0000";
             var sketch;
+            // Store label settings: { layerId: { enabled: bool, field: string, size: num, color: hex } }
+            var layerLabelSettings = {}; 
 
             // Define Action for Popup to Edit Attributes
             var editAttributeAction = { title: "Edit Attributes", id: "edit-attributes", className: "esri-icon-edit" };
@@ -645,8 +693,21 @@
                 sketch.on("create", function(event) {
                     if (event.state === "complete") {
                         handleGraphicCreation(event.graphic, false);
+                        updateLabels(activeDrawingLayer.id); // Update labels on create
                     }
                 });
+
+                // --- NEW: Refresh table when selection changes/updates ---
+                sketch.on("update", function(event) {
+                    var panel = document.getElementById("attributeTablePanel");
+                    if(panel.style.display !== "none" && panel.style.display !== "") {
+                        renderAttributeTable();
+                    }
+                    if(event.state === "complete") {
+                        updateLabels(activeDrawingLayer.id); // Update labels on geometry change
+                    }
+                });
+
                 view.ui.add(sketch, "top-left");
             }
 
@@ -657,20 +718,107 @@
                 return null;
             }
 
+            // --- LABELING LOGIC ---
+            function updateLabels(layerId) {
+                var settings = layerLabelSettings[layerId];
+                var labelLayerId = layerId + "_labels";
+                var labelLayer = map.findLayerById(labelLayerId);
+                var sourceLayer = map.findLayerById(layerId);
+
+                // If disabled or settings missing, clear and return
+                if (!settings || !settings.enabled) {
+                    if (labelLayer) labelLayer.removeAll();
+                    return;
+                }
+
+                // Create label layer if not exists
+                if (!labelLayer) {
+                    labelLayer = new GraphicsLayer({ id: labelLayerId, listMode: "hide", title: "Labels: " + sourceLayer.title });
+                    map.add(labelLayer); // Add on top
+                } else {
+                    labelLayer.removeAll();
+                }
+
+                if (!sourceLayer || !sourceLayer.graphics) return;
+
+                sourceLayer.graphics.forEach(g => {
+                    if (g.geometry) {
+                        var text = g.attributes[settings.field];
+                        if (text !== undefined && text !== null && text !== "") {
+                            var center = g.geometry.type === "polygon" ? g.geometry.centroid : g.geometry.extent.center;
+                            if (g.geometry.type === "point") center = g.geometry;
+
+                            var textSym = new TextSymbol({
+                                text: text.toString(),
+                                color: settings.color,
+                                font: { size: settings.size, family: "Prompt", weight: "bold" },
+                                haloColor: "white",
+                                haloSize: 1
+                            });
+
+                            labelLayer.add(new Graphic({
+                                geometry: center,
+                                symbol: textSym
+                            }));
+                        }
+                    }
+                });
+            }
+
+            window.toggleLabelSettings = function(layerId) {
+                var div = document.getElementById("labelSettings_" + layerId);
+                if (div) div.classList.toggle("active");
+            }
+
+            window.applyLabelSettings = function(layerId) {
+                var enabled = document.getElementById("lbl_enable_" + layerId).checked;
+                var field = document.getElementById("lbl_field_" + layerId).value;
+                var size = parseInt(document.getElementById("lbl_size_" + layerId).value);
+                var color = document.getElementById("lbl_color_" + layerId).value;
+
+                layerLabelSettings[layerId] = {
+                    enabled: enabled,
+                    field: field,
+                    size: size,
+                    color: color
+                };
+                
+                updateLabels(layerId);
+            }
+
             function updateLayerList() {
                 var list = document.getElementById("layerList"); list.innerHTML = "";
                 map.layers.toArray().reverse().forEach((l,i) => {
-                    if(l.listMode!=="hide"){
+                    if(l.listMode!=="hide" && !l.id.endsWith("_labels")){
                         var li = document.createElement("div"); li.className="layer-item";
                         if(l===activeDrawingLayer) li.style.borderColor = "#0d6efd";
                         
                         var visIcon = l.visible ? "fa-eye" : "fa-eye-slash";
                         var visColor = l.visible ? "text-primary" : "text-muted";
                         
+                        // Get fields for dropdown
+                        var fieldOptions = "";
+                        if(l.graphics && l.graphics.length > 0) {
+                            var keys = Object.keys(l.graphics.getItemAt(0).attributes || {});
+                            keys.forEach(k => {
+                                if(k !== "geometry" && k !== "uid") {
+                                    fieldOptions += `<option value="${k}">${k}</option>`;
+                                }
+                            });
+                        } else {
+                            fieldOptions = `<option value="description">description</option>`;
+                        }
+
+                        // Get current settings
+                        var set = layerLabelSettings[l.id] || { enabled: false, field: "description", size: 10, color: "#000000" };
+
                         li.innerHTML = `
                             <div class="layer-header">
-                                <span class="fw-bold small text-truncate" style="max-width: 180px;">${l.title}</span>
+                                <span class="fw-bold small text-truncate" style="max-width: 140px;" title="${l.title}">${l.title}</span>
                                 <div class="layer-actions">
+                                    <button class="btn btn-sm btn-light border" title="Toggle Label Settings" onclick="toggleLabelSettings('${l.id}')">
+                                        <i class="fas fa-tag text-secondary"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-light border" title="Toggle Visibility" onclick="toggleLayerVisibility('${l.id}')">
                                         <i class="fas ${visIcon} ${visColor}"></i>
                                     </button>
@@ -688,19 +836,50 @@
                                     <input type="range" class="form-range" min="0" max="1" step="0.1" value="${l.opacity}" onchange="changeLayerOpacity('${l.id}', this.value)">
                                 </div>
                             </div>
+                            
+                            <!-- Label Settings UI -->
+                            <div id="labelSettings_${l.id}" class="layer-label-settings">
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" id="lbl_enable_${l.id}" ${set.enabled ? "checked" : ""}>
+                                    <label class="form-check-label small" for="lbl_enable_${l.id}">Show Labels</label>
+                                </div>
+                                <div class="d-flex gap-1 mb-1">
+                                    <select id="lbl_field_${l.id}" class="form-select form-select-sm" style="width: 60%;" title="Field">
+                                        ${fieldOptions}
+                                    </select>
+                                    <input type="number" id="lbl_size_${l.id}" class="form-control form-control-sm" value="${set.size}" min="6" max="72" style="width: 40%;" title="Size">
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <input type="color" id="lbl_color_${l.id}" class="form-control form-control-color form-control-sm w-100" value="${set.color}" title="Color">
+                                    <button class="btn btn-sm btn-primary w-100" onclick="applyLabelSettings('${l.id}')">Apply</button>
+                                </div>
+                            </div>
                         `;
+                        
+                        // Select correct option
+                        var select = li.querySelector(`#lbl_field_${l.id}`);
+                        if(select && set.field) select.value = set.field;
+
                         list.appendChild(li);
                     }
                 });
             }
 
             // Expose global functions needed for HTML inline onclick handlers
-            window.removeLayer = function(id) { map.remove(map.findLayerById(id)); updateLayerList(); populateDrawLayerSelect(); };
+            window.removeLayer = function(id) { 
+                var lbl = map.findLayerById(id + "_labels");
+                if(lbl) map.remove(lbl);
+                map.remove(map.findLayerById(id)); 
+                updateLayerList(); 
+                populateDrawLayerSelect(); 
+            };
             
             window.toggleLayerVisibility = function(layerId) {
                 var layer = map.findLayerById(layerId);
+                var lblLayer = map.findLayerById(layerId + "_labels");
                 if(layer) {
                     layer.visible = !layer.visible;
+                    if(lblLayer) lblLayer.visible = layer.visible; // Sync label visibility
                     updateLayerList();
                 }
             }
@@ -712,6 +891,11 @@
                 }
             }
 
+            // --- ATTRIBUTE TABLE LOGIC (ENHANCED) ---
+            var currentTableLayerId = null;
+            var hiddenColumns = new Set();
+            var showSelectedOnly = false;
+
             window.openAttributeTable = function(layerId) {
                 var layer = map.findLayerById(layerId);
                 if(!layer || !layer.graphics || layer.graphics.length === 0) {
@@ -719,43 +903,154 @@
                 }
                 
                 currentTableLayerId = layerId;
+                // hiddenColumns.clear(); // removed to persist selection
+                showSelectedOnly = false;
                 document.getElementById("tableLayerName").textContent = "Table: " + layer.title;
                 
-                var graphics = layer.graphics.toArray();
+                renderAttributeTable();
+                togglePanel("attributeTablePanel");
+            }
+
+            function renderAttributeTable() {
+                if(!currentTableLayerId) return;
+                var layer = map.findLayerById(currentTableLayerId);
+                if(!layer) return;
+
+                var allGraphics = layer.graphics.toArray();
+                
+                // Get selected UIDs
+                var selectedUids = [];
+                if(sketch && sketch.updateGraphics) {
+                    selectedUids = sketch.updateGraphics.toArray().map(g => g.uid);
+                }
+
+                // SORTING LOGIC: Move Selected Rows to Top
+                allGraphics.sort((a, b) => {
+                    var aSelected = selectedUids.includes(a.uid);
+                    var bSelected = selectedUids.includes(b.uid);
+                    if (aSelected && !bSelected) return -1; // a comes first
+                    if (!aSelected && bSelected) return 1;  // b comes first
+                    return 0; // maintain relative order
+                });
+
+                // Determine which graphics to show based on filter
+                var graphicsToShow = allGraphics;
+                if(showSelectedOnly && selectedUids.length > 0) {
+                    // Filter to only those in sketch selection (if they belong to this layer)
+                    graphicsToShow = allGraphics.filter(g => selectedUids.includes(g.uid));
+                }
+
+                // Get All Columns
+                var keys = new Set();
+                allGraphics.forEach(g => {
+                    if(g.attributes) Object.keys(g.attributes).forEach(k => keys.add(k));
+                });
+                var allColumns = Array.from(keys);
+                
+                // --- RENDER COLUMN SELECTOR ---
+                var menu = document.getElementById("columnSelectMenu");
+                menu.innerHTML = "";
+                allColumns.forEach(col => {
+                    var li = document.createElement("li");
+                    var checked = !hiddenColumns.has(col) ? "checked" : "";
+                    li.innerHTML = `<label class="dropdown-item"><input type="checkbox" class="form-check-input me-2 col-toggle" value="${col}" ${checked}> ${col}</label>`;
+                    menu.appendChild(li);
+                });
+                
+                // Add event listeners to toggles
+                menu.querySelectorAll(".col-toggle").forEach(chk => {
+                    chk.addEventListener("change", function() {
+                        if(this.checked) hiddenColumns.delete(this.value);
+                        else hiddenColumns.add(this.value);
+                        renderAttributeTable(); // Re-render table
+                    });
+                });
+
+                // --- RENDER TABLE ---
                 var tableHead = document.querySelector("#featureTable thead");
                 var tableBody = document.querySelector("#featureTable tbody");
                 tableHead.innerHTML = ""; tableBody.innerHTML = "";
-                
-                // Get all unique keys
-                var keys = new Set();
-                graphics.forEach(g => {
-                    if(g.attributes) Object.keys(g.attributes).forEach(k => keys.add(k));
-                });
-                var columns = Array.from(keys);
-                
-                // Build Header
+
+                // Header
                 var trHead = document.createElement("tr");
-                columns.forEach(col => {
+                var visibleCols = allColumns.filter(c => !hiddenColumns.has(c));
+                visibleCols.forEach(col => {
                     var th = document.createElement("th"); th.textContent = col; trHead.appendChild(th);
                 });
                 tableHead.appendChild(trHead);
-                
-                // Build Body
-                graphics.forEach((g, index) => {
+
+                // Body
+                graphicsToShow.forEach((g) => {
                     var tr = document.createElement("tr");
-                    tr.dataset.uid = g.uid; // Store UID for saving
-                    columns.forEach(col => {
+                    tr.dataset.uid = g.uid;
+                    
+                    // Highlight if selected
+                    if(selectedUids.includes(g.uid)) {
+                        tr.classList.add("table-active-row");
+                    }
+
+                    visibleCols.forEach(col => {
                         var td = document.createElement("td");
                         td.textContent = (g.attributes[col] !== undefined && g.attributes[col] !== null) ? g.attributes[col] : "";
-                        td.contentEditable = true; // Allow editing
+                        td.contentEditable = true;
                         td.dataset.col = col;
                         tr.appendChild(td);
                     });
+                    
+                    // Row click to select on map
+                    tr.addEventListener("click", function() {
+                        // Optional: Zoom to or select on map
+                        view.goTo(g);
+                        // If using Sketch, we might want to select it programmatically
+                        // Note: Sketch selection API in 4.x is a bit complex, strictly viewing here
+                    });
+
                     tableBody.appendChild(tr);
                 });
                 
-                togglePanel("attributeTablePanel");
+                // Update button state
+                var btn = document.getElementById("toggleSelectedRowsBtn");
+                if(showSelectedOnly) {
+                    btn.classList.remove("btn-outline-primary");
+                    btn.classList.add("btn-primary");
+                } else {
+                    btn.classList.add("btn-outline-primary");
+                    btn.classList.remove("btn-primary");
+                }
             }
+
+            document.getElementById("toggleSelectedRowsBtn").addEventListener("click", function() {
+                showSelectedOnly = !showSelectedOnly;
+                renderAttributeTable();
+            });
+
+            // Save Table Edits
+            document.getElementById("saveTableBtn").addEventListener("click", function() {
+                if(!currentTableLayerId) return;
+                var layer = map.findLayerById(currentTableLayerId);
+                var rows = document.querySelectorAll("#featureTable tbody tr");
+                var changed = false;
+                
+                rows.forEach(tr => {
+                    var uid = parseInt(tr.dataset.uid);
+                    var graphic = layer.graphics.find(g => g.uid === uid);
+                    if(graphic) {
+                        var cells = tr.querySelectorAll("td");
+                        cells.forEach(td => {
+                            var col = td.dataset.col;
+                            if(graphic.attributes[col] !== td.textContent){
+                                graphic.attributes[col] = td.textContent;
+                                changed = true;
+                            }
+                        });
+                    }
+                });
+                if(changed && layerLabelSettings[currentTableLayerId] && layerLabelSettings[currentTableLayerId].enabled){
+                    updateLabels(currentTableLayerId);
+                }
+                alert("Table changes saved.");
+            });
+
 
             function createNewDrawingLayer(name) {
                 var newLayer = new GraphicsLayer({ title: name, isDrawLayer: true });
@@ -804,6 +1099,7 @@
                     newGraphic.attributes.color = activeColor;
                     handleGraphicCreation(newGraphic, false); 
                     activeDrawingLayer.add(newGraphic);
+                    updateLabels(activeDrawingLayer.id); // Update labels
                     alert("Feature copied to: " + activeDrawingLayer.title); 
                     view.popup.close();
                     updateLayerList(); 
@@ -938,6 +1234,16 @@
                         g.attributes.color = activeColor;
                     });
                     alert("Layer color updated.");
+                }
+            });
+
+            // --- BULK EDIT BUTTON HANDLER ---
+            document.getElementById("editSelectedAttributesBtn").addEventListener("click", function() {
+                if (sketch && sketch.updateGraphics && sketch.updateGraphics.length > 0) {
+                    var selectedGraphics = sketch.updateGraphics.toArray();
+                    showAttributeModal(selectedGraphics);
+                } else {
+                    alert("Please select features using the Select tool first.");
                 }
             });
 
@@ -1485,23 +1791,44 @@
                 updateExportLayerList();
             }
 
-            // --- DYNAMIC ATTRIBUTE EDITING LOGIC (UPDATED) ---
-            var currentEditingGraphic = null;
+            // --- DYNAMIC ATTRIBUTE EDITING LOGIC (UPDATED FOR MULTIPLE SELECTION) ---
+            var editingGraphics = []; // Store array of graphics being edited
 
-            window.showAttributeModal = function(graphic) {
-                currentEditingGraphic = graphic;
-                var attrs = graphic.attributes || {};
+            window.showAttributeModal = function(graphics) {
+                // Ensure array
+                if(!Array.isArray(graphics)) graphics = [graphics];
+                if(graphics.length === 0) return;
+
+                editingGraphics = graphics;
+                var isMultiple = graphics.length > 1;
+
+                // Get union of all attribute keys
+                var allKeys = new Set();
+                graphics.forEach(g => {
+                    if(g.attributes) Object.keys(g.attributes).forEach(k => allKeys.add(k));
+                });
                 
+                // Define system fields that should be read-only or skipped
+                const systemFields = ["latitude", "longitude", "mgrs", "utmz47", "utmz48", "color", "type", "timestamp", "isBuffer", "geometry", "uid", "shape"];
+
                 var container = document.getElementById("attributeDynamicFields");
                 container.innerHTML = ""; // Clear old fields
 
-                // Define system fields that should perhaps be read-only or handled specifically
-                const systemFields = ["latitude", "longitude", "mgrs", "utmz47", "utmz48", "color", "type", "timestamp", "isBuffer"];
+                if(isMultiple) {
+                    var info = document.createElement("div");
+                    info.className = "alert alert-warning p-1 small mb-2";
+                    info.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Editing <b>${graphics.length}</b> features.<br/>Leaving a field as <i>(Multiple Values)</i> preserves original values.`;
+                    container.appendChild(info);
+                }
 
-                // Create fields for all attributes
-                Object.keys(attrs).forEach(key => {
-                    // Skip geometry object if it appears in attributes (it shouldn't, but safety check)
-                    if(key === "geometry") return;
+                // Create fields
+                allKeys.forEach(key => {
+                    if(systemFields.includes(key)) return; // Skip system fields for now, or make readonly
+
+                    // Check values across graphics
+                    var firstVal = graphics[0].attributes[key];
+                    var isSame = graphics.every(g => g.attributes[key] === firstVal);
+                    var displayVal = isSame ? (firstVal !== undefined ? firstVal : "") : "(Multiple Values)";
 
                     var div = document.createElement("div");
                     div.className = "mb-2";
@@ -1515,13 +1842,22 @@
                     input.className = "form-control form-control-sm";
                     input.id = "attr_input_" + key;
                     input.name = key;
-                    input.value = (attrs[key] !== undefined && attrs[key] !== null) ? attrs[key] : "";
+                    input.value = displayVal;
                     
-                    // Mark system fields as read-only (optional, remove this if you want EVERYTHING editable)
-                    // if(systemFields.includes(key)) {
-                    //    input.readOnly = true;
-                    //    input.classList.add("bg-light");
-                    // }
+                    if(!isSame) {
+                        input.dataset.originalMixed = "true"; // Flag to know it was mixed
+                        input.style.fontStyle = "italic";
+                        input.style.color = "#666";
+                    }
+
+                    // Reset style on focus
+                    input.onfocus = function() {
+                        if(this.value === "(Multiple Values)") {
+                            this.value = "";
+                            this.style.fontStyle = "normal";
+                            this.style.color = "black";
+                        }
+                    };
 
                     div.appendChild(label);
                     div.appendChild(input);
@@ -1548,30 +1884,50 @@
             window.addNewAttributeField = function() {
                 var key = document.getElementById("new_attr_key").value.trim();
                 var val = document.getElementById("new_attr_value").value.trim();
-                if(key) {
-                    if(currentEditingGraphic) {
-                        currentEditingGraphic.attributes[key] = val;
-                        // Refresh modal
-                        showAttributeModal(currentEditingGraphic);
-                    }
+                if(key && editingGraphics.length > 0) {
+                    editingGraphics.forEach(g => {
+                        g.attributes = g.attributes || {};
+                        g.attributes[key] = val;
+                    });
+                    // Refresh modal
+                    showAttributeModal(editingGraphics);
                 }
             }
 
             document.getElementById('attributeForm').onsubmit = function(e) {
                 e.preventDefault();
-                if (currentEditingGraphic) {
+                if (editingGraphics.length > 0) {
                     var container = document.getElementById("attributeDynamicFields");
                     var inputs = container.querySelectorAll("input:not(#new_attr_key):not(#new_attr_value)");
+                    var labelUpdateNeeded = false;
                     
-                    inputs.forEach(input => {
-                        currentEditingGraphic.attributes[input.name] = input.value;
+                    editingGraphics.forEach(graphic => {
+                        inputs.forEach(input => {
+                            var val = input.value;
+                            var isMixed = input.dataset.originalMixed === "true";
+                            
+                            // Logic: 
+                            // If it was mixed and value is still "(Multiple Values)", do not update (keep original).
+                            if (val === "(Multiple Values)" && isMixed) {
+                                // Do nothing, preserve original
+                            } else {
+                                // Update all selected graphics with new value
+                                if(graphic.attributes[input.name] !== val) {
+                                    graphic.attributes[input.name] = val;
+                                    labelUpdateNeeded = true;
+                                }
+                            }
+                        });
+
+                        // Special update for 'description' to update popup title if needed
+                        if(graphic.attributes.description && view.popup.selectedFeature === graphic) {
+                            view.popup.title = graphic.attributes.description;
+                        }
                     });
 
-                    // Special update for 'description' to update title
-                    if(currentEditingGraphic.attributes.description) {
-                         if (view.popup.selectedFeature === currentEditingGraphic) {
-                            view.popup.title = currentEditingGraphic.attributes.description;
-                        }
+                    // Update Labels if needed
+                    if(labelUpdateNeeded && editingGraphics[0].layer) {
+                        updateLabels(editingGraphics[0].layer.id);
                     }
 
                     closeAttributeModal();
@@ -1582,7 +1938,7 @@
                 document.getElementById('modalBackdrop').style.display = 'none';
                 document.getElementById('attributeModal').style.display = 'none';
                 document.getElementById('attributeForm').reset();
-                currentEditingGraphic = null;
+                editingGraphics = [];
             }
 
             // --- SELECT BY ATTRIBUTE (UPDATED WITH OPERATORS) ---
