@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NoteMap</title>
     
+    
+    <!-- แก้ไข Error favicon.ico:1 Failed to load resource: 404 -->
+    <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -771,7 +774,7 @@
                         geometry: poly.centroid,
                         symbol: { 
                             type: "text", color: "#ff00ff", text: z.name, 
-                            font: { size: 24, weight: "bold", family: "Prompt" },
+                            font: { size: 24, weight: "bold", family: "sans-serif" },
                             haloColor: "white", haloSize: 2
                         }
                     }));
@@ -799,7 +802,7 @@
                                         geometry: pt,
                                         symbol: {
                                             type: "text", color: "purple", text: sqId,
-                                            font: { size: 10, weight: "bold", family: "Prompt" },
+                                            font: { size: 10, weight: "bold", family: "sans-serif" },
                                             haloColor: "white", haloSize: 1,
                                             yoffset: 0
                                         },
@@ -920,6 +923,9 @@
             }
 
             // --- LABELING LOGIC ---
+            // Fix Font Error: กำหนดฟอนต์มาตรฐานเพื่อเลี่ยง 404 .pbf บน server ของ ArcGIS
+            const ESRI_SAFE_FONT = "sans-serif";
+            
             function updateLabels(layerId) {
                 var settings = layerLabelSettings[layerId];
                 var labelLayerId = layerId + "_labels";
@@ -941,16 +947,25 @@
                 if (!sourceLayer || !sourceLayer.graphics) return;
 
                 sourceLayer.graphics.forEach(g => {
-                    if (g.geometry) {
-                        var text = g.attributes[settings.field];
+                    // Fix Error: Uncaught TypeError: Cannot read properties of null (reading 'center')
+                    if (g && g.geometry) {
+                        var text = g.attributes ? g.attributes[settings.field] : null;
                         if (text !== undefined && text !== null && text !== "") {
-                            var center = g.geometry.type === "polygon" ? g.geometry.centroid : g.geometry.extent.center;
+                            var center = null;
                             if (g.geometry.type === "point") center = g.geometry;
+                            else if (g.geometry.type === "polygon") center = g.geometry.centroid;
+                            else if (g.geometry.extent) center = g.geometry.extent.center;
+
+                            if (!center) return;
 
                             var textSym = new TextSymbol({
                                 text: text.toString(),
                                 color: settings.color,
-                                font: { size: settings.size, family: "Prompt", weight: "bold" },
+                                font: { 
+                                    size: settings.size, 
+                                    family: ESRI_SAFE_FONT, // Fix Font 404 Error
+                                    weight: "bold" 
+                                },
                                 haloColor: "white",
                                 haloSize: 1
                             });
@@ -2738,7 +2753,7 @@
 
                                 var graphic = new Graphic({
                                     geometry: point,
-                                    symbol: new SimpleMarkerSymbol({ color: "red", size: "10px", outline: { color: "white", width: 1 } }),
+                                    symbol: new SimpleMarkerSymbol({ color: "red", size: "15px", outline: { color: "white", width: 2 } }),
                                     attributes: attributes
                                 });
                                 handleGraphicCreation(graphic, false);
@@ -2746,7 +2761,7 @@
                             }
                         }
                         activeDrawingLayer.addMany(pts);
-                        if (pts.length > 0) view.goTo(pts);
+                        if (pts.length > 0) view.goTo({ target: pts });
                         updateLayerList();
                         closePanel('importDataPanel'); 
                         alert("Imported " + pts.length + " points.");
@@ -2816,7 +2831,7 @@
 
                                         var graphic = new Graphic({
                                             geometry: point,
-                                            symbol: new SimpleMarkerSymbol({ color: "green", size: "10px", outline: { color: "white", width: 1 } }),
+                                            symbol: new SimpleMarkerSymbol({ color: "green", size: "15px", outline: { color: "white", width: 2 } }),
                                             attributes: attributes
                                         });
                                         handleGraphicCreation(graphic, false);
@@ -2826,7 +2841,7 @@
                             }
                         }
                         activeDrawingLayer.addMany(pts);
-                        if (pts.length > 0) view.goTo(pts);
+                        if (pts.length > 0) view.goTo({ target: pts });
                         updateLayerList();
                         closePanel('importDataPanel'); 
                         alert("Imported " + pts.length + " MGRS points.");
