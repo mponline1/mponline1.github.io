@@ -153,12 +153,14 @@
 
         #layerPanel { top: 130px; right: 10px; width: 340px; max-height: calc(100vh - 150px); overflow-y: auto; }
         #searchPanel { top: 130px; left: 10px; width: 320px; }
-        #addServicePanel { top: 130px; left: 10px; width: 340px; } /* Added Service Panel */
+        #addServicePanel { top: 130px; left: 10px; width: 340px; }
         #importDataPanel { top: 130px; left: 10px; width: 320px; }
         #selectAttributePanel { top: 130px; right: 60px; width: 320px; }
         #exportPanel { top: 130px; right: 60px; width: 300px; }
         #basemapGalleryPanel, #printPanel { top: 130px; right: 10px; width: 280px; max-height: 400px; overflow-y: auto; }
-        
+        /* Measurement Panel */
+        #measurePanel { top: 130px; right: 60px; width: 320px; }
+
         /* New Table Panel Style (Updated for Sticky Header) */
         #attributeTablePanel {
             top: 130px; left: 50%; transform: translateX(-50%); width: 85%; max-height: 70vh;
@@ -285,6 +287,14 @@
         
         /* Highlighting selected row */
         tr.table-active-row { background-color: #e3f2fd !important; }
+
+        /* Measurement Styles */
+        #measurementDiv {
+            min-height: 120px;
+            margin-top: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -337,7 +347,9 @@
         <div class="top-toolbar btn-group" id="mainToolbar">
             <button id="basemapBtn" class="btn btn-toolbar-custom" title="Basemap Gallery"><i class="fas fa-layer-group"></i></button>
             <button id="fullscreenBtn" class="btn btn-toolbar-custom" title="Fullscreen"><i class="fas fa-expand"></i></button>
+            <button id="locateBtn" class="btn btn-toolbar-custom" title="Find My Location"><i class="fas fa-crosshairs"></i></button>
             <button id="searchBtn" class="btn btn-toolbar-custom" title="Search (Lat/Lon, MGRS)"><i class="fas fa-search"></i></button>
+            <button id="measureBtn" class="btn btn-toolbar-custom" title="Measurement Tools"><i class="fas fa-ruler-combined"></i></button>
             <!-- Add Service Button -->
             <button id="addServiceBtn" class="btn btn-toolbar-custom" title="Add Service Layer"><i class="fas fa-plus-square"></i></button>
             <button id="selectAttrBtn" class="btn btn-toolbar-custom" title="Select By Attribute"><i class="fas fa-filter"></i></button>
@@ -421,6 +433,18 @@
             </div>
             <button id="executeBufferBtn" class="btn btn-warning btn-sm w-100"><i class="fas fa-circle-notch"></i> Create Buffer</button>
         </div>
+    </div>
+
+    <!-- MEASUREMENT PANEL (NEW) -->
+    <div id="measurePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('measurePanel')">×</span>
+        <h5>Measurement Tools</h5>
+        <div class="d-flex gap-2 mb-2">
+            <button id="distMeasureBtn" class="btn btn-outline-primary btn-sm w-50"><i class="fas fa-ruler-horizontal"></i> Distance</button>
+            <button id="areaMeasureBtn" class="btn btn-outline-primary btn-sm w-50"><i class="fas fa-ruler-combined"></i> Area</button>
+        </div>
+        <div id="measurementDiv"></div>
+        <button id="clearMeasureBtn" class="btn btn-secondary btn-sm w-100 mt-2">Clear Measurement</button>
     </div>
 
     <!-- LAYER LIST PANEL -->
@@ -562,7 +586,6 @@
             <label class="form-label small fw-bold">Select Format:</label>
             <div class="d-flex flex-column gap-2">
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatKml" value="kml" checked><label class="form-check-label" for="formatKml">KML (Google Earth - WGS84)</label></div>
-                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson" value="geojson"><label class="form-check-label" for="formatGeojson">GeoJSON (WGS84)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson47" value="geojson_47"><label class="form-check-label" for="formatGeojson47">GeoJSON (UTM Zone 47N)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson48" value="geojson_48"><label class="form-check-label" for="formatGeojson48">GeoJSON (UTM Zone 48N)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatExcel" value="excel"><label class="form-check-label" for="formatExcel" style="color: #198754; font-weight: 500;">Excel (.xlsx)</label></div>
@@ -682,31 +705,112 @@
             "esri/geometry/Point", "esri/geometry/Polygon", "esri/geometry/Polyline", "esri/geometry/Multipoint",
             "esri/geometry/support/webMercatorUtils",
             "esri/geometry/coordinateFormatter", "esri/geometry/projection",
-            "esri/geometry/SpatialReference", "esri/core/reactiveUtils"
+            "esri/geometry/SpatialReference", "esri/core/reactiveUtils",
+            "esri/widgets/DistanceMeasurement2D", "esri/widgets/AreaMeasurement2D"
         ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, 
                    VectorTileLayer, WebTileLayer, Locate,
                    Sketch, GraphicsLayer, Graphic, geometryEngine, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, TextSymbol,
                    Point, Polygon, Polyline, Multipoint, webMercatorUtils, coordinateFormatter, projection,
-                   SpatialReference, reactiveUtils 
+                   SpatialReference, reactiveUtils, DistanceMeasurement2D, AreaMeasurement2D
         ) {
             
             // 1. Load Projection Engine & Coordinate Formatter
             Promise.all([coordinateFormatter.load(), projection.load()]).then(() => { 
-                console.log("Projection modules loaded"); 
+                console.log("Projection modules loaded");
+                // Generate MGRS Grid after projection engine is ready
+                generateMgrsGrid();
+                updateLayerList(); // Update list to show the new layer
             });
 
             var map = new Map({ basemap: "topo-vector" });
             var view = new MapView({ container: "viewDiv", map: map, center: [100.5, 13.7], zoom: 6, popup: { defaultPopupTemplateEnabled: true } });
             var print = new Print({ view: view, container: "printDiv", templateOptions: { title: "My Map", author: "ArcGIS Web Map", copyright: "© ArcGIS Web Map", legendEnabled: true, scalebarEnabled: true }, format: { formats: ["pdf", "png32", "jpg"] } });
 
-            // Add Location Widget
+            // Initialize Locate Widget
             var locateWidget = new Locate({
                 view: view,
-                graphic: new Graphic({
-                    symbol: { type: "simple-marker" }  // overwrites the default symbol used for the graphic placed at the location of the user when found
-                })
+                graphic: new Graphic({ symbol: { type: "simple-marker" } })
             });
-            view.ui.add(locateWidget, "top-left");
+
+            // --- MGRS GRID LAYER SETUP ---
+            var mgrsLayer = new GraphicsLayer({
+                id: "mgrs_grid_layer",
+                title: "MGRS Grid Zones & Letters",
+                visible: false, // Hidden by default
+                listMode: "show" // Show in Layer List
+            });
+            map.add(mgrsLayer);
+
+            function generateMgrsGrid() {
+                if (!coordinateFormatter.isSupported()) return;
+
+                // 1. Draw Major Zone Boundaries (47N-48Q)
+                var zones = [
+                    { name: "47N", xMin: 96, xMax: 102, yMin: 0, yMax: 8 },
+                    { name: "47P", xMin: 96, xMax: 102, yMin: 8, yMax: 16 },
+                    { name: "47Q", xMin: 96, xMax: 102, yMin: 16, yMax: 24 },
+                    { name: "48N", xMin: 102, xMax: 108, yMin: 0, yMax: 8 },
+                    { name: "48P", xMin: 102, xMax: 108, yMin: 8, yMax: 16 },
+                    { name: "48Q", xMin: 102, xMax: 108, yMin: 16, yMax: 24 }
+                ];
+
+                zones.forEach(z => {
+                    var poly = new Polygon({
+                        rings: [[[z.xMin, z.yMin], [z.xMax, z.yMin], [z.xMax, z.yMax], [z.xMin, z.yMax], [z.xMin, z.yMin]]],
+                        spatialReference: { wkid: 4326 }
+                    });
+                    
+                    // Zone Boundary Line
+                    mgrsLayer.add(new Graphic({
+                        geometry: poly,
+                        symbol: { type: "simple-fill", color: [0,0,0,0], outline: { color: "#ff00ff", width: 2, style: "dash" } }
+                    }));
+                    
+                    // Zone Label (Center)
+                    mgrsLayer.add(new Graphic({
+                        geometry: poly.centroid,
+                        symbol: { 
+                            type: "text", color: "#ff00ff", text: z.name, 
+                            font: { size: 24, weight: "bold", family: "Prompt" },
+                            haloColor: "white", haloSize: 2
+                        }
+                    }));
+                });
+
+                // 2. Generate 100km Letter Labels (Approximate Grid)
+                // We scan the area of Thailand with 0.5 degree steps to place labels
+                var labelSet = new Set(); // To avoid duplicate labels too close to each other (optional optimization)
+
+                for (var lat = 5.75; lat <= 20.5; lat += 0.5) { 
+                    for (var lon = 97.25; lon <= 106.0; lon += 0.5) {
+                        try {
+                            var pt = new Point({ latitude: lat, longitude: lon, spatialReference: { wkid: 4326 }});
+                            var mgrs = coordinateFormatter.toMgrs(pt, "automatic", 1); 
+                            // Result example: "47P NK 1 2"
+                            var parts = mgrs.split(" ");
+                            if(parts.length >= 2) {
+                                var gzd = parts[0];
+                                var sqId = parts[1]; // The 100km ID (e.g., NK)
+                                
+                                // Only add if in our target zones
+                                if(["47N","47P","47Q","48N","48P","48Q"].includes(gzd)) {
+                                    // Add label
+                                    mgrsLayer.add(new Graphic({
+                                        geometry: pt,
+                                        symbol: {
+                                            type: "text", color: "purple", text: sqId,
+                                            font: { size: 10, weight: "bold", family: "Prompt" },
+                                            haloColor: "white", haloSize: 1,
+                                            yoffset: 0
+                                        },
+                                        attributes: { description: "100km ID: " + sqId + " (Zone " + gzd + ")" }
+                                    }));
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                }
+            }
 
             var activeDrawingLayer = null;
             var activeColor = "#ff0000";
@@ -1314,8 +1418,16 @@
                 panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'flex' : 'none';
                 if(panelId !== "attributeTablePanel") panel.style.display = (panel.style.display === 'flex') ? 'block' : 'none'; 
                 if(panelId === "attributeTablePanel" && panel.style.display === 'flex') panel.style.flexDirection = 'column';
+                
+                // Clear measurements if closing measure panel
+                if (panelId === 'measurePanel' && panel.style.display === 'none') {
+                    clearMeasurement();
+                }
             }
-            window.closePanel = function(panelId) { document.getElementById(panelId).style.display = 'none'; }
+            window.closePanel = function(panelId) { 
+                document.getElementById(panelId).style.display = 'none'; 
+                if (panelId === 'measurePanel') clearMeasurement();
+            }
 
             document.getElementById("basemapBtn").addEventListener("click", () => togglePanel("basemapGalleryPanel"));
             document.getElementById("fullscreenBtn").addEventListener("click", () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else if (document.exitFullscreen) document.exitFullscreen(); });
@@ -1326,6 +1438,65 @@
             document.getElementById("importDataBtn").addEventListener("click", () => { togglePanel("importDataPanel"); });
             document.getElementById("selectAttrBtn").addEventListener("click", () => { togglePanel("selectAttributePanel"); updateSelectAttributeOptions(); });
             document.getElementById("addServiceBtn").addEventListener("click", () => togglePanel("addServicePanel")); // Add listener for new button
+            
+            // New Listeners for Locate and Measure
+            document.getElementById("locateBtn").addEventListener("click", function() {
+                locateWidget.locate();
+            });
+
+            document.getElementById("measureBtn").addEventListener("click", function() {
+                togglePanel("measurePanel");
+            });
+
+            // --- MEASUREMENT LOGIC ---
+            var activeMeasurementWidget = null;
+
+            document.getElementById("distMeasureBtn").addEventListener("click", function() {
+                setActiveMeasurement("distance");
+            });
+
+            document.getElementById("areaMeasureBtn").addEventListener("click", function() {
+                setActiveMeasurement("area");
+            });
+
+            document.getElementById("clearMeasureBtn").addEventListener("click", function() {
+                clearMeasurement();
+            });
+
+            function setActiveMeasurement(type) {
+                if (activeMeasurementWidget) {
+                    activeMeasurementWidget.destroy();
+                    activeMeasurementWidget = null;
+                }
+                
+                document.getElementById("distMeasureBtn").classList.remove("active");
+                document.getElementById("areaMeasureBtn").classList.remove("active");
+                document.getElementById("measurementDiv").innerHTML = "";
+
+                if (type === "distance") {
+                    activeMeasurementWidget = new DistanceMeasurement2D({
+                        view: view,
+                        container: "measurementDiv"
+                    });
+                    document.getElementById("distMeasureBtn").classList.add("active");
+                } else if (type === "area") {
+                    activeMeasurementWidget = new AreaMeasurement2D({
+                        view: view,
+                        container: "measurementDiv"
+                    });
+                    document.getElementById("areaMeasureBtn").classList.add("active");
+                }
+            }
+
+            function clearMeasurement() {
+                if (activeMeasurementWidget) {
+                    activeMeasurementWidget.destroy();
+                    activeMeasurementWidget = null;
+                }
+                document.getElementById("distMeasureBtn").classList.remove("active");
+                document.getElementById("areaMeasureBtn").classList.remove("active");
+                document.getElementById("measurementDiv").innerHTML = "";
+            }
 
             view.when(() => {
                 reactiveUtils.on(
@@ -1884,12 +2055,53 @@
                     } else { alert("Invalid Lat/Lon format. Use: lat,lon"); }
                 } else if (searchType === "mgrs") {
                     if (coordinateFormatter.isSupported()) {
-                        try { 
-                            var p = coordinateFormatter.fromMgrs(input, new SpatialReference({ wkid: 4326 }), "automatic"); 
-                            if(p) {
-                                executeSearch(p.longitude, p.latitude); 
-                            } else { alert("Invalid MGRS coordinate"); }
-                        } catch(e) { alert("Error parsing MGRS"); }
+                        input = input.toUpperCase();
+                        var point = null;
+                        
+                        // Case 1: Standard MGRS (Starts with Zone Number e.g. "47P...")
+                        if (/^\d/.test(input)) {
+                            try { 
+                                point = coordinateFormatter.fromMgrs(input, new SpatialReference({ wkid: 4326 }), "automatic"); 
+                            } catch(e) { console.warn("Standard parse failed", e); }
+                        } 
+                        // Case 2: Short MGRS (Starts with 2 Letters e.g. "NK 1234...") -> Auto-fill GZD
+                        else if (/^[A-Z]{2}/.test(input)) {
+                            // Zones to check: Thailand covers 47N, 47P, 47Q and 48N, 48P, 48Q
+                            // We check all of them and validate the latitude band.
+                            var prefixes = ["47N", "47P", "47Q", "48N", "48P", "48Q"];
+                            var bestPoint = null;
+
+                            for (var i = 0; i < prefixes.length; i++) {
+                                try {
+                                    var testStr = prefixes[i] + " " + input;
+                                    var p = coordinateFormatter.fromMgrs(testStr, new SpatialReference({ wkid: 4326 }), "automatic");
+                                    if (p) {
+                                        // Strict Validation: Check if the resulting latitude fits the Grid Zone Letter
+                                        // N: 0-8 deg, P: 8-16 deg, Q: 16-24 deg
+                                        var band = prefixes[i].charAt(2);
+                                        var lat = p.latitude;
+                                        var isValidBand = false;
+
+                                        if (band === 'N' && lat >= 0 && lat < 8) isValidBand = true;
+                                        else if (band === 'P' && lat >= 8 && lat < 16) isValidBand = true;
+                                        else if (band === 'Q' && lat >= 16 && lat < 24) isValidBand = true;
+
+                                        if (isValidBand) {
+                                            bestPoint = p;
+                                            // console.log("Matched Zone: " + prefixes[i]);
+                                            break; // Stop once we find a geographically valid match
+                                        }
+                                    }
+                                } catch (e) {}
+                            }
+                            point = bestPoint;
+                        }
+
+                        if(point) {
+                            executeSearch(point.longitude, point.latitude); 
+                        } else { 
+                            alert("Invalid MGRS coordinate or outside supported zones (47N-48Q)"); 
+                        }
                     }
                 }
             });
@@ -2165,7 +2377,6 @@
                 if (layerIds.length === 0) { alert("Please select at least one layer."); return; }
                 var exportType = document.querySelector('input[name="exportFormat"]:checked').value;
                 if (exportType === "kml") exportSelectedLayersToKML(layerIds);
-                else if (exportType === "geojson") exportSelectedLayersToGeoJSON(layerIds, 4326);
                 else if (exportType === "geojson_47") exportSelectedLayersToGeoJSON(layerIds, 32647);
                 else if (exportType === "geojson_48") exportSelectedLayersToGeoJSON(layerIds, 32648);
                 else if (exportType === "excel") exportSelectedLayersToExcel(layerIds);
