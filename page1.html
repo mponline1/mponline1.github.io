@@ -153,7 +153,7 @@
 
         #layerPanel { top: 130px; right: 10px; width: 320px; max-height: calc(100vh - 150px); overflow-y: auto; }
         #searchPanel { top: 130px; left: 10px; width: 320px; }
-        #addServicePanel { top: 130px; left: 10px; width: 280px; }
+        #addServicePanel { top: 130px; left: 10px; }
         #importDataPanel { top: 130px; left: 10px; width: 320px; }
         #selectAttributePanel { top: 130px; right: 60px; width: 320px; }
         #exportPanel { top: 130px; right: 60px; width: 300px; }
@@ -168,11 +168,14 @@
         .table-custom th { background-color: #f8f9fa; position: sticky; top: 0; z-index: 1; }
         .table-custom td[contenteditable="true"]:focus { background-color: #fffde7; outline: 2px solid #ffeb3b; }
 
+        /* FIXED: Draw Tools Style for 16:9 Screens */
         .draw-tools {
             position: absolute; top: 130px; left: 10px; z-index: 1000;
             background: white; padding: 10px; border-radius: 5px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; width: 260px; /* Reduced width */
             max-width: 90vw; /* Ensure it fits on small screens */
+            max-height: calc(100vh - 150px); /* Limit height to fit screen */
+            overflow-y: auto; /* Enable vertical scrolling */
         }
         
         .excel-import-panel {
@@ -271,11 +274,9 @@
             <button id="searchBtn" class="btn btn-toolbar-custom" title="Search (Lat/Lon, MGRS)"><i class="fas fa-search"></i></button>
             <button id="selectAttrBtn" class="btn btn-toolbar-custom" title="Select By Attribute"><i class="fas fa-filter"></i></button>
             <button id="printBtn" class="btn btn-toolbar-custom" title="Print"><i class="fas fa-print"></i></button>
-            <button id="addServiceBtn" class="btn btn-toolbar-custom" title="Add Service"><i class="fas fa-plus"></i></button>
             <button id="importDataBtn" class="btn btn-toolbar-custom" title="Import Data (KML, GeoJSON, Shp, Excel)"><i class="fas fa-file-import"></i></button>
             <button id="drawBtn" class="btn btn-toolbar-custom" title="Draw Tools"><i class="fas fa-pen"></i></button>
             <button id="layerListBtn" class="btn btn-toolbar-custom" title="Layer List"><i class="fas fa-list"></i></button>
-            <button id="locationBtn" class="btn btn-toolbar-custom" title="Track Location"><i class="fas fa-location-dot"></i></button> 
             <button id="exportPanelBtn" class="btn btn-toolbar-custom" title="Export Data"><i class="fas fa-download"></i></button> 
         </div>
         <button id="toolbarToggleBtn" class="toolbar-toggle-btn" title="Show/Hide Toolbar"><i class="fas fa-chevron-down" id="toggleIcon"></i></button>
@@ -307,11 +308,39 @@
             
             <button id="updateLayerColorBtn" class="btn btn-outline-primary btn-sm w-100 mb-2">Apply Color to Active Layer</button>
         </div>
+
+        <!-- NEW 3-POINT RECTANGLE & SPLIT TOOL SECTION -->
+        <div class="border-top pt-2 mt-2 mb-2">
+            <h6 class="fw-bold small"><i class="fas fa-vector-square"></i> Special Tools</h6>
+            <button id="btnRect3Point" class="btn btn-outline-dark btn-sm w-100 mb-2" title="Click 3 points to define rectangle (rotated)">
+                <i class="fas fa-draw-polygon"></i> 3-Point Rectangle
+            </button>
+            
+            <div class="input-group input-group-sm mb-1">
+                <span class="input-group-text">Split</span>
+                <input type="number" id="splitCount" class="form-control" value="2" min="2" step="1">
+                <span class="input-group-text">Parts</span>
+            </div>
+            <button id="btnSplitTool" class="btn btn-outline-danger btn-sm w-100" title="Click an edge to split rectangle">
+                <i class="fas fa-cut"></i> Split Tool
+            </button>
+            <!-- New Confirm Button -->
+            <button id="btnConfirmSplit" class="btn btn-success btn-sm w-100 mt-1" style="display:none;">
+                <i class="fas fa-check"></i> Confirm Split
+            </button>
+            <div id="splitToolHint" class="small text-danger fst-italic mt-1" style="display:none;">
+                * Point at an edge to see preview, Click to lock.
+            </div>
+        </div>
+
         <div class="buffer-section">
             <h6 class="fw-bold small"><i class="fas fa-bullseye"></i> Buffer Tool</h6>
             <div class="mb-2">
                 <label class="form-label small">Select Layer to Buffer:</label>
                 <select id="bufferTargetLayer" class="form-select form-select-sm"></select>
+                <div class="form-text small text-muted fst-italic mt-1">
+                    * If you select graphics on map, only those will be buffered.
+                </div>
             </div>
             <div class="mb-2">
                 <label class="form-label small">Distance (meters):</label>
@@ -415,26 +444,6 @@
         <button id="confirmExportBtn" class="btn btn-success btn-sm w-100">Export Selected</button>
     </div>
 
-    <!-- ADD SERVICE PANEL (FROM PAGE 2) -->
-    <div id="addServicePanel" class="panel">
-        <span class="close-btn" onclick="closePanel('addServicePanel')">×</span>
-        <h5>Add Service</h5>
-        <div class="mb-2">
-            <label class="form-label small">Service URL:</label>
-            <input type="text" id="serviceUrl" class="form-control form-control-sm" placeholder="https://...">
-        </div>
-        <div class="mb-2">
-            <label class="form-label small">Service Type:</label>
-            <select id="serviceType" class="form-select form-select-sm">
-                <option value="feature">Feature Layer</option>
-                <option value="map-image">Map Image Layer</option>
-                <option value="wms">WMS Layer</option>
-                <option value="tile">Tile Layer</option>
-            </select>
-        </div>
-        <button id="btnAddService" class="btn btn-success btn-sm w-100">Add to Map</button>
-    </div>
-
     <!-- NEW IMPORT PANEL (Consolidated) -->
     <div id="importDataPanel" class="panel">
         <span class="close-btn" onclick="closePanel('importDataPanel')">×</span>
@@ -534,13 +543,13 @@
             "esri/layers/FeatureLayer", "esri/layers/MapImageLayer", "esri/layers/WMSLayer", "esri/layers/TileLayer",
             "esri/widgets/Sketch", "esri/layers/GraphicsLayer", "esri/Graphic", "esri/geometry/geometryEngine",
             "esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleFillSymbol", "esri/symbols/TextSymbol",
-            "esri/widgets/Track", "esri/geometry/Point", "esri/geometry/Polygon", "esri/geometry/Polyline", "esri/geometry/Multipoint",
+            "esri/geometry/Point", "esri/geometry/Polygon", "esri/geometry/Polyline", "esri/geometry/Multipoint",
             "esri/geometry/support/webMercatorUtils",
             "esri/geometry/coordinateFormatter", "esri/geometry/projection",
             "esri/geometry/SpatialReference", "esri/core/reactiveUtils"
         ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, 
                    Sketch, GraphicsLayer, Graphic, geometryEngine, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, TextSymbol,
-                   Track, Point, Polygon, Polyline, Multipoint, webMercatorUtils, coordinateFormatter, projection,
+                   Point, Polygon, Polyline, Multipoint, webMercatorUtils, coordinateFormatter, projection,
                    SpatialReference, reactiveUtils 
         ) {
             
@@ -564,8 +573,8 @@
 
             var searchGraphicsLayer = new GraphicsLayer({ id: "system_search_layer", title: "Search History", listMode: "show", isDrawLayer: true });
             map.add(searchGraphicsLayer);
-            var locationLabelLayer = new GraphicsLayer({ id: "location_label_layer", listMode: "hide" });
-            map.add(locationLabelLayer);
+            var tempGraphicsLayer = new GraphicsLayer({ listMode: "hide" }); // For 3-point tools
+            map.add(tempGraphicsLayer);
 
             var markerSymbol = new SimpleMarkerSymbol({ color: [0, 0, 255, 0.8], size: "24px", outline: { color: [255, 255, 255], width: 2 } });
 
@@ -863,7 +872,7 @@
             const popularColors = [
                 "#ff0000", "#ff7f00", "#ffff00", "#00ff00", "#0000ff", "#4b0082", "#9400d3", "#000000",
                 "#ffffff", "#808080", "#a52a2a", "#ffc0cb", "#00ffff", "#ff00ff", "#ffd700", "#c0c0c0",
-                "#008000", "#800000", "#808000", "#008080", "#000080", "#ffa500", "#dc143c", "#40e0d0"
+                "#008000", "#800000", "#800000", "#008080", "#000080", "#ffa500", "#dc143c", "#40e0d0"
             ];
             
             const paletteDiv = document.getElementById("colorPalette");
@@ -903,6 +912,8 @@
                 } else {
                     drawTools.style.display = "none";
                     button.classList.remove("tool-active");
+                    // Turn off special tools
+                    customDraw.disable();
                     if (sketch) { view.ui.remove(sketch); sketch.destroy(); sketch = null; }
                 }
             });
@@ -930,18 +941,402 @@
                 }
             });
 
-            // --- BUFFER TOOL ---
+            // --- 3-POINT RECTANGLE & SPLIT TOOL LOGIC ---
+            var customDraw = {
+                active: false,
+                mode: null, // 'rect3point', 'split'
+                step: 0,
+                p1: null,
+                p2: null,
+                tempGraphic: null,
+                splitTarget: null,
+                listeners: [],
+                locked: false, // For split tool confirm state
+                
+                disable: function() {
+                    this.active = false;
+                    this.mode = null;
+                    this.step = 0;
+                    this.p1 = null; this.p2 = null; this.splitTarget = null;
+                    this.locked = false;
+                    this.splitInfo = null;
+
+                    tempGraphicsLayer.removeAll();
+                    this.listeners.forEach(l => l.remove());
+                    this.listeners = [];
+                    view.container.style.cursor = "default";
+                    document.getElementById("btnRect3Point").classList.remove("active", "btn-dark", "text-white");
+                    document.getElementById("btnSplitTool").classList.remove("active", "btn-danger", "text-white");
+                    document.getElementById("btnConfirmSplit").style.display = "none";
+                    document.getElementById("splitToolHint").style.display = "none";
+                    
+                    // Re-attach Sketch layer if it was detached
+                    if (sketch && activeDrawingLayer) {
+                        sketch.layer = activeDrawingLayer;
+                    }
+                },
+
+                enable3Point: function() {
+                    this.disable();
+                    
+                    // Temporarily detach Sketch to prevent click conflicts
+                    // Does NOT destroy the widget, just stops it from intercepting
+                    if(sketch) {
+                        sketch.cancel();
+                        sketch.layer = null; 
+                    }
+                    
+                    this.active = true;
+                    this.mode = 'rect3point';
+                    this.step = 1;
+                    view.container.style.cursor = "crosshair";
+                    document.getElementById("btnRect3Point").classList.add("active", "btn-dark", "text-white");
+                    
+                    this.listeners.push(view.on("click", (e) => this.handleClick(e)));
+                    this.listeners.push(view.on("pointer-move", (e) => this.handleMove(e)));
+                },
+
+                enableSplit: function() {
+                    this.disable();
+                    
+                    if(sketch) {
+                        sketch.cancel();
+                        sketch.layer = null;
+                    }
+
+                    this.active = true;
+                    this.mode = 'split';
+                    this.step = 1; // 1 = select edge/split
+                    view.container.style.cursor = "alias";
+                    document.getElementById("btnSplitTool").classList.add("active", "btn-danger", "text-white");
+                    document.getElementById("splitToolHint").style.display = "block";
+                    document.getElementById("splitToolHint").textContent = "* Point at edge to preview, Click to lock.";
+
+                    this.listeners.push(view.on("click", (e) => this.handleClick(e)));
+                    this.listeners.push(view.on("pointer-move", (e) => this.handleMove(e)));
+                },
+
+                handleClick: function(event) {
+                    event.stopPropagation();
+                    if (!this.active) return;
+                    
+                    // Get map point
+                    var mapPoint = view.toMap(event);
+                    if (!mapPoint) return;
+
+                    if (this.mode === 'rect3point') {
+                        if (this.step === 1) {
+                            this.p1 = mapPoint;
+                            this.step = 2;
+                            tempGraphicsLayer.add(new Graphic({ geometry: this.p1, symbol: { type: "simple-marker", style: "cross", size: 10, color: "red" } }));
+                        } else if (this.step === 2) {
+                            this.p2 = mapPoint;
+                            this.step = 3;
+                            // Draw base line
+                            tempGraphicsLayer.add(new Graphic({ 
+                                geometry: new Polyline({ paths: [[this.p1.x, this.p1.y], [this.p2.x, this.p2.y]], spatialReference: view.spatialReference }), 
+                                symbol: { type: "simple-line", color: "red", width: 2, style: "dash" } 
+                            }));
+                        } else if (this.step === 3) {
+                            // Finalize
+                            this.finalizeRect(mapPoint);
+                        }
+                    } else if (this.mode === 'split') {
+                        if (this.locked) {
+                            // Unlock if clicked on map (cancel confirm)
+                            this.locked = false;
+                            document.getElementById("btnConfirmSplit").style.display = "none";
+                            document.getElementById("splitToolHint").textContent = "* Point at edge to preview, Click to lock.";
+                            tempGraphicsLayer.removeAll();
+                            this.splitInfo = null;
+                        } else {
+                            // Try to lock
+                            if (tempGraphicsLayer.graphics.length > 0 && this.splitInfo) {
+                                this.locked = true;
+                                document.getElementById("btnConfirmSplit").style.display = "inline-block";
+                                document.getElementById("splitToolHint").textContent = "* Click 'Confirm Split' button to proceed.";
+                            }
+                        }
+                    }
+                },
+
+                handleMove: function(event) {
+                    if (!this.active) return;
+                    var mapPoint = view.toMap(event);
+                    if (!mapPoint) return;
+
+                    if (this.mode === 'rect3point') {
+                        if (this.step === 2 && this.p1) {
+                            // Drawing base line preview
+                            tempGraphicsLayer.removeAll();
+                            tempGraphicsLayer.add(new Graphic({ geometry: this.p1, symbol: { type: "simple-marker", style: "cross", size: 10, color: "red" } }));
+                            tempGraphicsLayer.add(new Graphic({ 
+                                geometry: new Polyline({ paths: [[this.p1.x, this.p1.y], [mapPoint.x, mapPoint.y]], spatialReference: view.spatialReference }), 
+                                symbol: { type: "simple-line", color: "red", width: 1, style: "dash" } 
+                            }));
+                        } else if (this.step === 3 && this.p1 && this.p2) {
+                            // Drawing 90 deg rect preview
+                            this.drawRectPreview(mapPoint);
+                        }
+                    } else if (this.mode === 'split') {
+                        if (this.locked) return; // Don't update if locked
+
+                        // Raycast to find graphic
+                        view.hitTest(event).then((response) => {
+                            var results = response.results;
+                            var found = false;
+                            if (results.length > 0) {
+                                var g = results.find(r => r.graphic.layer === activeDrawingLayer && r.graphic.geometry.type === "polygon");
+                                if (g) {
+                                    this.previewSplit(g.graphic, mapPoint);
+                                    found = true;
+                                }
+                            }
+                            if (!found) tempGraphicsLayer.removeAll();
+                        });
+                    }
+                },
+
+                drawRectPreview: function(p3) {
+                    // Vector Math for Projection
+                    // Base Vector u = p2 - p1
+                    var u = { x: this.p2.x - this.p1.x, y: this.p2.y - this.p1.y };
+                    // Vector v = p3 - p2
+                    var v = { x: p3.x - this.p2.x, y: p3.y - this.p2.y };
+                    
+                    // Project v onto normal of u to get height vector
+                    // Normal of u (rotated 90) = (-u.y, u.x)
+                    var n = { x: -u.y, y: u.x };
+                    // Normalize n
+                    var lenN = Math.sqrt(n.x * n.x + n.y * n.y);
+                    n.x /= lenN; n.y /= lenN;
+                    
+                    // Dot product v . n = length of projection
+                    var dist = v.x * n.x + v.y * n.y;
+                    
+                    // Height vector h = dist * n
+                    var h = { x: dist * n.x, y: dist * n.y };
+                    
+                    // P3_proj = P2 + h
+                    var p3_proj = { x: this.p2.x + h.x, y: this.p2.y + h.y };
+                    // P4_proj = P1 + h
+                    var p4_proj = { x: this.p1.x + h.x, y: this.p1.y + h.y };
+                    
+                    // Create Polygon
+                    var rings = [[
+                        [this.p1.x, this.p1.y],
+                        [this.p2.x, this.p2.y],
+                        [p3_proj.x, p3_proj.y],
+                        [p4_proj.x, p4_proj.y],
+                        [this.p1.x, this.p1.y]
+                    ]];
+                    
+                    var poly = new Polygon({ rings: rings, spatialReference: view.spatialReference });
+                    
+                    tempGraphicsLayer.removeAll();
+                    // Keep base line info
+                    tempGraphicsLayer.add(new Graphic({ geometry: this.p1, symbol: { type: "simple-marker", style: "cross", size: 10, color: "red" } }));
+                    tempGraphicsLayer.add(new Graphic({ 
+                        geometry: new Polyline({ paths: [[this.p1.x, this.p1.y], [this.p2.x, this.p2.y]], spatialReference: view.spatialReference }), 
+                        symbol: { type: "simple-line", color: "red", width: 2, style: "solid" } 
+                    }));
+                    
+                    // Guide lines (dashed) from P1/P2 to P4/P3
+                    tempGraphicsLayer.add(new Graphic({ 
+                        geometry: new Polyline({ paths: [[this.p1.x, this.p1.y], [p4_proj.x, p4_proj.y], [p3_proj.x, p3_proj.y], [this.p2.x, this.p2.y]], spatialReference: view.spatialReference }), 
+                        symbol: { type: "simple-line", color: "blue", width: 1, style: "dash" } 
+                    }));
+                    
+                    this.lastPoly = poly; // Store for finalize
+                },
+
+                finalizeRect: function(p3) {
+                    if (this.lastPoly) {
+                        var graphic = new Graphic({
+                            geometry: this.lastPoly,
+                            symbol: new SimpleFillSymbol({ color: hexToRgba(activeColor, 0.3), outline: { color: activeColor, width: 2 } }),
+                            attributes: { description: "3-Point Rect", color: activeColor }
+                        });
+                        handleGraphicCreation(graphic, false);
+                        activeDrawingLayer.add(graphic);
+                        
+                        // Auto-disable tool after creating one shape (as requested)
+                        this.disable();
+                    }
+                },
+
+                // Logic for Splitting
+                previewSplit: function(graphic, cursorPoint) {
+                    var poly = graphic.geometry;
+                    var ring = poly.rings[0]; // Assuming single ring simple polygon
+                    if (ring.length < 5) return; // Need at least 4 pts + close
+
+                    // Find closest edge to cursor
+                    var minDist = Infinity;
+                    var closestEdgeIndex = -1;
+
+                    for (var i = 0; i < ring.length - 1; i++) {
+                        var pA = ring[i];
+                        var pB = ring[i+1];
+                        var dist = geometryEngine.distance(new Point({x:cursorPoint.x, y:cursorPoint.y, spatialReference: view.spatialReference}), 
+                                                           new Polyline({paths:[[pA, pB]], spatialReference: view.spatialReference}));
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestEdgeIndex = i;
+                        }
+                    }
+
+                    if (closestEdgeIndex === -1) return;
+
+                    // Assuming Quad-like structure (Rectangle). 
+                    var idx1 = closestEdgeIndex;
+                    var idx2 = (closestEdgeIndex + 1) % (ring.length - 1);
+                    var idx3 = (idx2 + 1) % (ring.length - 1);
+                    var idx4 = (idx3 + 1) % (ring.length - 1); 
+                    
+                    var parts = parseInt(document.getElementById("splitCount").value) || 2;
+                    var pStart1 = ring[idx1];
+                    var pEnd1 = ring[idx2];
+                    
+                    var pOppStart = ring[(idx1 + 3) % 4]; // 3
+                    var pOppEnd = ring[(idx1 + 2) % 4];   // 2
+                    
+                    // Generate cut lines preview
+                    tempGraphicsLayer.removeAll();
+                    var previewLines = [];
+                    
+                    for (var k = 1; k < parts; k++) {
+                        var ratio = k / parts;
+                        var x1 = pStart1[0] + (pEnd1[0] - pStart1[0]) * ratio;
+                        var y1 = pStart1[1] + (pEnd1[1] - pStart1[1]) * ratio;
+                        
+                        var x2 = pOppStart[0] + (pOppEnd[0] - pOppStart[0]) * ratio;
+                        var y2 = pOppStart[1] + (pOppEnd[1] - pOppStart[1]) * ratio;
+                        
+                        previewLines.push([[x1,y1], [x2,y2]]);
+                    }
+                    
+                    // Draw preview lines
+                    previewLines.forEach(path => {
+                        tempGraphicsLayer.add(new Graphic({
+                            geometry: new Polyline({ paths: [path], spatialReference: view.spatialReference }),
+                            symbol: { type: "simple-line", color: "red", width: 2, style: "dash" }
+                        }));
+                    });
+                    
+                    // Store split info
+                    this.splitInfo = {
+                        graphic: graphic,
+                        idx1: idx1,
+                        parts: parts,
+                        ptsTop: [pStart1, pEnd1],
+                        ptsBot: [pOppStart, pOppEnd] // Direction 3->2
+                    };
+                    
+                    // Highlight source graphic
+                    tempGraphicsLayer.add(new Graphic({
+                        geometry: graphic.geometry,
+                        symbol: new SimpleFillSymbol({ color: [0,0,0,0], outline: { color: "cyan", width: 3 } })
+                    }));
+                },
+
+                executeSplit: function() {
+                    if (!this.splitInfo) return;
+                    
+                    var info = this.splitInfo;
+                    var oldGraphic = info.graphic;
+                    var parts = info.parts;
+                    var newGraphics = [];
+                    
+                    // Remove old
+                    activeDrawingLayer.remove(oldGraphic);
+                    
+                    // Create new polys
+                    for (var k = 0; k < parts; k++) {
+                        var r1 = k / parts;
+                        var r2 = (k + 1) / parts;
+                        
+                        // Top segment
+                        var t1x = info.ptsTop[0][0] + (info.ptsTop[1][0] - info.ptsTop[0][0]) * r1;
+                        var t1y = info.ptsTop[0][1] + (info.ptsTop[1][1] - info.ptsTop[0][1]) * r1;
+                        var t2x = info.ptsTop[0][0] + (info.ptsTop[1][0] - info.ptsTop[0][0]) * r2;
+                        var t2y = info.ptsTop[0][1] + (info.ptsTop[1][1] - info.ptsTop[0][1]) * r2;
+                        
+                        // Bot segment (3->2)
+                        var b1x = info.ptsBot[0][0] + (info.ptsBot[1][0] - info.ptsBot[0][0]) * r1;
+                        var b1y = info.ptsBot[0][1] + (info.ptsBot[1][1] - info.ptsBot[0][1]) * r1;
+                        var b2x = info.ptsBot[0][0] + (info.ptsBot[1][0] - info.ptsBot[0][0]) * r2;
+                        var b2y = info.ptsBot[0][1] + (info.ptsBot[1][1] - info.ptsBot[0][1]) * r2;
+                        
+                        // Order: T1 -> T2 -> B2 -> B1 -> T1
+                        var ring = [[t1x, t1y], [t2x, t2y], [b2x, b2y], [b1x, b1y], [t1x, t1y]];
+                        
+                        var g = new Graphic({
+                            geometry: new Polygon({ rings: [ring], spatialReference: view.spatialReference }),
+                            symbol: oldGraphic.symbol.clone(),
+                            attributes: Object.assign({}, oldGraphic.attributes)
+                        });
+                        g.attributes.description = (g.attributes.description || "Split") + " (" + (k+1) + ")";
+                        handleGraphicCreation(g, false);
+                        activeDrawingLayer.add(g);
+                    }
+                    
+                    alert("Split into " + parts + " parts.");
+                    
+                    // Reset UI
+                    this.locked = false;
+                    document.getElementById("btnConfirmSplit").style.display = "none";
+                    document.getElementById("splitToolHint").textContent = "* Point at edge to preview, Click to lock.";
+                    tempGraphicsLayer.removeAll();
+                    this.splitInfo = null;
+                }
+            };
+
+            // Events for new buttons
+            document.getElementById("btnRect3Point").addEventListener("click", () => {
+                if (customDraw.mode === 'rect3point') customDraw.disable(); // Toggle off
+                else customDraw.enable3Point();
+            });
+
+            document.getElementById("btnSplitTool").addEventListener("click", () => {
+                if (customDraw.mode === 'split') customDraw.disable(); // Toggle off
+                else customDraw.enableSplit();
+            });
+            
+            document.getElementById("btnConfirmSplit").addEventListener("click", () => {
+                customDraw.executeSplit();
+            });
+
+            // --- BUFFER TOOL (UPDATED: SELECTED VS ALL) ---
             document.getElementById("executeBufferBtn").addEventListener("click", function() {
                 var targetLayerId = document.getElementById("bufferTargetLayer").value;
                 var dist = parseFloat(document.getElementById("manualBufferDist").value);
                 if (!targetLayerId) { alert("Please select a layer to buffer."); return; }
                 if (isNaN(dist) || dist <= 0) { alert("Please enter a valid buffer distance."); return; }
+                
                 var targetLayer = map.findLayerById(targetLayerId);
-                if (targetLayer && targetLayer.graphics.length > 0) {
-                    var newLayerName = `Buffer ${dist}m - ${targetLayer.title}`;
+                var graphicsToBuffer = [];
+                var isSelectionMode = false;
+
+                // Check if the target layer is the ACTIVE drawing layer AND has selected graphics via Sketch
+                if (activeDrawingLayer && targetLayerId === activeDrawingLayer.id && sketch && sketch.updateGraphics.length > 0) {
+                    graphicsToBuffer = sketch.updateGraphics.toArray();
+                    isSelectionMode = true;
+                } else {
+                    // Fallback: Buffer ALL graphics in the layer
+                    if (targetLayer && targetLayer.graphics.length > 0) {
+                        graphicsToBuffer = targetLayer.graphics.toArray();
+                    }
+                }
+
+                if (graphicsToBuffer.length > 0) {
+                    var suffix = isSelectionMode ? "(Selected)" : "(All)";
+                    var newLayerName = `Buffer ${dist}m - ${targetLayer.title} ${suffix}`;
                     var bufferLayer = new GraphicsLayer({ title: newLayerName, isDrawLayer: true });
                     map.add(bufferLayer);
-                    targetLayer.graphics.forEach(function(graphic) {
+                    
+                    var count = 0;
+                    graphicsToBuffer.forEach(function(graphic) {
                         try {
                             var bufferGeom = geometryEngine.buffer(graphic.geometry, dist, "meters");
                             if (bufferGeom) {
@@ -952,11 +1347,18 @@
                                 });
                                 handleGraphicCreation(bufferGraphic, true);
                                 bufferLayer.add(bufferGraphic);
+                                count++;
                             }
                         } catch (e) { console.error("Buffer error:", e); }
                     });
-                    updateLayerList(); populateDrawLayerSelect(); updateExportLayerList(); alert(`Created buffer layer: ${newLayerName}`);
-                } else { alert("Selected layer is empty."); }
+                    
+                    updateLayerList(); 
+                    populateDrawLayerSelect(); 
+                    updateExportLayerList(); 
+                    alert(`Created buffer for ${count} features (${isSelectionMode ? "Selected only" : "All in layer"}).`);
+                } else { 
+                    alert("No features found to buffer. Select a layer with data, or select specific graphics."); 
+                }
             });
 
             // --- CENTRALIZED COORDINATE ATTRIBUTE HANDLER ---
@@ -1762,49 +2164,6 @@
                 } else {
                     alert("Please select MGRS column.");
                 }
-            });
-
-            // --- ADD SERVICE HANDLER (IMPROVED - From Page 2) ---
-            document.getElementById("btnAddService").addEventListener("click", function() {
-                var url = document.getElementById("serviceUrl").value.trim();
-                var type = document.getElementById("serviceType").value;
-                var layer;
-
-                if (url) {
-                    try {
-                        if (type === "wms") layer = new WMSLayer({ url: url, customParameters: { transparent: true } });
-                        else if (type === "feature") layer = new FeatureLayer({ url: url, outFields: ["*"], popupTemplate: { title: "{*}", content: "{*}", actions: [copyToDrawAction] } });
-                        else if (type === "map-image") layer = new MapImageLayer({ url: url });
-                        else if (type === "tile") layer = new TileLayer({ url: url });
-
-                        if (layer) {
-                            map.add(layer);
-                            updateLayerList();
-                            closePanel('addServicePanel');
-                        }
-                    } catch (err) {
-                        alert("Error adding service: " + err.message);
-                    }
-                } else {
-                    alert("Please enter a Service URL.");
-                }
-            });
-
-            // --- TRACK LOCATION (Original) ---
-            var track = new Track({ view: view, graphic: new Graphic({ symbol: { type: "simple-marker", size: "14px", color: "blue", outline: { color: "white", width: 2 } } }), useHeadingEnabled: false });
-            track.on("track", function(trackEvent) {
-                view.goTo({ target: trackEvent.position, zoom: 18 });
-                var geom = trackEvent.position.geometry;
-                var geographic = webMercatorUtils.webMercatorToGeographic(geom);
-                var mgrs = ""; try { mgrs = coordinateFormatter.toMgrs(geographic, "automatic", 5); } catch(e) {}
-                var labelText = `Lat: ${geographic.latitude.toFixed(5)}\nLon: ${geographic.longitude.toFixed(5)}\nMGRS: ${mgrs}`;
-                var textGraphic = new Graphic({ geometry: geom, symbol: { type: "text", color: "black", haloColor: "white", haloSize: "2px", text: labelText, xoffset: 0, yoffset: -25, font: { size: 10, weight: "bold" } } });
-                locationLabelLayer.removeAll(); locationLabelLayer.add(textGraphic);
-            });
-
-            document.getElementById("locationBtn").addEventListener("click", function() {
-                if (!track.tracking) { track.start(); this.classList.add("tool-active"); } 
-                else { track.stop(); this.classList.remove("tool-active"); locationLabelLayer.removeAll(); }
             });
             
             view.when(() => { document.querySelectorAll('.panel, .draw-tools, .excel-import-panel').forEach(p => p.style.display = 'none'); });
