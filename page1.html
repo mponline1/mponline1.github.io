@@ -153,7 +153,7 @@
 
         #layerPanel { top: 130px; right: 10px; width: 340px; max-height: calc(100vh - 150px); overflow-y: auto; }
         #searchPanel { top: 130px; left: 10px; width: 320px; }
-        #addServicePanel { top: 130px; left: 10px; }
+        #addServicePanel { top: 130px; left: 10px; width: 340px; } /* Added Service Panel */
         #importDataPanel { top: 130px; left: 10px; width: 320px; }
         #selectAttributePanel { top: 130px; right: 60px; width: 320px; }
         #exportPanel { top: 130px; right: 60px; width: 300px; }
@@ -218,12 +218,53 @@
         }
         .layer-label-settings.active { display: block; }
         
+        /* UPDATED MODAL STYLE FOR "NEW WINDOW" LOOK */
         .custom-modal {
-            display: none; position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); background: white; padding: 20px;
-            border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            z-index: 3000; min-width: 400px; max-height: 80vh; overflow-y: auto;
+            display: none; position: fixed; 
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%); 
+            background: white; 
+            width: 500px;
+            max-width: 90%;
+            max-height: 85vh; 
+            border-radius: 12px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            z-index: 3000; 
+            overflow: hidden; /* Hide overflow for rounding */
+            display: flex;
+            flex-direction: column;
         }
+
+        .modal-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h5 { margin: 0; font-weight: 600; }
+        .modal-header .close-modal-btn { 
+            background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; opacity: 0.8;
+        }
+        .modal-header .close-modal-btn:hover { opacity: 1; }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+            background-color: #f8f9fa;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
         .modal-backdrop {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 2999;
@@ -297,6 +338,8 @@
             <button id="basemapBtn" class="btn btn-toolbar-custom" title="Basemap Gallery"><i class="fas fa-layer-group"></i></button>
             <button id="fullscreenBtn" class="btn btn-toolbar-custom" title="Fullscreen"><i class="fas fa-expand"></i></button>
             <button id="searchBtn" class="btn btn-toolbar-custom" title="Search (Lat/Lon, MGRS)"><i class="fas fa-search"></i></button>
+            <!-- Add Service Button -->
+            <button id="addServiceBtn" class="btn btn-toolbar-custom" title="Add Service Layer"><i class="fas fa-plus-square"></i></button>
             <button id="selectAttrBtn" class="btn btn-toolbar-custom" title="Select By Attribute"><i class="fas fa-filter"></i></button>
             <button id="printBtn" class="btn btn-toolbar-custom" title="Print"><i class="fas fa-print"></i></button>
             <button id="importDataBtn" class="btn btn-toolbar-custom" title="Import Data (KML, GeoJSON, Shp, Excel)"><i class="fas fa-file-import"></i></button>
@@ -333,9 +376,9 @@
             
             <button id="updateLayerColorBtn" class="btn btn-outline-primary btn-sm w-100 mb-2">Apply Color to Active Layer</button>
             
-            <!-- NEW: Button for Bulk Editing -->
-            <button id="editSelectedAttributesBtn" class="btn btn-outline-secondary btn-sm w-100 mb-2">
-                <i class="fas fa-edit"></i> Edit Selected Attributes
+            <!-- MODIFIED: Button for Bulk Editing (Universal) -->
+            <button id="editSelectedAttributesBtn" class="btn btn-warning text-dark fw-bold btn-sm w-100 mb-2">
+                <i class="fas fa-edit"></i> Edit Selected Attributes (All)
             </button>
         </div>
 
@@ -385,6 +428,46 @@
         <span class="close-btn" onclick="closePanel('layerPanel')">×</span>
         <h5>Layer List</h5>
         <div id="layerList" class="list-group" style="max-height: 400px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- ADD SERVICE PANEL -->
+    <div id="addServicePanel" class="panel">
+        <span class="close-btn" onclick="closePanel('addServicePanel')">×</span>
+        <h5><i class="fas fa-cloud-upload-alt"></i> Add Service Layer</h5>
+        
+        <div class="mb-3">
+            <label class="form-label small fw-bold">Service Type:</label>
+            <select id="serviceType" class="form-select form-select-sm">
+                <option value="feature">Feature Layer</option>
+                <option value="dynamic">Map Image Layer (Dynamic)</option>
+                <option value="tile">Tile Layer</option>
+                <option value="vectortile">Vector Tile Layer</option>
+                <option value="wms">WMS Layer</option>
+                <option value="xyz">XYZ Tile Layer</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold">Service URL:</label>
+            <textarea id="serviceUrl" class="form-control form-control-sm" rows="3" placeholder="https://..."></textarea>
+            <div class="form-text small text-muted">
+                * For Feature/Map/Tile layers, use the REST URL.<br>
+                * For XYZ, use URL with {x}, {y}, {z}.
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold">Layer Title (Optional):</label>
+            <input type="text" id="serviceTitle" class="form-control form-control-sm" placeholder="My Layer">
+        </div>
+
+        <button id="btnAddServiceLayer" class="btn btn-primary btn-sm w-100">Add to Map</button>
+        
+        <div class="alert alert-light border mt-3 p-2 small">
+            <i class="fas fa-info-circle text-info"></i> <b>Tip:</b> <br>
+            - <b>Feature Layers</b> can be queried. You can use the "Copy to Draw Layer" tool in the popup to edit or export them.<br>
+            - Other layers act as basemaps or overlays.
+        </div>
     </div>
 
     <!-- ATTRIBUTE TABLE PANEL (NEW) -->
@@ -548,19 +631,25 @@
     </div>
 
     <div class="modal-backdrop" id="modalBackdrop"></div>
-    <!-- Updated Dynamic Attribute Modal -->
-    <div class="custom-modal" id="attributeModal">
-        <h5>Feature Attributes</h5>
-        <form id="attributeForm">
-            <input type="hidden" id="attrGraphicUid">
-            <div id="attributeDynamicFields" style="max-height: 400px; overflow-y: auto;">
-                <!-- Dynamic fields will be inserted here -->
-            </div>
-            <div class="d-flex justify-content-end gap-2 mt-3">
-                <button type="button" class="btn btn-secondary" onclick="closeAttributeModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save</button>
-            </div>
-        </form>
+    
+    <!-- UPDATED: Dynamic Attribute Modal (New Window Style) -->
+    <div class="custom-modal" id="attributeModal" style="display:none;">
+        <div class="modal-header">
+            <h5><i class="fas fa-table"></i> Edit Attributes</h5>
+            <button type="button" class="close-modal-btn" onclick="closeAttributeModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="attributeForm">
+                <input type="hidden" id="attrGraphicUid">
+                <div id="attributeDynamicFields">
+                    <!-- Dynamic fields will be inserted here -->
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeAttributeModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveAttributeBtn">Save All Changes</button>
+        </div>
     </div>
 
     <script>
@@ -587,6 +676,7 @@
         require([
             "esri/Map", "esri/views/MapView", "esri/widgets/BasemapGallery", "esri/widgets/Search", "esri/widgets/Print",
             "esri/layers/FeatureLayer", "esri/layers/MapImageLayer", "esri/layers/WMSLayer", "esri/layers/TileLayer",
+            "esri/layers/VectorTileLayer", "esri/layers/WebTileLayer",
             "esri/widgets/Sketch", "esri/layers/GraphicsLayer", "esri/Graphic", "esri/geometry/geometryEngine",
             "esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleFillSymbol", "esri/symbols/TextSymbol",
             "esri/geometry/Point", "esri/geometry/Polygon", "esri/geometry/Polyline", "esri/geometry/Multipoint",
@@ -594,6 +684,7 @@
             "esri/geometry/coordinateFormatter", "esri/geometry/projection",
             "esri/geometry/SpatialReference", "esri/core/reactiveUtils"
         ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, 
+                   VectorTileLayer, WebTileLayer,
                    Sketch, GraphicsLayer, Graphic, geometryEngine, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, TextSymbol,
                    Point, Polygon, Polyline, Multipoint, webMercatorUtils, coordinateFormatter, projection,
                    SpatialReference, reactiveUtils 
@@ -654,7 +745,6 @@
                 sketch = new Sketch({
                     layer: activeDrawingLayer,
                     view: view,
-                    // Enable new features in 4.x
                     creationMode: "single",
                     defaultUpdateOptions: {
                         tool: "reshape",
@@ -675,11 +765,10 @@
                             "lasso-selection": true,
                             "rectangle-selection": true
                         },
-                        settingsMenu: true,  // Show settings
+                        settingsMenu: true,
                         undoRedoMenu: true,
-                        snappingControls: true // Show snapping controls
+                        snappingControls: true
                     },
-                    // Enable snapping
                     snappingOptions: {
                         enabled: true,
                         selfEnabled: true,
@@ -693,18 +782,17 @@
                 sketch.on("create", function(event) {
                     if (event.state === "complete") {
                         handleGraphicCreation(event.graphic, false);
-                        updateLabels(activeDrawingLayer.id); // Update labels on create
+                        updateLabels(activeDrawingLayer.id);
                     }
                 });
 
-                // --- NEW: Refresh table when selection changes/updates ---
                 sketch.on("update", function(event) {
                     var panel = document.getElementById("attributeTablePanel");
                     if(panel.style.display !== "none" && panel.style.display !== "") {
                         renderAttributeTable();
                     }
                     if(event.state === "complete") {
-                        updateLabels(activeDrawingLayer.id); // Update labels on geometry change
+                        updateLabels(activeDrawingLayer.id);
                     }
                 });
 
@@ -725,16 +813,14 @@
                 var labelLayer = map.findLayerById(labelLayerId);
                 var sourceLayer = map.findLayerById(layerId);
 
-                // If disabled or settings missing, clear and return
                 if (!settings || !settings.enabled) {
                     if (labelLayer) labelLayer.removeAll();
                     return;
                 }
 
-                // Create label layer if not exists
                 if (!labelLayer) {
                     labelLayer = new GraphicsLayer({ id: labelLayerId, listMode: "hide", title: "Labels: " + sourceLayer.title });
-                    map.add(labelLayer); // Add on top
+                    map.add(labelLayer); 
                 } else {
                     labelLayer.removeAll();
                 }
@@ -796,8 +882,8 @@
                         var visIcon = l.visible ? "fa-eye" : "fa-eye-slash";
                         var visColor = l.visible ? "text-primary" : "text-muted";
                         
-                        // Get fields for dropdown
                         var fieldOptions = "";
+                        // Logic for Field Options in Dropdown
                         if(l.graphics && l.graphics.length > 0) {
                             var keys = Object.keys(l.graphics.getItemAt(0).attributes || {});
                             keys.forEach(k => {
@@ -805,16 +891,36 @@
                                     fieldOptions += `<option value="${k}">${k}</option>`;
                                 }
                             });
+                        } else if (l.type === "feature") { 
+                            // For Feature Layers, try to get fields from layer definition
+                            if (l.fields) {
+                                l.fields.forEach(f => {
+                                    fieldOptions += `<option value="${f.name}">${f.alias || f.name}</option>`;
+                                });
+                            } else {
+                                fieldOptions = `<option value="OBJECTID">OBJECTID</option>`;
+                            }
                         } else {
                             fieldOptions = `<option value="description">description</option>`;
                         }
 
-                        // Get current settings
                         var set = layerLabelSettings[l.id] || { enabled: false, field: "description", size: 10, color: "#000000" };
+
+                        var attrTableBtn = "";
+                        if (l.isDrawLayer || l.type === "feature") {
+                            attrTableBtn = `
+                                <button class="btn btn-sm btn-info text-white" title="Attribute Table" onclick="openAttributeTable('${l.id}')">
+                                    <i class="fas fa-table"></i>
+                                </button>
+                            `;
+                        }
 
                         li.innerHTML = `
                             <div class="layer-header">
-                                <span class="fw-bold small text-truncate" style="max-width: 140px;" title="${l.title}">${l.title}</span>
+                                <div class="d-flex flex-column" style="overflow:hidden;">
+                                    <span class="fw-bold small text-truncate" style="max-width: 140px;" title="${l.title}">${l.title}</span>
+                                    <span class="badge bg-light text-secondary border" style="font-size:0.65em; width:fit-content;">${l.type}</span>
+                                </div>
                                 <div class="layer-actions">
                                     <button class="btn btn-sm btn-light border" title="Toggle Label Settings" onclick="toggleLabelSettings('${l.id}')">
                                         <i class="fas fa-tag text-secondary"></i>
@@ -822,9 +928,7 @@
                                     <button class="btn btn-sm btn-light border" title="Toggle Visibility" onclick="toggleLayerVisibility('${l.id}')">
                                         <i class="fas ${visIcon} ${visColor}"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-info text-white" title="Attribute Table" onclick="openAttributeTable('${l.id}')">
-                                        <i class="fas fa-table"></i>
-                                    </button>
+                                    ${attrTableBtn}
                                     <button class="btn btn-sm btn-danger" title="Remove" onclick="removeLayer('${l.id}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -837,7 +941,6 @@
                                 </div>
                             </div>
                             
-                            <!-- Label Settings UI -->
                             <div id="labelSettings_${l.id}" class="layer-label-settings">
                                 <div class="form-check form-switch mb-1">
                                     <input class="form-check-input" type="checkbox" id="lbl_enable_${l.id}" ${set.enabled ? "checked" : ""}>
@@ -856,7 +959,6 @@
                             </div>
                         `;
                         
-                        // Select correct option
                         var select = li.querySelector(`#lbl_field_${l.id}`);
                         if(select && set.field) select.value = set.field;
 
@@ -865,7 +967,6 @@
                 });
             }
 
-            // Expose global functions needed for HTML inline onclick handlers
             window.removeLayer = function(id) { 
                 var lbl = map.findLayerById(id + "_labels");
                 if(lbl) map.remove(lbl);
@@ -879,7 +980,7 @@
                 var lblLayer = map.findLayerById(layerId + "_labels");
                 if(layer) {
                     layer.visible = !layer.visible;
-                    if(lblLayer) lblLayer.visible = layer.visible; // Sync label visibility
+                    if(lblLayer) lblLayer.visible = layer.visible;
                     updateLayerList();
                 }
             }
@@ -891,6 +992,73 @@
                 }
             }
 
+            // --- ADD SERVICE LAYER LOGIC ---
+            document.getElementById("btnAddServiceLayer").addEventListener("click", function() {
+                var type = document.getElementById("serviceType").value;
+                var url = document.getElementById("serviceUrl").value.trim();
+                var title = document.getElementById("serviceTitle").value.trim();
+
+                if (!url) { alert("Please enter a service URL"); return; }
+                if (!title) { title = type + " Layer"; }
+
+                var layer = null;
+                try {
+                    switch(type) {
+                        case "feature":
+                            layer = new FeatureLayer({
+                                url: url,
+                                title: title,
+                                outFields: ["*"], // Ensure all attributes are fetched
+                                popupTemplate: {
+                                    // Basic Template that shows all fields + Copy Action
+                                    title: "{title}", 
+                                    content: [{
+                                        type: "fields",
+                                        fieldInfos: [] // Auto-detect
+                                    }],
+                                    actions: [copyToDrawAction] // Add the Copy Action
+                                }
+                            });
+                            break;
+                        case "dynamic":
+                            layer = new MapImageLayer({ url: url, title: title });
+                            break;
+                        case "tile":
+                            layer = new TileLayer({ url: url, title: title });
+                            break;
+                        case "vectortile":
+                            layer = new VectorTileLayer({ url: url, title: title });
+                            break;
+                        case "wms":
+                            layer = new WMSLayer({ url: url, title: title });
+                            break;
+                        case "xyz":
+                            layer = new WebTileLayer({ urlTemplate: url, title: title });
+                            break;
+                    }
+
+                    if (layer) {
+                        map.add(layer);
+                        // For async layers like FeatureLayer, wait for load to update UI properly
+                        layer.load().then(function() {
+                            updateLayerList();
+                            alert("Layer added successfully!");
+                            closePanel("addServicePanel");
+                            // Clean input
+                            document.getElementById("serviceUrl").value = "";
+                            document.getElementById("serviceTitle").value = "";
+                        }).catch(function(err) {
+                            console.error(err);
+                            alert("Error loading layer. Check URL or CORS settings.\n" + err.message);
+                            map.remove(layer); // Remove if failed
+                        });
+                    }
+                } catch(e) {
+                    console.error(e);
+                    alert("Error creating layer: " + e.message);
+                }
+            });
+
             // --- ATTRIBUTE TABLE LOGIC (ENHANCED) ---
             var currentTableLayerId = null;
             var hiddenColumns = new Set();
@@ -898,12 +1066,19 @@
 
             window.openAttributeTable = function(layerId) {
                 var layer = map.findLayerById(layerId);
+                
+                // Enhanced Check for Feature Layers (might query server)
+                if (layer.type === "feature" && (!layer.graphics || layer.graphics.length === 0)) {
+                    // It's a server-side feature layer
+                    alert("Attribute table currently supports local graphics only (Draw Layers/Imported Data).\n\nTo view/edit attributes of this service:\n1. Click a feature on map\n2. Use 'Copy to Draw Layer' in popup\n3. Open table for the draw layer.");
+                    return;
+                }
+
                 if(!layer || !layer.graphics || layer.graphics.length === 0) {
                     alert("No data in this layer."); return;
                 }
                 
                 currentTableLayerId = layerId;
-                // hiddenColumns.clear(); // removed to persist selection
                 showSelectedOnly = false;
                 document.getElementById("tableLayerName").textContent = "Table: " + layer.title;
                 
@@ -918,36 +1093,43 @@
 
                 var allGraphics = layer.graphics.toArray();
                 
-                // Get selected UIDs
+                // Get selected UIDs from ALL sources (Sketch & Popup)
                 var selectedUids = [];
+                
+                // 1. Sketch Selection (Draw Tool)
                 if(sketch && sketch.updateGraphics) {
-                    selectedUids = sketch.updateGraphics.toArray().map(g => g.uid);
+                    sketch.updateGraphics.forEach(g => selectedUids.push(g.uid));
+                }
+                
+                // 2. Popup Selection (Click, Search, Select By Attr)
+                if (view.popup.visible && view.popup.features && view.popup.features.length > 0) {
+                    view.popup.features.forEach(g => {
+                        // Avoid duplicates
+                        if (!selectedUids.includes(g.uid)) {
+                            selectedUids.push(g.uid);
+                        }
+                    });
                 }
 
-                // SORTING LOGIC: Move Selected Rows to Top
                 allGraphics.sort((a, b) => {
                     var aSelected = selectedUids.includes(a.uid);
                     var bSelected = selectedUids.includes(b.uid);
-                    if (aSelected && !bSelected) return -1; // a comes first
-                    if (!aSelected && bSelected) return 1;  // b comes first
-                    return 0; // maintain relative order
+                    if (aSelected && !bSelected) return -1;
+                    if (!aSelected && bSelected) return 1;
+                    return 0;
                 });
 
-                // Determine which graphics to show based on filter
                 var graphicsToShow = allGraphics;
                 if(showSelectedOnly && selectedUids.length > 0) {
-                    // Filter to only those in sketch selection (if they belong to this layer)
                     graphicsToShow = allGraphics.filter(g => selectedUids.includes(g.uid));
                 }
 
-                // Get All Columns
                 var keys = new Set();
                 allGraphics.forEach(g => {
                     if(g.attributes) Object.keys(g.attributes).forEach(k => keys.add(k));
                 });
                 var allColumns = Array.from(keys);
                 
-                // --- RENDER COLUMN SELECTOR ---
                 var menu = document.getElementById("columnSelectMenu");
                 menu.innerHTML = "";
                 allColumns.forEach(col => {
@@ -957,21 +1139,18 @@
                     menu.appendChild(li);
                 });
                 
-                // Add event listeners to toggles
                 menu.querySelectorAll(".col-toggle").forEach(chk => {
                     chk.addEventListener("change", function() {
                         if(this.checked) hiddenColumns.delete(this.value);
                         else hiddenColumns.add(this.value);
-                        renderAttributeTable(); // Re-render table
+                        renderAttributeTable();
                     });
                 });
 
-                // --- RENDER TABLE ---
                 var tableHead = document.querySelector("#featureTable thead");
                 var tableBody = document.querySelector("#featureTable tbody");
                 tableHead.innerHTML = ""; tableBody.innerHTML = "";
 
-                // Header
                 var trHead = document.createElement("tr");
                 var visibleCols = allColumns.filter(c => !hiddenColumns.has(c));
                 visibleCols.forEach(col => {
@@ -979,12 +1158,10 @@
                 });
                 tableHead.appendChild(trHead);
 
-                // Body
                 graphicsToShow.forEach((g) => {
                     var tr = document.createElement("tr");
                     tr.dataset.uid = g.uid;
                     
-                    // Highlight if selected
                     if(selectedUids.includes(g.uid)) {
                         tr.classList.add("table-active-row");
                     }
@@ -997,18 +1174,13 @@
                         tr.appendChild(td);
                     });
                     
-                    // Row click to select on map
                     tr.addEventListener("click", function() {
-                        // Optional: Zoom to or select on map
                         view.goTo(g);
-                        // If using Sketch, we might want to select it programmatically
-                        // Note: Sketch selection API in 4.x is a bit complex, strictly viewing here
                     });
 
                     tableBody.appendChild(tr);
                 });
                 
-                // Update button state
                 var btn = document.getElementById("toggleSelectedRowsBtn");
                 if(showSelectedOnly) {
                     btn.classList.remove("btn-outline-primary");
@@ -1024,7 +1196,6 @@
                 renderAttributeTable();
             });
 
-            // Save Table Edits
             document.getElementById("saveTableBtn").addEventListener("click", function() {
                 if(!currentTableLayerId) return;
                 var layer = map.findLayerById(currentTableLayerId);
@@ -1064,9 +1235,10 @@
                 var select = document.getElementById("drawLayerSelect"); select.innerHTML = "";
                 var bufferSelect = document.getElementById("bufferTargetLayer"); bufferSelect.innerHTML = "";
                 var attrSelect = document.getElementById("selectAttrLayer"); attrSelect.innerHTML = '<option value="">Select Layer</option>';
-                var fieldSelect = document.getElementById("selectAttrField"); fieldSelect.innerHTML = ""; // Clear Fields on layer reload
+                var fieldSelect = document.getElementById("selectAttrField"); fieldSelect.innerHTML = "";
 
                 map.layers.forEach(function(layer) {
+                    // Populate for Graphics Layers (Draw Layers)
                     if (layer.isDrawLayer) {
                         var option = document.createElement("option"); option.value = layer.id; option.textContent = layer.title;
                         if (activeDrawingLayer && layer.id === activeDrawingLayer.id) option.selected = true;
@@ -1092,14 +1264,17 @@
                     else if (clonedGeometry.type === "polygon") sym = new SimpleFillSymbol({ color: hexToRgba(activeColor, 0.3), outline: { color: activeColor, width: 2 } });
 
                     var newAttributes = Object.assign({}, selectedFeature.attributes);
+                    // Remove System/Location fields to allow recalculation
                     delete newAttributes.latitude; delete newAttributes.longitude;
                     delete newAttributes.mgrs; delete newAttributes.utmz47; delete newAttributes.utmz48;
+                    // Remove objectid/fid to prevent conflicts
+                    delete newAttributes.OBJECTID; delete newAttributes.FID; 
 
                     var newGraphic = new Graphic({ geometry: clonedGeometry, symbol: sym, attributes: newAttributes });
                     newGraphic.attributes.color = activeColor;
                     handleGraphicCreation(newGraphic, false); 
                     activeDrawingLayer.add(newGraphic);
-                    updateLabels(activeDrawingLayer.id); // Update labels
+                    updateLabels(activeDrawingLayer.id);
                     alert("Feature copied to: " + activeDrawingLayer.title); 
                     view.popup.close();
                     updateLayerList(); 
@@ -1107,12 +1282,8 @@
             }
 
             function updateSelectAttributeOptions() {
-                var layerSelect = document.getElementById("selectAttrLayer");
-                var fieldSelect = document.getElementById("selectAttrField");
                 populateDrawLayerSelect(); 
             }
-
-            // --- END FUNCTION DECLARATIONS ---
 
             document.getElementById("toolbarToggleBtn").addEventListener("click", function() {
                 var toolbar = document.getElementById("mainToolbar");
@@ -1145,8 +1316,8 @@
             document.getElementById("exportPanelBtn").addEventListener("click", () => { togglePanel("exportPanel"); updateExportLayerList(); });
             document.getElementById("importDataBtn").addEventListener("click", () => { togglePanel("importDataPanel"); });
             document.getElementById("selectAttrBtn").addEventListener("click", () => { togglePanel("selectAttributePanel"); updateSelectAttributeOptions(); });
+            document.getElementById("addServiceBtn").addEventListener("click", () => togglePanel("addServicePanel")); // Add listener for new button
 
-            // --- FIX: USE REACTIVE UTILS FOR POPUP EVENTS ---
             view.when(() => {
                 reactiveUtils.on(
                     () => view.popup,
@@ -1159,6 +1330,17 @@
                             }
                         } else if (event.action.id === "copy-to-draw") {
                             handleCopyToDraw();
+                        }
+                    }
+                );
+
+                // --- Watcher for Popup Selection Changes to update Attribute Table ---
+                reactiveUtils.watch(
+                    () => [view.popup.visible, view.popup.selectedFeature, view.popup.featureCount],
+                    () => {
+                        var panel = document.getElementById("attributeTablePanel");
+                        if(panel.style.display !== "none" && panel.style.display !== "") {
+                            renderAttributeTable();
                         }
                     }
                 );
@@ -1208,7 +1390,6 @@
                 } else {
                     drawTools.style.display = "none";
                     button.classList.remove("tool-active");
-                    // Turn off special tools
                     customDraw.disable();
                     if (sketch) { view.ui.remove(sketch); sketch.destroy(); sketch = null; }
                 }
@@ -1237,27 +1418,37 @@
                 }
             });
 
-            // --- BULK EDIT BUTTON HANDLER ---
+            // --- UNIVERSAL EDIT SELECTED ATTRIBUTES BUTTON ---
             document.getElementById("editSelectedAttributesBtn").addEventListener("click", function() {
+                var candidates = [];
+
+                // 1. Priority: Sketch Selection (Draw Tool)
                 if (sketch && sketch.updateGraphics && sketch.updateGraphics.length > 0) {
-                    var selectedGraphics = sketch.updateGraphics.toArray();
-                    showAttributeModal(selectedGraphics);
+                    candidates = sketch.updateGraphics.toArray();
+                } 
+                // 2. Secondary: Popup Selection (Select By Attribute result or Click)
+                else if (view.popup.visible && view.popup.features && view.popup.features.length > 0) {
+                    candidates = view.popup.features;
+                }
+
+                if (candidates.length > 0) {
+                    showAttributeModal(candidates);
                 } else {
-                    alert("Please select features using the Select tool first.");
+                    alert("Please select features first.\n\nWays to select:\n1. Use the 'Select' tool in Sketch toolbar.\n2. Click 'Select by Attribute' and search.\n3. Click on features on the map.");
                 }
             });
 
             // --- 3-POINT RECTANGLE & SPLIT TOOL LOGIC ---
             var customDraw = {
                 active: false,
-                mode: null, // 'rect3point', 'split'
+                mode: null,
                 step: 0,
                 p1: null,
                 p2: null,
                 tempGraphic: null,
                 splitTarget: null,
                 listeners: [],
-                locked: false, // For split tool confirm state
+                locked: false, 
                 
                 disable: function() {
                     this.active = false;
@@ -1276,7 +1467,6 @@
                     document.getElementById("btnConfirmSplit").style.display = "none";
                     document.getElementById("splitToolHint").style.display = "none";
                     
-                    // Re-attach Sketch layer if it was detached
                     if (sketch && activeDrawingLayer) {
                         sketch.layer = activeDrawingLayer;
                     }
@@ -1284,40 +1474,32 @@
 
                 enable3Point: function() {
                     this.disable();
-                    
-                    // Temporarily detach Sketch to prevent click conflicts
-                    // Does NOT destroy the widget, just stops it from intercepting
                     if(sketch) {
                         sketch.cancel();
                         sketch.layer = null; 
                     }
-                    
                     this.active = true;
                     this.mode = 'rect3point';
                     this.step = 1;
                     view.container.style.cursor = "crosshair";
                     document.getElementById("btnRect3Point").classList.add("active", "btn-dark", "text-white");
-                    
                     this.listeners.push(view.on("click", (e) => this.handleClick(e)));
                     this.listeners.push(view.on("pointer-move", (e) => this.handleMove(e)));
                 },
 
                 enableSplit: function() {
                     this.disable();
-                    
                     if(sketch) {
                         sketch.cancel();
                         sketch.layer = null;
                     }
-
                     this.active = true;
                     this.mode = 'split';
-                    this.step = 1; // 1 = select edge/split
+                    this.step = 1; 
                     view.container.style.cursor = "alias";
                     document.getElementById("btnSplitTool").classList.add("active", "btn-danger", "text-white");
                     document.getElementById("splitToolHint").style.display = "block";
                     document.getElementById("splitToolHint").textContent = "* Point at edge to preview, Click to lock.";
-
                     this.listeners.push(view.on("click", (e) => this.handleClick(e)));
                     this.listeners.push(view.on("pointer-move", (e) => this.handleMove(e)));
                 },
@@ -1325,8 +1507,6 @@
                 handleClick: function(event) {
                     event.stopPropagation();
                     if (!this.active) return;
-                    
-                    // Get map point
                     var mapPoint = view.toMap(event);
                     if (!mapPoint) return;
 
@@ -1338,25 +1518,21 @@
                         } else if (this.step === 2) {
                             this.p2 = mapPoint;
                             this.step = 3;
-                            // Draw base line
                             tempGraphicsLayer.add(new Graphic({ 
                                 geometry: new Polyline({ paths: [[this.p1.x, this.p1.y], [this.p2.x, this.p2.y]], spatialReference: view.spatialReference }), 
                                 symbol: { type: "simple-line", color: "red", width: 2, style: "dash" } 
                             }));
                         } else if (this.step === 3) {
-                            // Finalize
                             this.finalizeRect(mapPoint);
                         }
                     } else if (this.mode === 'split') {
                         if (this.locked) {
-                            // Unlock if clicked on map (cancel confirm)
                             this.locked = false;
                             document.getElementById("btnConfirmSplit").style.display = "none";
                             document.getElementById("splitToolHint").textContent = "* Point at edge to preview, Click to lock.";
                             tempGraphicsLayer.removeAll();
                             this.splitInfo = null;
                         } else {
-                            // Try to lock
                             if (tempGraphicsLayer.graphics.length > 0 && this.splitInfo) {
                                 this.locked = true;
                                 document.getElementById("btnConfirmSplit").style.display = "inline-block";
@@ -1373,7 +1549,6 @@
 
                     if (this.mode === 'rect3point') {
                         if (this.step === 2 && this.p1) {
-                            // Drawing base line preview
                             tempGraphicsLayer.removeAll();
                             tempGraphicsLayer.add(new Graphic({ geometry: this.p1, symbol: { type: "simple-marker", style: "cross", size: 10, color: "red" } }));
                             tempGraphicsLayer.add(new Graphic({ 
@@ -1381,13 +1556,11 @@
                                 symbol: { type: "simple-line", color: "red", width: 1, style: "dash" } 
                             }));
                         } else if (this.step === 3 && this.p1 && this.p2) {
-                            // Drawing 90 deg rect preview
                             this.drawRectPreview(mapPoint);
                         }
                     } else if (this.mode === 'split') {
-                        if (this.locked) return; // Don't update if locked
+                        if (this.locked) return; 
 
-                        // Raycast to find graphic
                         view.hitTest(event).then((response) => {
                             var results = response.results;
                             var found = false;
@@ -1404,31 +1577,15 @@
                 },
 
                 drawRectPreview: function(p3) {
-                    // Vector Math for Projection
-                    // Base Vector u = p2 - p1
                     var u = { x: this.p2.x - this.p1.x, y: this.p2.y - this.p1.y };
-                    // Vector v = p3 - p2
                     var v = { x: p3.x - this.p2.x, y: p3.y - this.p2.y };
-                    
-                    // Project v onto normal of u to get height vector
-                    // Normal of u (rotated 90) = (-u.y, u.x)
                     var n = { x: -u.y, y: u.x };
-                    // Normalize n
                     var lenN = Math.sqrt(n.x * n.x + n.y * n.y);
                     n.x /= lenN; n.y /= lenN;
-                    
-                    // Dot product v . n = length of projection
                     var dist = v.x * n.x + v.y * n.y;
-                    
-                    // Height vector h = dist * n
                     var h = { x: dist * n.x, y: dist * n.y };
-                    
-                    // P3_proj = P2 + h
                     var p3_proj = { x: this.p2.x + h.x, y: this.p2.y + h.y };
-                    // P4_proj = P1 + h
                     var p4_proj = { x: this.p1.x + h.x, y: this.p1.y + h.y };
-                    
-                    // Create Polygon
                     var rings = [[
                         [this.p1.x, this.p1.y],
                         [this.p2.x, this.p2.y],
@@ -1436,24 +1593,19 @@
                         [p4_proj.x, p4_proj.y],
                         [this.p1.x, this.p1.y]
                     ]];
-                    
                     var poly = new Polygon({ rings: rings, spatialReference: view.spatialReference });
                     
                     tempGraphicsLayer.removeAll();
-                    // Keep base line info
                     tempGraphicsLayer.add(new Graphic({ geometry: this.p1, symbol: { type: "simple-marker", style: "cross", size: 10, color: "red" } }));
                     tempGraphicsLayer.add(new Graphic({ 
                         geometry: new Polyline({ paths: [[this.p1.x, this.p1.y], [this.p2.x, this.p2.y]], spatialReference: view.spatialReference }), 
                         symbol: { type: "simple-line", color: "red", width: 2, style: "solid" } 
                     }));
-                    
-                    // Guide lines (dashed) from P1/P2 to P4/P3
                     tempGraphicsLayer.add(new Graphic({ 
                         geometry: new Polyline({ paths: [[this.p1.x, this.p1.y], [p4_proj.x, p4_proj.y], [p3_proj.x, p3_proj.y], [this.p2.x, this.p2.y]], spatialReference: view.spatialReference }), 
                         symbol: { type: "simple-line", color: "blue", width: 1, style: "dash" } 
                     }));
-                    
-                    this.lastPoly = poly; // Store for finalize
+                    this.lastPoly = poly;
                 },
 
                 finalizeRect: function(p3) {
@@ -1465,19 +1617,15 @@
                         });
                         handleGraphicCreation(graphic, false);
                         activeDrawingLayer.add(graphic);
-                        
-                        // Auto-disable tool after creating one shape (as requested)
                         this.disable();
                     }
                 },
 
-                // Logic for Splitting
                 previewSplit: function(graphic, cursorPoint) {
                     var poly = graphic.geometry;
-                    var ring = poly.rings[0]; // Assuming single ring simple polygon
-                    if (ring.length < 5) return; // Need at least 4 pts + close
+                    var ring = poly.rings[0]; 
+                    if (ring.length < 5) return; 
 
-                    // Find closest edge to cursor
                     var minDist = Infinity;
                     var closestEdgeIndex = -1;
 
@@ -1494,7 +1642,6 @@
 
                     if (closestEdgeIndex === -1) return;
 
-                    // Assuming Quad-like structure (Rectangle). 
                     var idx1 = closestEdgeIndex;
                     var idx2 = (closestEdgeIndex + 1) % (ring.length - 1);
                     var idx3 = (idx2 + 1) % (ring.length - 1);
@@ -1503,11 +1650,9 @@
                     var parts = parseInt(document.getElementById("splitCount").value) || 2;
                     var pStart1 = ring[idx1];
                     var pEnd1 = ring[idx2];
+                    var pOppStart = ring[(idx1 + 3) % 4]; 
+                    var pOppEnd = ring[(idx1 + 2) % 4];   
                     
-                    var pOppStart = ring[(idx1 + 3) % 4]; // 3
-                    var pOppEnd = ring[(idx1 + 2) % 4];   // 2
-                    
-                    // Generate cut lines preview
                     tempGraphicsLayer.removeAll();
                     var previewLines = [];
                     
@@ -1515,14 +1660,11 @@
                         var ratio = k / parts;
                         var x1 = pStart1[0] + (pEnd1[0] - pStart1[0]) * ratio;
                         var y1 = pStart1[1] + (pEnd1[1] - pStart1[1]) * ratio;
-                        
                         var x2 = pOppStart[0] + (pOppEnd[0] - pOppStart[0]) * ratio;
                         var y2 = pOppStart[1] + (pOppEnd[1] - pOppStart[1]) * ratio;
-                        
                         previewLines.push([[x1,y1], [x2,y2]]);
                     }
                     
-                    // Draw preview lines
                     previewLines.forEach(path => {
                         tempGraphicsLayer.add(new Graphic({
                             geometry: new Polyline({ paths: [path], spatialReference: view.spatialReference }),
@@ -1530,16 +1672,14 @@
                         }));
                     });
                     
-                    // Store split info
                     this.splitInfo = {
                         graphic: graphic,
                         idx1: idx1,
                         parts: parts,
                         ptsTop: [pStart1, pEnd1],
-                        ptsBot: [pOppStart, pOppEnd] // Direction 3->2
+                        ptsBot: [pOppStart, pOppEnd] 
                     };
                     
-                    // Highlight source graphic
                     tempGraphicsLayer.add(new Graphic({
                         geometry: graphic.geometry,
                         symbol: new SimpleFillSymbol({ color: [0,0,0,0], outline: { color: "cyan", width: 3 } })
@@ -1552,29 +1692,20 @@
                     var info = this.splitInfo;
                     var oldGraphic = info.graphic;
                     var parts = info.parts;
-                    var newGraphics = [];
                     
-                    // Remove old
                     activeDrawingLayer.remove(oldGraphic);
                     
-                    // Create new polys
                     for (var k = 0; k < parts; k++) {
                         var r1 = k / parts;
                         var r2 = (k + 1) / parts;
-                        
-                        // Top segment
                         var t1x = info.ptsTop[0][0] + (info.ptsTop[1][0] - info.ptsTop[0][0]) * r1;
                         var t1y = info.ptsTop[0][1] + (info.ptsTop[1][1] - info.ptsTop[0][1]) * r1;
                         var t2x = info.ptsTop[0][0] + (info.ptsTop[1][0] - info.ptsTop[0][0]) * r2;
                         var t2y = info.ptsTop[0][1] + (info.ptsTop[1][1] - info.ptsTop[0][1]) * r2;
-                        
-                        // Bot segment (3->2)
                         var b1x = info.ptsBot[0][0] + (info.ptsBot[1][0] - info.ptsBot[0][0]) * r1;
                         var b1y = info.ptsBot[0][1] + (info.ptsBot[1][1] - info.ptsBot[0][1]) * r1;
                         var b2x = info.ptsBot[0][0] + (info.ptsBot[1][0] - info.ptsBot[0][0]) * r2;
                         var b2y = info.ptsBot[0][1] + (info.ptsBot[1][1] - info.ptsBot[0][1]) * r2;
-                        
-                        // Order: T1 -> T2 -> B2 -> B1 -> T1
                         var ring = [[t1x, t1y], [t2x, t2y], [b2x, b2y], [b1x, b1y], [t1x, t1y]];
                         
                         var g = new Graphic({
@@ -1588,8 +1719,6 @@
                     }
                     
                     alert("Split into " + parts + " parts.");
-                    
-                    // Reset UI
                     this.locked = false;
                     document.getElementById("btnConfirmSplit").style.display = "none";
                     document.getElementById("splitToolHint").textContent = "* Point at edge to preview, Click to lock.";
@@ -1598,14 +1727,13 @@
                 }
             };
 
-            // Events for new buttons
             document.getElementById("btnRect3Point").addEventListener("click", () => {
-                if (customDraw.mode === 'rect3point') customDraw.disable(); // Toggle off
+                if (customDraw.mode === 'rect3point') customDraw.disable();
                 else customDraw.enable3Point();
             });
 
             document.getElementById("btnSplitTool").addEventListener("click", () => {
-                if (customDraw.mode === 'split') customDraw.disable(); // Toggle off
+                if (customDraw.mode === 'split') customDraw.disable();
                 else customDraw.enableSplit();
             });
             
@@ -1613,7 +1741,6 @@
                 customDraw.executeSplit();
             });
 
-            // --- BUFFER TOOL (UPDATED: SELECTED VS ALL) ---
             document.getElementById("executeBufferBtn").addEventListener("click", function() {
                 var targetLayerId = document.getElementById("bufferTargetLayer").value;
                 var dist = parseFloat(document.getElementById("manualBufferDist").value);
@@ -1624,12 +1751,10 @@
                 var graphicsToBuffer = [];
                 var isSelectionMode = false;
 
-                // Check if the target layer is the ACTIVE drawing layer AND has selected graphics via Sketch
                 if (activeDrawingLayer && targetLayerId === activeDrawingLayer.id && sketch && sketch.updateGraphics.length > 0) {
                     graphicsToBuffer = sketch.updateGraphics.toArray();
                     isSelectionMode = true;
                 } else {
-                    // Fallback: Buffer ALL graphics in the layer
                     if (targetLayer && targetLayer.graphics.length > 0) {
                         graphicsToBuffer = targetLayer.graphics.toArray();
                     }
@@ -1667,7 +1792,6 @@
                 }
             });
 
-            // --- CENTRALIZED COORDINATE ATTRIBUTE HANDLER ---
             function getUTMAttributes(pointWGS84) {
                 var result = { utmz47: "-", utmz48: "-" };
                 try {
@@ -1732,13 +1856,8 @@
                     }],
                     actions: [editAttributeAction]
                 };
-
-                if (!isBuffer && !graphic.attributes.description) {
-                    // showAttributeModal(graphic); // Optional: auto open
-                }
             }
 
-            // --- SEARCH SYSTEM ---
             document.querySelectorAll('input[name="searchType"]').forEach((elem) => { 
                 elem.addEventListener("change", (e) => { 
                     document.getElementById("searchInput").placeholder = e.target.value === "latlon" ? "e.g. 13.7, 100.5" : "e.g. 47Q LA 377 437"; 
@@ -1784,59 +1903,61 @@
                 });
 
                 handleGraphicCreation(graphic, false); 
-                
                 searchGraphicsLayer.add(graphic);
                 view.goTo({ target: point, zoom: 16 }); 
                 updateLayerList(); 
                 updateExportLayerList();
             }
 
-            // --- DYNAMIC ATTRIBUTE EDITING LOGIC (UPDATED FOR MULTIPLE SELECTION) ---
-            var editingGraphics = []; // Store array of graphics being edited
+            // --- UPDATED DYNAMIC ATTRIBUTE EDITING LOGIC ---
+            var editingGraphics = []; 
 
             window.showAttributeModal = function(graphics) {
-                // Ensure array
                 if(!Array.isArray(graphics)) graphics = [graphics];
                 if(graphics.length === 0) return;
 
                 editingGraphics = graphics;
                 var isMultiple = graphics.length > 1;
 
-                // Get union of all attribute keys
+                // Collect ALL keys
                 var allKeys = new Set();
                 graphics.forEach(g => {
                     if(g.attributes) Object.keys(g.attributes).forEach(k => allKeys.add(k));
                 });
                 
-                // Define system fields that should be read-only or skipped
-                const systemFields = ["latitude", "longitude", "mgrs", "utmz47", "utmz48", "color", "type", "timestamp", "isBuffer", "geometry", "uid", "shape"];
+                // Exclude only structural objects
+                const hiddenFields = ["geometry", "symbol", "popupTemplate", "shape"];
 
                 var container = document.getElementById("attributeDynamicFields");
-                container.innerHTML = ""; // Clear old fields
+                container.innerHTML = ""; 
 
                 if(isMultiple) {
                     var info = document.createElement("div");
-                    info.className = "alert alert-warning p-1 small mb-2";
-                    info.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Editing <b>${graphics.length}</b> features.<br/>Leaving a field as <i>(Multiple Values)</i> preserves original values.`;
+                    info.className = "alert alert-warning p-2 small mb-2";
+                    info.innerHTML = `<i class="fas fa-layer-group"></i> <b>Bulk Editing ${graphics.length} Items</b><br/>Fields with different values show as <i>(Multiple Values)</i>. Editing them will overwrite all selected items.`;
                     container.appendChild(info);
                 }
 
-                // Create fields
+                // Create inputs for EVERY attribute
                 allKeys.forEach(key => {
-                    if(systemFields.includes(key)) return; // Skip system fields for now, or make readonly
+                    if(hiddenFields.includes(key)) return; 
 
-                    // Check values across graphics
                     var firstVal = graphics[0].attributes[key];
                     var isSame = graphics.every(g => g.attributes[key] === firstVal);
                     var displayVal = isSame ? (firstVal !== undefined ? firstVal : "") : "(Multiple Values)";
 
                     var div = document.createElement("div");
-                    div.className = "mb-2";
+                    div.className = "mb-2 row g-2 align-items-center";
                     
+                    var labelCol = document.createElement("div");
+                    labelCol.className = "col-4 text-end";
                     var label = document.createElement("label");
-                    label.className = "form-label small fw-bold";
+                    label.className = "col-form-label col-form-label-sm fw-bold";
                     label.textContent = key;
+                    labelCol.appendChild(label);
                     
+                    var inputCol = document.createElement("div");
+                    inputCol.className = "col-8";
                     var input = document.createElement("input");
                     input.type = "text";
                     input.className = "form-control form-control-sm";
@@ -1845,40 +1966,43 @@
                     input.value = displayVal;
                     
                     if(!isSame) {
-                        input.dataset.originalMixed = "true"; // Flag to know it was mixed
+                        input.dataset.originalMixed = "true"; 
                         input.style.fontStyle = "italic";
                         input.style.color = "#666";
+                        input.style.backgroundColor = "#fffbe6"; // Light yellow to indicate mixed
                     }
 
-                    // Reset style on focus
                     input.onfocus = function() {
                         if(this.value === "(Multiple Values)") {
                             this.value = "";
                             this.style.fontStyle = "normal";
                             this.style.color = "black";
+                            this.style.backgroundColor = "white";
                         }
                     };
 
-                    div.appendChild(label);
-                    div.appendChild(input);
+                    inputCol.appendChild(input);
+                    div.appendChild(labelCol);
+                    div.appendChild(inputCol);
                     container.appendChild(div);
                 });
 
-                // Add button to add new field
                 var addFieldDiv = document.createElement("div");
-                addFieldDiv.className = "mt-3 border-top pt-2";
+                addFieldDiv.className = "mt-3 border-top pt-3";
                 addFieldDiv.innerHTML = `
-                    <label class="small text-muted">Add New Field:</label>
+                    <h6 class="small fw-bold mb-2">Add New Attribute</h6>
                     <div class="input-group input-group-sm">
-                        <input type="text" id="new_attr_key" class="form-control" placeholder="Field Name">
+                        <input type="text" id="new_attr_key" class="form-control" placeholder="New Field Name">
                         <input type="text" id="new_attr_value" class="form-control" placeholder="Value">
-                        <button class="btn btn-outline-secondary" type="button" onclick="addNewAttributeField()">Add</button>
+                        <button class="btn btn-outline-success" type="button" onclick="addNewAttributeField()">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
                     </div>
                 `;
                 container.appendChild(addFieldDiv);
 
                 document.getElementById('modalBackdrop').style.display = 'block';
-                document.getElementById('attributeModal').style.display = 'block';
+                document.getElementById('attributeModal').style.display = 'flex';
             }
 
             window.addNewAttributeField = function() {
@@ -1889,13 +2013,12 @@
                         g.attributes = g.attributes || {};
                         g.attributes[key] = val;
                     });
-                    // Refresh modal
                     showAttributeModal(editingGraphics);
                 }
             }
 
-            document.getElementById('attributeForm').onsubmit = function(e) {
-                e.preventDefault();
+            // Save Handler for the Modal
+            document.getElementById('saveAttributeBtn').addEventListener("click", function() {
                 if (editingGraphics.length > 0) {
                     var container = document.getElementById("attributeDynamicFields");
                     var inputs = container.querySelectorAll("input:not(#new_attr_key):not(#new_attr_value)");
@@ -1906,33 +2029,31 @@
                             var val = input.value;
                             var isMixed = input.dataset.originalMixed === "true";
                             
-                            // Logic: 
-                            // If it was mixed and value is still "(Multiple Values)", do not update (keep original).
                             if (val === "(Multiple Values)" && isMixed) {
-                                // Do nothing, preserve original
+                                // Keep original
                             } else {
-                                // Update all selected graphics with new value
-                                if(graphic.attributes[input.name] !== val) {
-                                    graphic.attributes[input.name] = val;
-                                    labelUpdateNeeded = true;
-                                }
+                                graphic.attributes[input.name] = val;
+                                labelUpdateNeeded = true;
                             }
                         });
 
-                        // Special update for 'description' to update popup title if needed
                         if(graphic.attributes.description && view.popup.selectedFeature === graphic) {
                             view.popup.title = graphic.attributes.description;
                         }
                     });
 
-                    // Update Labels if needed
                     if(labelUpdateNeeded && editingGraphics[0].layer) {
                         updateLabels(editingGraphics[0].layer.id);
+                    }
+                    
+                    // Force refresh table if open
+                    if(document.getElementById("attributeTablePanel").style.display !== "none") {
+                        renderAttributeTable();
                     }
 
                     closeAttributeModal();
                 }
-            };
+            });
 
             window.closeAttributeModal = function() {
                 document.getElementById('modalBackdrop').style.display = 'none';
@@ -1941,7 +2062,7 @@
                 editingGraphics = [];
             }
 
-            // --- SELECT BY ATTRIBUTE (UPDATED WITH OPERATORS) ---
+            // --- SELECT BY ATTRIBUTE ---
             document.getElementById("selectAttrLayer").addEventListener("change", function(e) {
                 var layerId = e.target.value;
                 var fieldSelect = document.getElementById("selectAttrField");
@@ -1979,14 +2100,11 @@
                 layer.graphics.forEach(function(g) {
                     var attrVal = g.attributes[field];
                     var match = false;
-
-                    // Convert to number for comparison if possible
                     var numAttr = parseFloat(attrVal);
                     var numVal = parseFloat(val);
                     var isNumber = !isNaN(numAttr) && !isNaN(numVal);
 
                     if(operator === "=") {
-                         // Loose equality for string/number mix
                         match = (String(attrVal).toLowerCase() === String(val).toLowerCase());
                     } else if (operator === "contains") {
                         match = String(attrVal).toLowerCase().includes(String(val).toLowerCase());
@@ -2179,19 +2297,15 @@
                     }
                     
                     var file = fileInput.files[0];
-                    var fileName = file.name.toLowerCase(); // Use lower case for check
+                    var fileName = file.name.toLowerCase(); 
                     var fileNameOriginal = file.name;
                     var fileNameNoExt = fileNameOriginal.split('.').slice(0, -1).join('.');
                     
-                    console.log("Attempting to import: " + fileNameOriginal);
-
-                    // Create a dedicated layer for this import
                     createNewDrawingLayer("Import: " + fileNameNoExt);
                     
                     var reader = new FileReader();
 
                     if (fileName.endsWith(".zip")) {
-                        // Shapefile (requires ArrayBuffer)
                         reader.onload = function(e) {
                             if (typeof shp === 'undefined') { alert("Shapefile library (shpjs) not loaded."); return; }
                             shp(e.target.result).then(function(geojson){
@@ -2207,7 +2321,6 @@
                         };
                         reader.readAsArrayBuffer(file);
                     } else if (fileName.endsWith(".kmz")) {
-                        // KMZ (Unzip -> find KML)
                         reader.onload = function(e) {
                             if (typeof JSZip === 'undefined') { alert("JSZip library not loaded."); return; }
                             JSZip.loadAsync(e.target.result).then(function(zip) {
@@ -2221,13 +2334,11 @@
                         };
                         reader.readAsArrayBuffer(file);
                     } else if (fileName.endsWith(".kml")) {
-                        // KML
                         reader.onload = function(e) {
                             parseKmlText(e.target.result);
                         };
                         reader.readAsText(file);
                     } else if (fileName.endsWith(".geojson") || fileName.endsWith(".json")) {
-                        // GeoJSON
                         reader.onload = function(e) {
                             try {
                                 var json = JSON.parse(e.target.result);
@@ -2248,9 +2359,8 @@
                 try {
                     var parser = new DOMParser();
                     var kml = parser.parseFromString(kmlText, "text/xml");
-                    // Check if toGeoJSON exists
                     if (typeof toGeoJSON === 'undefined') {
-                        if(typeof window.toGeoJSON !== 'undefined') toGeoJSON = window.toGeoJSON; // Fallback
+                        if(typeof window.toGeoJSON !== 'undefined') toGeoJSON = window.toGeoJSON; 
                         else { alert("toGeoJSON library not loaded."); return; }
                     }
                     var geojson = toGeoJSON.kml(kml);
@@ -2258,15 +2368,13 @@
                 } catch(err) { alert("KML Parsing error: " + err); }
             }
 
-            // --- ADDED FUNCTION: Extract WKID from GeoJSON CRS ---
             function getWkidFromCrs(crs) {
-                if (!crs || !crs.properties || !crs.properties.name) return 4326; // Default to WGS84 if no CRS
-                // Try to find EPSG code in the string (e.g., "urn:ogc:def:crs:EPSG::32647" or "EPSG:32647")
+                if (!crs || !crs.properties || !crs.properties.name) return 4326; 
                 var match = crs.properties.name.match(/EPSG\D+(\d+)/i);
                 if (match && match[1]) {
                     return parseInt(match[1], 10);
                 }
-                return 4326; // Fallback
+                return 4326;
             }
 
             function addGeoJsonToLayer(geojson) {
@@ -2274,23 +2382,17 @@
                 var graphicsToAdd = [];
                 var features = geojson.features || (geojson.type === "Feature" ? [geojson] : []);
 
-                // 1. Determine Input Spatial Reference from GeoJSON CRS object
                 var wkid = getWkidFromCrs(geojson.crs);
                 var sourceSR = new SpatialReference({ wkid: wkid });
 
                 features.forEach(f => {
                     var geom = f.geometry;
-                    // FIX: Check if geometry exists
                     if (!geom) return; 
 
                     var props = f.properties || {};
                     var esriGeom = null;
 
-                    // Improved Geometry Conversion with validation
                     try {
-                        // NOTE: Use 'x' and 'y' instead of 'longitude'/'latitude' to support non-WGS84 coordinates (like UTM)
-                        // Also attach the sourceSR to the geometry so the projection engine knows what it is.
-
                         if (geom.type === "Point" && geom.coordinates && geom.coordinates.length >= 2) {
                             esriGeom = new Point({ x: geom.coordinates[0], y: geom.coordinates[1], spatialReference: sourceSR });
                         } else if (geom.type === "MultiPoint" && geom.coordinates) {
@@ -2309,13 +2411,10 @@
                             esriGeom = new Polygon({ rings: rings, spatialReference: sourceSR });
                         }
                     } catch (err) {
-                        console.warn("Geometry conversion error for feature:", f, err);
                         return;
                     }
                     
                     if (esriGeom) {
-                        // 2. Reproject if necessary
-                        // If the input is NOT WGS84 (4326) and NOT WebMercator (3857/102100), try to project it to the view's SR
                         if (wkid !== 4326 && wkid !== 3857 && wkid !== 102100) {
                             try {
                                 var projected = projection.project(esriGeom, view.spatialReference);
@@ -2324,7 +2423,6 @@
                                 }
                             } catch (e) {
                                 console.warn("Projection failed:", e);
-                                // Continue with original geometry, map might fail to render if SR is wildly different
                             }
                         }
 
@@ -2333,7 +2431,6 @@
                             attributes: props
                         });
                         
-                        // Set symbol based on type
                         if (esriGeom.type === "point" || esriGeom.type === "multipoint") g.symbol = new SimpleMarkerSymbol({color: activeColor, size: "8px", outline: {color:"white"}});
                         else if (esriGeom.type === "polyline") g.symbol = new SimpleLineSymbol({color: activeColor, width: 2});
                         else if (esriGeom.type === "polygon") g.symbol = new SimpleFillSymbol({color: hexToRgba(activeColor, 0.3), outline: {color: activeColor, width: 2}});
@@ -2356,7 +2453,7 @@
                 }
             }
 
-            // --- EXCEL IMPORT HANDLERS (UPDATED WITH PAGE 2 LOGIC) ---
+            // --- EXCEL IMPORT HANDLERS ---
             document.getElementById("excelFile").addEventListener("change", function(e) {
                 var file = e.target.files[0];
                 if (file) {
@@ -2398,7 +2495,6 @@
                         var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
                         var headers = json[0];
 
-                        // Create New Layer Logic from Page 2
                         var layerName = "Excel: " + file.name;
                         createNewDrawingLayer(layerName);
                         var pts = [];
@@ -2481,7 +2577,6 @@
                         var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
                         var headers = json[0];
 
-                        // Create New Layer Logic from Page 2
                         var layerName = "MGRS: " + file.name;
                         createNewDrawingLayer(layerName);
                         var pts = [];
