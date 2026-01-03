@@ -676,7 +676,7 @@
         require([
             "esri/Map", "esri/views/MapView", "esri/widgets/BasemapGallery", "esri/widgets/Search", "esri/widgets/Print",
             "esri/layers/FeatureLayer", "esri/layers/MapImageLayer", "esri/layers/WMSLayer", "esri/layers/TileLayer",
-            "esri/layers/VectorTileLayer", "esri/layers/WebTileLayer",
+            "esri/layers/VectorTileLayer", "esri/layers/WebTileLayer", "esri/widgets/Locate",
             "esri/widgets/Sketch", "esri/layers/GraphicsLayer", "esri/Graphic", "esri/geometry/geometryEngine",
             "esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleFillSymbol", "esri/symbols/TextSymbol",
             "esri/geometry/Point", "esri/geometry/Polygon", "esri/geometry/Polyline", "esri/geometry/Multipoint",
@@ -684,7 +684,7 @@
             "esri/geometry/coordinateFormatter", "esri/geometry/projection",
             "esri/geometry/SpatialReference", "esri/core/reactiveUtils"
         ], function(Map, MapView, BasemapGallery, Search, Print, FeatureLayer, MapImageLayer, WMSLayer, TileLayer, 
-                   VectorTileLayer, WebTileLayer,
+                   VectorTileLayer, WebTileLayer, Locate,
                    Sketch, GraphicsLayer, Graphic, geometryEngine, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, TextSymbol,
                    Point, Polygon, Polyline, Multipoint, webMercatorUtils, coordinateFormatter, projection,
                    SpatialReference, reactiveUtils 
@@ -698,6 +698,15 @@
             var map = new Map({ basemap: "topo-vector" });
             var view = new MapView({ container: "viewDiv", map: map, center: [100.5, 13.7], zoom: 6, popup: { defaultPopupTemplateEnabled: true } });
             var print = new Print({ view: view, container: "printDiv", templateOptions: { title: "My Map", author: "ArcGIS Web Map", copyright: "© ArcGIS Web Map", legendEnabled: true, scalebarEnabled: true }, format: { formats: ["pdf", "png32", "jpg"] } });
+
+            // Add Location Widget
+            var locateWidget = new Locate({
+                view: view,
+                graphic: new Graphic({
+                    symbol: { type: "simple-marker" }  // overwrites the default symbol used for the graphic placed at the location of the user when found
+                })
+            });
+            view.ui.add(locateWidget, "top-left");
 
             var activeDrawingLayer = null;
             var activeColor = "#ff0000";
