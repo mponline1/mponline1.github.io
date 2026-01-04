@@ -10,215 +10,505 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/shpwrite@latest/shpwrite.js"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-        }
-        h1, h2 {
-            text-align: center;
-            color: #2563eb;
-            margin-bottom: 20px;
-        }
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #e5e7eb;
-            margin-bottom: 20px;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            background-color: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            border-bottom: none;
-            border-radius: 8px 8px 0 0;
-            margin-right: 5px;
-            transition: all 0.3s;
-        }
-        .tab.active {
-            background-color: #2563eb;
-            color: white;
-            border-color: #2563eb;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .upload-area {
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            background-color: #f8f9fa;
-            margin-bottom: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .upload-area:hover {
-            border-color: #2563eb;
-            background-color: #f0f4ff;
-        }
-        .upload-icon {
-            font-size: 48px;
-            color: #2563eb;
-            margin-bottom: 10px;
-        }
-        .btn {
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            margin: 5px;
-        }
-        .btn:hover {
-            background-color: #1d4ed8;
-        }
-        .btn:disabled {
-            background-color: #93c5fd;
-            cursor: not-allowed;
-        }
-        .result-area {
-            margin-top: 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            max-height: 300px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            display: none;
-        }
-        .spinner {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(37, 99, 235, 0.3);
-            border-radius: 50%;
-            border-top-color: #2563eb;
-            animation: spin 1s ease-in-out infinite;
-            margin-bottom: 10px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .error-message {
-            color: #dc2626;
-            background-color: #fee2e2;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        .success-message {
-            color: #059669;
-            background-color: #d1fae5;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        .hidden {
-            display: none;
-        }
-        .projection-options {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            background-color: #f9fafb;
-        }
-        .projection-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #4b5563;
-        }
-        .radio-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .radio-option {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-        }
-        .radio-option input {
-            margin-right: 10px;
-        }
-        footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #6b7280;
-            font-size: 14px;
-        }
-        .info-box {
-            background-color: #e0f2fe;
-            border-left: 4px solid #0ea5e9;
-            padding: 10px 15px;
-            margin-bottom: 20px;
-            border-radius: 0 4px 4px 0;
-        }
-        .detected-projection {
-            font-weight: bold;
-            color: #0369a1;
-        }
-        .navigation-buttons {
-            display: flex;
-            justify-content: center;
-            margin-top: 30px;
-            gap: 15px;
-        }
-        .nav-btn {
-            background-color: #4b5563;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-        }
-        .nav-btn:hover {
-            background-color: #374151;
-        }
-        .nav-btn i {
-            margin-right: 8px;
-        }
-        .home-btn {
-            background-color: #2563eb;
-        }
-        .home-btn:hover {
-            background-color: #2563eb;
-        }
-        .area-btn {
-            background-color: #2563eb;
-        }
-        .area-btn:hover {
-            background-color: #2563eb;
-        }
-    </style>
+    /* =========================================
+       1. CORE VARIABLES (THEME FROM PAGE 11)
+       ========================================= */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --primary-solid: #1565c0;
+        --primary-dark: #0d47a1;
+        --primary-light: #e3f2fd;
+        --text-white: #ffffff;
+        --text-yellow: #ffeb3b;
+        --text-gray: #546e7a;
+        
+        --bg-glass: rgba(255, 255, 255, 0.1);
+        --bg-glass-hover: rgba(255, 255, 255, 0.25);
+        --header-height: 70px;
+        --radius-md: 12px;
+        --radius-sm: 8px;
+    }
+
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Prompt', sans-serif;
+        margin: 0;
+        padding-top: calc(var(--header-height) + 20px);
+        background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
+        min-height: 100vh;
+        color: #333;
+        padding-bottom: 40px;
+    }
+
+    /* =========================================
+       2. HEADER STYLES (MATCHING PAGE 11)
+       *จำเป็นต้องมี HTML Header แบบ Page 11*
+       ========================================= */
+    .mapraw-header {
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        position: fixed;
+        top: 0; left: 0; width: 100%; z-index: 1000;
+        height: var(--header-height);
+    }
+    
+    .mapraw-header-content {
+        max-width: 100%; margin: 0 auto; display: flex;
+        align-items: center; justify-content: space-between;
+        padding: 0 20px; height: 100%;
+    }
+    
+    .mapraw-logo-section { display: flex; flex-direction: column; justify-content: center; padding-right: 15px; }
+    .mapraw-logo-main { color: var(--text-white); font-size: 1.2rem; font-weight: 700; margin: 0; line-height: 1; white-space: nowrap; }
+    .mapraw-logo-main span { color: var(--text-yellow); text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); }
+    .mapraw-page-title { color: #e3f2fd; font-size: 1rem; font-weight: 400; margin: 2px 0 0 0; white-space: nowrap; }
+    
+    .mapraw-nav { display: flex; gap: 8px; align-items: center; height: 100%; }
+    .mapraw-nav-item { position: relative; height: 100%; display: flex; align-items: center; }
+    
+    .mapraw-nav-btn {
+        background: var(--bg-glass); color: white; border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;
+        transition: all 0.2s ease; text-decoration: none; display: flex; align-items: center; gap: 6px;
+        font-family: 'Prompt', sans-serif; white-space: nowrap;
+    }
+    .mapraw-nav-btn:hover { background: var(--bg-glass-hover); transform: translateY(-1px); }
+    .mapraw-nav-btn.home-btn { background: rgba(255, 235, 59, 0.15); border-color: #ffeb3b; color: #ffeb3b; }
+    .mapraw-nav-btn.home-btn:hover { background: #ffeb3b; color: #1565c0; }
+
+    .mapraw-dropdown {
+        position: absolute; top: calc(100% - 10px); left: 50%; transform: translateX(-50%) translateY(10px);
+        background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        min-width: 200px; opacity: 0; visibility: hidden; transition: all 0.2s ease; padding: 5px 0; z-index: 1001;
+    }
+    @media (min-width: 1201px) { .mapraw-nav-item:hover .mapraw-dropdown { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); } }
+    .mapraw-dropdown-item { display: block; padding: 10px 20px; color: #333; text-decoration: none; font-size: 0.9rem; transition: background 0.2s; white-space: nowrap; }
+    .mapraw-dropdown-item:hover { background: #f1f8ff; color: var(--primary-solid); }
+
+    .mobile-menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 10px; z-index: 1002; }
+    .bar { display: block; width: 25px; height: 3px; margin: 5px auto; background-color: white; transition: all 0.3s ease-in-out; border-radius: 2px; }
+
+    /* =========================================
+       3. PAGE 11D CONTAINER STYLES
+       ========================================= */
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background-color: white;
+        border-radius: var(--radius-md);
+        box-shadow: 0 4px 20px rgba(30, 136, 229, 0.15);
+        padding: 30px;
+        border-top: 4px solid var(--primary-solid);
+    }
+
+    h1 {
+        text-align: center;
+        color: var(--primary-dark);
+        margin-bottom: 30px;
+        font-weight: 700;
+        font-size: 24px;
+        position: relative;
+        padding-bottom: 10px;
+    }
+    
+    h1:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background-color: var(--text-yellow);
+        border-radius: 2px;
+    }
+
+    h2 {
+        text-align: center;
+        color: var(--text-gray);
+        font-size: 1.25rem;
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+
+    /* =========================================
+       4. TABS & UI ELEMENTS
+       ========================================= */
+    .tabs {
+        display: flex;
+        border-bottom: 2px solid #e5e7eb;
+        margin-bottom: 30px;
+        gap: 10px;
+    }
+
+    .tab {
+        padding: 12px 25px;
+        cursor: pointer;
+        background-color: transparent;
+        border: 2px solid transparent;
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        font-weight: 500;
+        color: var(--text-gray);
+        transition: all 0.3s;
+        margin-bottom: -2px;
+    }
+
+    .tab:hover {
+        color: var(--primary-solid);
+        background-color: #f8f9fa;
+    }
+
+    .tab.active {
+        background-color: white;
+        color: var(--primary-solid);
+        border-color: #e5e7eb;
+        border-bottom-color: white;
+        border-top: 3px solid var(--primary-solid);
+    }
+
+    .tab-content { display: none; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: block; }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Upload Area */
+    .upload-area {
+        border: 2px dashed #bbdefb;
+        border-radius: var(--radius-md);
+        padding: 40px;
+        text-align: center;
+        background-color: #f8fbff;
+        margin-bottom: 25px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .upload-area:hover {
+        border-color: var(--primary-solid);
+        background-color: #e3f2fd;
+        transform: translateY(-2px);
+    }
+
+    .upload-icon {
+        font-size: 48px;
+        color: var(--primary-solid);
+        margin-bottom: 15px;
+    }
+    
+    .upload-area p {
+        color: var(--text-gray);
+        font-size: 1rem;
+    }
+
+    /* Buttons */
+    .btn {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 16px;
+        font-family: 'Prompt', sans-serif;
+        font-weight: 500;
+        transition: all 0.3s;
+        margin: 5px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(21, 101, 192, 0.2);
+        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+    }
+
+    .btn:disabled {
+        background: #cfd8dc;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+
+    /* Results and Feedback */
+    .result-area {
+        margin-top: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: var(--radius-sm);
+        padding: 15px;
+        background-color: #fafafa;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        display: none;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(21, 101, 192, 0.2);
+        border-radius: 50%;
+        border-top-color: var(--primary-solid);
+        animation: spin 1s ease-in-out infinite;
+        margin-bottom: 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-message {
+        color: #c62828;
+        background-color: #ffebee;
+        padding: 15px;
+        border-radius: var(--radius-sm);
+        margin-bottom: 20px;
+        display: none;
+        border-left: 4px solid #c62828;
+    }
+
+    .success-message {
+        color: #2e7d32;
+        background-color: #e8f5e9;
+        padding: 15px;
+        border-radius: var(--radius-sm);
+        margin-bottom: 20px;
+        display: none;
+        border-left: 4px solid #2e7d32;
+    }
+
+    .hidden { display: none; }
+
+    /* Projection Options */
+    .projection-options {
+        margin-top: 20px;
+        padding: 20px;
+        border: 1px solid #e3f2fd;
+        border-radius: var(--radius-sm);
+        background-color: #f1f8ff;
+    }
+
+    .projection-title {
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: var(--primary-dark);
+    }
+
+    .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .radio-option {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-size: 0.95rem;
+        color: var(--text-gray);
+    }
+
+    .radio-option input {
+        margin-right: 12px;
+        accent-color: var(--primary-solid);
+        width: 18px;
+        height: 18px;
+    }
+    
+    /* Info Box */
+    .info-box {
+        background-color: #e3f2fd;
+        border-left: 4px solid var(--primary-solid);
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        color: #455a64;
+    }
+
+    .detected-projection {
+        font-weight: bold;
+        color: var(--primary-dark);
+    }
+
+    /* Navigation Buttons (Bottom) */
+    .navigation-buttons {
+        display: flex;
+        justify-content: center;
+        margin-top: 40px;
+        gap: 20px;
+    }
+
+    .nav-btn {
+        background-color: white;
+        color: var(--text-gray);
+        border: 2px solid #e0e0e0;
+        padding: 10px 25px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        font-family: 'Prompt', sans-serif;
+        font-weight: 500;
+    }
+
+    .nav-btn:hover {
+        background-color: white;
+        border-color: var(--primary-solid);
+        color: var(--primary-solid);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .nav-btn.home-btn, .nav-btn.area-btn {
+        background-color: white; /* Override styles */
+    }
+
+    footer {
+        text-align: center;
+        margin-top: 40px;
+        color: var(--text-gray);
+        font-size: 14px;
+        border-top: 1px solid #e3f2fd;
+        padding-top: 20px;
+    }
+
+    /* =========================================
+       5. RESPONSIVE QUERIES
+       ========================================= */
+    @media (max-width: 1400px) { .mapraw-nav-btn { padding: 6px 8px; font-size: 0.8rem; } .mapraw-nav { gap: 4px; } }
+    @media (max-width: 1200px) {
+        .mobile-menu-toggle { display: block; }
+        .mapraw-nav { position: fixed; top: var(--header-height); right: -100%; width: 280px; height: calc(100vh - var(--header-height)); background: white; flex-direction: column; align-items: stretch; gap: 0; padding: 10px 0; transition: right 0.3s ease; box-shadow: -5px 0 15px rgba(0,0,0,0.1); overflow-y: auto; }
+        .mapraw-nav.active { right: 0; }
+        .mapraw-nav-item { height: auto; flex-direction: column; width: 100%; display: block; border-bottom: 1px solid #eee; }
+        .mapraw-nav-btn { background: white; color: #333; border: none; border-radius: 0; padding: 15px 20px; font-size: 1rem; justify-content: space-between; width: 100%; }
+        .mapraw-nav-btn:hover { background: #f5f5f5; color: var(--primary-solid); transform: none; }
+        .mapraw-dropdown { position: static; transform: none; visibility: visible; opacity: 1; box-shadow: none; min-width: 100%; background: #f9f9f9; display: none; padding: 0; }
+        .mapraw-nav-item.active .mapraw-dropdown { display: block; }
+        .mapraw-dropdown-item { padding-left: 40px; color: #666; }
+        .mobile-menu-toggle.active .bar:nth-child(2) { opacity: 0; }
+        .mobile-menu-toggle.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+        .mobile-menu-toggle.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+    }
+    @media (max-width: 480px) { 
+        .mapraw-logo-main { font-size: 1rem; } 
+        .mapraw-page-title { font-size: 0.75rem; }
+        .container { padding: 20px; }
+        .tabs { flex-direction: column; gap: 0; }
+        .tab { width: 100%; text-align: center; border-radius: var(--radius-sm); margin-bottom: 5px; }
+        .tab.active { border: 2px solid var(--primary-solid); }
+    }
+</style>
 </head>
 <body>
+    </head>
+<body>
+        <header class="mapraw-header">
+    <div class="mapraw-header-content">
+        <div class="mapraw-logo-section">
+            <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+            <p class="mapraw-page-title">Calculate AREA</p>
+        </div>
+        
+        <button class="mobile-menu-toggle" id="mobileMenuBtn">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <nav class="mapraw-nav" id="mainNav">
+            <div class="mapraw-nav-item">
+                <a href="index.html" class="mapraw-nav-btn home-btn">
+                    <span>🏠 หน้าหลัก</span>
+                </a>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>📋 เครื่องมือสำรวจ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                    <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                    <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                    <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                    <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                    <a href="page13.html" class="mapraw-dropdown-item">Perpendicular Line</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚙️ เครื่องมือประมวลผล</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                    <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                    <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                    <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                    <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>⚖️ เครื่องมือกฎหมาย</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                    <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🧮 คำนวณเบื้องต้น</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                </div>
+            </div>
+            
+            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                <div class="mapraw-nav-btn">
+                    <span>🎯 เครื่องมืออื่นๆ</span>
+                    <span style="font-size: 0.8em">▼</span>
+                </div>
+                <div class="mapraw-dropdown">
+                    <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
     <div class="container">
         <h1>CONVERT GIS FILE</h1>
         
@@ -301,17 +591,7 @@
             
             <pre id="resultPreview2" class="result-area"></pre>
         </div>
-        
-        <!-- Navigation Buttons -->
-        <div class="navigation-buttons">
-            <a href="https://mponline1.github.io/" class="nav-btn home-btn">
-                <i></i> หน้าหลัก
-            </a>
-            <a href="https://mponline1.github.io/page11.html" class="nav-btn area-btn">
-                <i></i> Calculate AREA
-            </a>
-        </div>
-    </div>
+
 
     <script>
         // Tab Switching
@@ -1607,6 +1887,28 @@
             }
         }
     </script>
-    <script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const nav = document.getElementById('mainNav');
+
+    menuBtn.addEventListener('click', () => {
+        menuBtn.classList.toggle('active');
+        nav.classList.toggle('active');
+    });
+
+    function toggleMobileDropdown(element) {
+        if (window.innerWidth <= 1200) {
+            element.classList.toggle('active');
+        }
+    }
+    
+    // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
+    document.addEventListener('click', (e) => {
+        if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
+            nav.classList.remove('active');
+            menuBtn.classList.remove('active');
+        }
+    });
+</script>
 </body>
 </html>
