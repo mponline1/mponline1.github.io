@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css">
   <style>
-
     /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
 
@@ -17,15 +16,19 @@
         --text-yellow: #ffeb3b;
         --bg-glass: rgba(255, 255, 255, 0.1);
         --bg-glass-hover: rgba(255, 255, 255, 0.25);
-        --header-height: 70px;
+        --header-height: 70px; /* ความสูง Header ที่กำหนดตายตัว */
     }
     
-    body {
+    html, body {
         margin: 0;
-        padding-top: var(--header-height);
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        font-family: 'Prompt', sans-serif;
+        overflow: hidden; /* ป้องกัน Scrollbar ซ้อน */
     }
 
-    /* Header Structure */
+    /* ==== Header Structure ==== */
     .mapraw-header {
         background: var(--primary-gradient);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -33,9 +36,9 @@
         top: 0;
         left: 0;
         width: 100%;
-        z-index: 1000;
-        font-family: 'Prompt', sans-serif;
+        z-index: 2000; /* ต้องสูงกว่าแผนที่และ Panel */
         height: var(--header-height);
+        box-sizing: border-box;
     }
     
     .mapraw-header-content {
@@ -143,10 +146,9 @@
         visibility: hidden;
         transition: all 0.2s ease;
         padding: 5px 0;
-        z-index: 1001;
+        z-index: 2001;
     }
     
-    /* Hover Logic for Desktop */
     @media (min-width: 1201px) {
         .mapraw-nav-item:hover .mapraw-dropdown {
             opacity: 1;
@@ -177,7 +179,7 @@
         border: none;
         cursor: pointer;
         padding: 10px;
-        z-index: 1002;
+        z-index: 2002;
     }
     
     .bar {
@@ -190,127 +192,48 @@
         border-radius: 2px;
     }
 
-    /* ==== Responsive Styles ==== */
-    
-    @media (max-width: 1400px) {
-        .mapraw-nav-btn {
-            padding: 6px 8px;
-            font-size: 0.8rem;
-        }
-        .mapraw-nav {
-            gap: 4px;
-        }
-    }
-
-    @media (max-width: 1200px) {
-        .mobile-menu-toggle {
-            display: block;
-        }
-
-        .mapraw-nav {
-            position: fixed;
-            top: var(--header-height);
-            right: -100%;
-            width: 280px;
-            height: calc(100vh - var(--header-height));
-            background: white;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0;
-            padding: 10px 0;
-            transition: right 0.3s ease;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
-            overflow-y: auto;
-        }
-
-        .mapraw-nav.active {
-            right: 0;
-        }
-
-        .mapraw-nav-item {
-            height: auto;
-            flex-direction: column;
-            width: 100%;
-            display: block;
-            border-bottom: 1px solid #eee;
-        }
-
-        .mapraw-nav-btn {
-            background: white;
-            color: #333;
-            border: none;
-            border-radius: 0;
-            padding: 15px 20px;
-            font-size: 1rem;
-            justify-content: space-between;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .mapraw-nav-btn:hover {
-            background: #f5f5f5;
-            color: #1565c0;
-            transform: none;
-        }
-
-        .mapraw-dropdown {
-            position: static;
-            transform: none;
-            visibility: visible;
-            opacity: 1;
-            box-shadow: none;
-            min-width: 100%;
-            background: #f9f9f9;
-            display: none;
-            padding: 0;
-        }
-        
-        .mapraw-nav-item.active .mapraw-dropdown {
-            display: block;
-        }
-
-        .mapraw-dropdown-item {
-            padding-left: 40px;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .mobile-menu-toggle.active .bar:nth-child(2) {
-            opacity: 0;
-        }
-        .mobile-menu-toggle.active .bar:nth-child(1) {
-            transform: translateY(8px) rotate(45deg);
-        }
-        .mobile-menu-toggle.active .bar:nth-child(3) {
-            transform: translateY(-8px) rotate(-45deg);
-        }
+    /* ==== Map Container ==== */
+    #viewDiv {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        /* ปรับตำแหน่งให้เริ่มใต้ Header */
+        top: var(--header-height); 
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: calc(100% - var(--header-height)); /* ความสูงเท่ากับพื้นที่ที่เหลือ */
+        width: 100%;
+        z-index: 1;
     }
     
-    @media (max-width: 480px) {
-        .mapraw-logo-main { font-size: 1rem; }
-        .mapraw-page-title { font-size: 0.75rem; }
-    }
-
-    html, body, #viewDiv {
-      padding: 0;
-      margin: 0;
-      height: 100%;
-      width: 100%;
-    }
-    
+    /* ==== Panels / Tools ==== */
     .panel {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 320px;
-      background-color: white;
-      border-radius: 8px;
-      padding: 15px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-      max-height: 90vh;
-      overflow-y: auto;
-      z-index: 99;
-      transition: opacity 0.3s ease;
+        position: absolute;
+        /* คำนวณ top จาก Header + 10px */
+        top: calc(var(--header-height) + 10px);
+        right: 10px;
+        width: 320px;
+        background-color: white;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        /* กำหนดความสูงสูงสุดไม่ให้ล้นจอ */
+        max-height: calc(100vh - var(--header-height) - 40px);
+        overflow-y: auto;
+        z-index: 99;
+        transition: opacity 0.3s ease;
+    }
+
+    /* บังคับตำแหน่ง imagesPanel ให้ถูกต้องแม้มี inline style */
+    #imagesPanel {
+        top: calc(var(--header-height) + 250px) !important;
+    }
+
+    /* ถ้ามี sketch-panel (ใน CSS เดิมมีคลาสนี้) */
+    .sketch-panel {
+        left: 10px;
+        top: calc(var(--header-height) + 250px) !important;
     }
     
     .panel-header {
@@ -407,6 +330,7 @@
       padding: 8px;
       border: 1px solid #ddd;
       border-radius: 4px;
+      box-sizing: border-box; /* เพิ่มเพื่อไม่ให้ input ล้น panel */
     }
 
     /* Custom input type file */
@@ -439,11 +363,6 @@
       background-color: #4CAF50;
       padding: 4px 8px;
       font-size: 12px;
-    }
-    
-    .sketch-panel {
-      left: 10px;
-      top: 250px;
     }
     
     .mini-preview {
@@ -481,20 +400,14 @@
       font-size: 13px;
     }
 
-    @media (max-width: 768px) {
-      .panel {
-        width: 280px;
-      }
-    }
-    
     .processing-overlay {
-      position: absolute;
+      position: fixed; /* เปลี่ยนเป็น fixed เพื่อให้บังทั้งหน้าจอรวม Header ได้ถ้าต้องการ */
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       background-color: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
+      z-index: 3000; /* สูงสุด */
       display: flex;
       justify-content: center;
       align-items: center;
@@ -571,12 +484,120 @@
       margin-top: 5px;
     }
 
-    /* สไตล์สำหรับปุ่มนำเข้า GeoJSON */
     #addGeoJsonBtn {
         background-color: #9c27b0;
     }
     #addGeoJsonBtn:hover {
         background-color: #7b1fa2;
+    }
+
+    /* ==== Responsive Styles ==== */
+    
+    @media (max-width: 1400px) {
+        .mapraw-nav-btn {
+            padding: 6px 8px;
+            font-size: 0.8rem;
+        }
+        .mapraw-nav {
+            gap: 4px;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .mobile-menu-toggle {
+            display: block;
+        }
+
+        .mapraw-nav {
+            position: fixed;
+            top: var(--header-height);
+            right: -100%;
+            width: 280px;
+            height: calc(100vh - var(--header-height));
+            background: white;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            padding: 10px 0;
+            transition: right 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            z-index: 1500;
+        }
+
+        .mapraw-nav.active {
+            right: 0;
+        }
+
+        .mapraw-nav-item {
+            height: auto;
+            flex-direction: column;
+            width: 100%;
+            display: block;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mapraw-nav-btn {
+            background: white;
+            color: #333;
+            border: none;
+            border-radius: 0;
+            padding: 15px 20px;
+            font-size: 1rem;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mapraw-nav-btn:hover {
+            background: #f5f5f5;
+            color: #1565c0;
+            transform: none;
+        }
+
+        .mapraw-dropdown {
+            position: static;
+            transform: none;
+            visibility: visible;
+            opacity: 1;
+            box-shadow: none;
+            min-width: 100%;
+            background: #f9f9f9;
+            display: none;
+            padding: 0;
+        }
+        
+        .mapraw-nav-item.active .mapraw-dropdown {
+            display: block;
+        }
+
+        .mapraw-dropdown-item {
+            padding-left: 40px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .mobile-menu-toggle.active .bar:nth-child(2) {
+            opacity: 0;
+        }
+        .mobile-menu-toggle.active .bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .mobile-menu-toggle.active .bar:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+    }
+    
+    @media (max-width: 768px) {
+      .panel {
+        width: 280px;
+        /* บนมือถืออาจต้องปรับ top ให้ห่างจาก Header มากขึ้นนิดหน่อยถ้าต้องการ */
+      }
+    }
+    
+    @media (max-width: 480px) {
+        .mapraw-logo-main { font-size: 1rem; }
+        .mapraw-page-title { font-size: 0.75rem; }
     }
   </style>
 </head>
