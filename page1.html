@@ -125,6 +125,7 @@
             max-height: none !important;
             overflow: visible !important;
             z-index: 1001 !important;
+            flex-wrap: nowrap !important; /* Default: ไม่ตกแถว */
         }
         
         /* Sketch Toolbar Container */
@@ -141,7 +142,7 @@
             top: 85px !important; /* ใกล้ header มากขึ้น */
             right: 10px !important; /* ย้ายไปทางขวาแทน เพื่อไม่ซ้อน Draw Tools */
             left: auto !important;
-            max-width: 400px !important;
+            max-width: none !important; /* ไม่จำกัดความกว้างเพื่อให้ปุ่มอยู่แถวเดียว */
             z-index: 1001 !important;
         }
         
@@ -153,6 +154,24 @@
                 top: 85px !important;
                 right: 10px !important;
                 left: auto !important;
+                max-width: none !important; /* ไม่จำกัดความกว้าง */
+            }
+            
+            /* บังคับให้ Sketch Panel แสดงในแถวเดียว */
+            .esri-sketch__panel {
+                flex-wrap: nowrap !important;
+                max-width: none !important;
+                display: flex !important;
+            }
+            
+            .esri-sketch__section {
+                flex-wrap: nowrap !important;
+                display: flex !important;
+            }
+            
+            /* ป้องกันปุ่มตกแถว */
+            .esri-sketch__button {
+                flex-shrink: 0 !important;
             }
         }
         
