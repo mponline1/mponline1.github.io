@@ -995,6 +995,19 @@
                 }
                 if (!activeDrawingLayer) return;
 
+                // รวบรวมทุก layers ที่ต้องการให้ Sketch สามารถ select ได้
+                var selectableLayers = [];
+                map.layers.forEach(function(layer) {
+                    // รวม GraphicsLayers ที่เป็น drawing layers, search layer, และ import layers
+                    if (layer.type === "graphics" && (layer.isDrawLayer || layer.id === "system_search_layer")) {
+                        selectableLayers.push({ layer: layer });
+                    }
+                    // รวม Feature Layers จาก Add Service
+                    else if (layer.type === "feature") {
+                        selectableLayers.push({ layer: layer });
+                    }
+                });
+
                 sketch = new Sketch({
                     layer: activeDrawingLayer,
                     view: view,
@@ -1026,7 +1039,7 @@
                         enabled: true,
                         selfEnabled: true,
                         featureEnabled: true,
-                        featureSources: [{ layer: activeDrawingLayer }]
+                        featureSources: selectableLayers.length > 0 ? selectableLayers : [{ layer: activeDrawingLayer }]
                     }
                 });
 
@@ -1047,6 +1060,52 @@
                     if(event.state === "complete") {
                         updateLabels(activeDrawingLayer.id);
                     }
+                });
+
+                // เพิ่มความสามารถในการ select graphics จาก layers อื่นๆ
+                // (Import Data, Search, Add Service Layers)
+                view.on("click", function(event) {
+                    if (!sketch || !sketch.activeTool) return; // ตรวจสอบว่า sketch tool กำลังทำงาน
+                    
+                    // ใช้ hitTest เพื่อหา graphics ที่ถูก click
+                    view.hitTest(event).then(function(response) {
+                        if (response.results.length > 0) {
+                            response.results.forEach(function(result) {
+                                if (result.graphic && result.graphic.layer) {
+                                    var layer = result.graphic.layer;
+                                    
+                                    // ตรวจสอบว่าเป็น layer ที่ต้องการให้ select ได้หรือไม่
+                                    var isSelectableLayer = 
+                                        (layer.type === "graphics" && (layer.isDrawLayer || layer.id === "system_search_layer")) ||
+                                        (layer.type === "feature");
+                                    
+                                    // ถ้า graphic ไม่ได้อยู่ใน activeDrawingLayer แต่อยู่ใน selectable layer
+                                    if (isSelectableLayer && layer !== activeDrawingLayer && sketch.activeTool === null) {
+                                        // Copy graphic ไปยัง activeDrawingLayer เพื่อให้ Sketch edit ได้
+                                        var clonedGraphic = result.graphic.clone();
+                                        
+                                        // เก็บข้อมูล source layer ไว้
+                                        clonedGraphic.attributes = clonedGraphic.attributes || {};
+                                        clonedGraphic.attributes._sourceLayerId = layer.id;
+                                        clonedGraphic.attributes._originalGraphic = result.graphic;
+                                        
+                                        // ลบ graphic เดิมออกจาก source layer
+                                        layer.remove(result.graphic);
+                                        
+                                        // เพิ่มเข้า activeDrawingLayer
+                                        activeDrawingLayer.add(clonedGraphic);
+                                        
+                                        // ให้ Sketch select graphic นี้
+                                        setTimeout(function() {
+                                            if (sketch && sketch.update) {
+                                                sketch.update([clonedGraphic], { tool: "transform" });
+                                            }
+                                        }, 100);
+                                    }
+                                }
+                            });
+                        }
+                    });
                 });
 
                 view.ui.add(sketch, "top-left");
@@ -1089,13 +1148,7 @@
                         var text = g.attributes ? g.attributes[settings.field] : null;
                         if (text !== undefined && text !== null && text !== "") {
                             var center = null;
-                            if (g.geometry.type === "point") center = g.geometry;
-                            else if (g.geometry.type === "polygon") center = g.geometry.centroid;
-                            else if (g.geometry.extent) center = g.geometry.extent.center;
-
-                            if (!center) return;
-
-                            var textSym = new TextSymbol({
+                            var textSymbolConfig = {
                                 text: text.toString(),
                                 color: settings.color,
                                 font: { 
@@ -1105,7 +1158,94 @@
                                 },
                                 haloColor: "white",
                                 haloSize: 1
-                            });
+                            };
+
+                            // ปรับการแสดง Label ตามประเภท geometry
+                            if (g.geometry.type === "point") {
+                                // จุด: แสดง Label เหนือจุด
+                                center = g.geometry;
+                                textSymbolConfig.yoffset = 10; // เลื่อน label ขึ้นด้านบน 10px
+                                textSymbolConfig.verticalAlignment = "bottom"; // จัดให้ด้านล่างของ label อยู่เหนือจุด
+                            } 
+                            else if (g.geometry.type === "polyline") {
+                                // เส้น: แสดง Label หลายตัวตามแต่ละส่วนของเส้น
+                                var paths = g.geometry.paths[0]; // ใช้ path แรก
+                                
+                                if (paths && paths.length >= 2) {
+                                    // คำนวณจำนวน label ที่เหมาะสม (ประมาณทุก 30% ของความยาวเส้น)
+                                    var numLabels = Math.min(Math.max(1, Math.floor(paths.length / 3)), 5); // สูงสุด 5 labels
+                                    var segmentSize = Math.floor(paths.length / (numLabels + 1));
+                                    
+                                    // วาง label ในแต่ละส่วนของเส้น
+                                    for (var labelIdx = 1; labelIdx <= numLabels; labelIdx++) {
+                                        var pointIndex = labelIdx * segmentSize;
+                                        
+                                        // หาจุดก่อนหน้าและถัดไปเพื่อคำนวณมุม
+                                        var prevIndex = Math.max(0, pointIndex - 1);
+                                        var nextIndex = Math.min(paths.length - 1, pointIndex + 1);
+                                        
+                                        var currentPoint = paths[pointIndex];
+                                        var prevPoint = paths[prevIndex];
+                                        var nextPoint = paths[nextIndex];
+                                        
+                                        // คำนวณมุม (angle) ในหน่วยดีกรี
+                                        var dx = nextPoint[0] - prevPoint[0];
+                                        var dy = nextPoint[1] - prevPoint[1];
+                                        var angleRadians = Math.atan2(dy, dx);
+                                        var angleDegrees = angleRadians * (180 / Math.PI);
+                                        
+                                        // ปรับมุมให้ label อ่านได้ง่าย (ไม่กลับหัว)
+                                        if (angleDegrees > 90) angleDegrees -= 180;
+                                        if (angleDegrees < -90) angleDegrees += 180;
+                                        
+                                        // สร้าง Point สำหรับ label ตัวนี้
+                                        var labelPoint = new Point({
+                                            x: currentPoint[0],
+                                            y: currentPoint[1],
+                                            spatialReference: g.geometry.spatialReference
+                                        });
+                                        
+                                        // สร้าง TextSymbol สำหรับ label ตัวนี้
+                                        var labelTextSym = new TextSymbol({
+                                            text: text.toString(),
+                                            color: settings.color,
+                                            font: { 
+                                                size: settings.size, 
+                                                family: ESRI_SAFE_FONT,
+                                                weight: "bold" 
+                                            },
+                                            haloColor: "white",
+                                            haloSize: 1,
+                                            angle: angleDegrees,
+                                            yoffset: 8
+                                        });
+                                        
+                                        // เพิ่ม label ลงใน layer
+                                        labelLayer.add(new Graphic({
+                                            geometry: labelPoint,
+                                            symbol: labelTextSym
+                                        }));
+                                    }
+                                    
+                                    // Skip การสร้าง label ปกติด้านล่าง
+                                    return;
+                                } else {
+                                    // ถ้ามีจุดไม่พอให้ใช้ extent center
+                                    center = g.geometry.extent.center;
+                                    textSymbolConfig.yoffset = 8;
+                                }
+                            }
+                            else if (g.geometry.type === "polygon") {
+                                // รูปหลายเหลี่ยม: แสดงตรงกลาง
+                                center = g.geometry.centroid;
+                            }
+                            else if (g.geometry.extent) {
+                                center = g.geometry.extent.center;
+                            }
+
+                            if (!center) return;
+
+                            var textSym = new TextSymbol(textSymbolConfig);
 
                             labelLayer.add(new Graphic({
                                 geometry: center,
