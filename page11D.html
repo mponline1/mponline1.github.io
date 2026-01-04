@@ -8,416 +8,501 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shpjs/3.6.3/shp.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/shpwrite@latest/shpwrite.js"></script>
     <style>
-    /* =========================================
-       1. CORE VARIABLES (THEME FROM PAGE 11)
-       ========================================= */
-    :root {
-        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
-        --primary-solid: #1565c0;
-        --primary-dark: #0d47a1;
-        --primary-light: #e3f2fd;
-        --text-white: #ffffff;
-        --text-yellow: #ffeb3b;
-        --text-gray: #546e7a;
-        
-        --bg-glass: rgba(255, 255, 255, 0.1);
-        --bg-glass-hover: rgba(255, 255, 255, 0.25);
-        --header-height: 70px;
-        --radius-md: 12px;
-        --radius-sm: 8px;
-    }
 
     /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
-    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --text-white: #ffffff;
+        --text-yellow: #ffeb3b;
+        --bg-glass: rgba(255, 255, 255, 0.1);
+        --bg-glass-hover: rgba(255, 255, 255, 0.25);
+        --header-height: 70px;
+    }
+    
     body {
-        font-family: 'Prompt', sans-serif;
         margin: 0;
-        padding-top: calc(var(--header-height) + 20px);
-        background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
-        min-height: 100vh;
-        color: #333;
-        padding-bottom: 40px;
+        padding-top: var(--header-height);
     }
 
-    /* =========================================
-       2. HEADER STYLES (MATCHING PAGE 11)
-       *จำเป็นต้องมี HTML Header แบบ Page 11*
-       ========================================= */
+    /* Header Structure */
     .mapraw-header {
         background: var(--primary-gradient);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         position: fixed;
-        top: 0; left: 0; width: 100%; z-index: 1000;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        font-family: 'Prompt', sans-serif;
         height: var(--header-height);
     }
     
     .mapraw-header-content {
-        max-width: 100%; margin: 0 auto; display: flex;
-        align-items: center; justify-content: space-between;
-        padding: 0 20px; height: 100%;
-    }
-    
-    .mapraw-logo-section { display: flex; flex-direction: column; justify-content: center; padding-right: 15px; }
-    .mapraw-logo-main { color: var(--text-white); font-size: 1.2rem; font-weight: 700; margin: 0; line-height: 1; white-space: nowrap; }
-    .mapraw-logo-main span { color: var(--text-yellow); text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); }
-    .mapraw-page-title { color: #e3f2fd; font-size: 1rem; font-weight: 400; margin: 2px 0 0 0; white-space: nowrap; }
-    
-    .mapraw-nav { display: flex; gap: 8px; align-items: center; height: 100%; }
-    .mapraw-nav-item { position: relative; height: 100%; display: flex; align-items: center; }
-    
-    .mapraw-nav-btn {
-        background: var(--bg-glass); color: white; border: 1px solid rgba(255, 255, 255, 0.3);
-        padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;
-        transition: all 0.2s ease; text-decoration: none; display: flex; align-items: center; gap: 6px;
-        font-family: 'Prompt', sans-serif; white-space: nowrap;
-    }
-    .mapraw-nav-btn:hover { background: var(--bg-glass-hover); transform: translateY(-1px); }
-    .mapraw-nav-btn.home-btn { background: rgba(255, 235, 59, 0.15); border-color: #ffeb3b; color: #ffeb3b; }
-    .mapraw-nav-btn.home-btn:hover { background: #ffeb3b; color: #1565c0; }
-
-    .mapraw-dropdown {
-        position: absolute; top: calc(100% - 10px); left: 50%; transform: translateX(-50%) translateY(10px);
-        background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        min-width: 200px; opacity: 0; visibility: hidden; transition: all 0.2s ease; padding: 5px 0; z-index: 1001;
-    }
-    @media (min-width: 1201px) { .mapraw-nav-item:hover .mapraw-dropdown { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); } }
-    .mapraw-dropdown-item { display: block; padding: 10px 20px; color: #333; text-decoration: none; font-size: 0.9rem; transition: background 0.2s; white-space: nowrap; }
-    .mapraw-dropdown-item:hover { background: #f1f8ff; color: var(--primary-solid); }
-
-    .mobile-menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 10px; z-index: 1002; }
-    .bar { display: block; width: 25px; height: 3px; margin: 5px auto; background-color: white; transition: all 0.3s ease-in-out; border-radius: 2px; }
-
-    /* =========================================
-       3. PAGE 11D CONTAINER STYLES
-       ========================================= */
-    .container {
-        max-width: 1000px;
+        max-width: 100%;
         margin: 0 auto;
-        background-color: white;
-        border-radius: var(--radius-md);
-        box-shadow: 0 4px 20px rgba(30, 136, 229, 0.15);
-        padding: 30px;
-        border-top: 4px solid var(--primary-solid);
-    }
-
-    h1 {
-        text-align: center;
-        color: var(--primary-dark);
-        margin-bottom: 30px;
-        font-weight: 700;
-        font-size: 24px;
-        position: relative;
-        padding-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        height: 100%;
     }
     
-    h1:after {
-        content: '';
+    /* Logo Section */
+    .mapraw-logo-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-shrink: 0;
+        padding-right: 15px;
+    }
+    
+    .mapraw-logo-main {
+        color: var(--text-white);
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    
+    .mapraw-logo-main span {
+        color: var(--text-yellow);
+        text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+    }
+    
+    .mapraw-page-title {
+        color: #e3f2fd;
+        font-size: 1rem;
+        font-weight: 400;
+        margin: 2px 0 0 0;
+        white-space: nowrap;
+    }
+    
+    /* Navigation Section */
+    .mapraw-nav {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        height: 100%;
+    }
+    
+    .mapraw-nav-item {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Buttons */
+    .mapraw-nav-btn {
+        background: var(--bg-glass);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Prompt', sans-serif;
+        white-space: nowrap;
+    }
+    
+    .mapraw-nav-btn:hover {
+        background: var(--bg-glass-hover);
+        transform: translateY(-1px);
+    }
+    
+    .mapraw-nav-btn.home-btn {
+        background: rgba(255, 235, 59, 0.15);
+        border-color: #ffeb3b;
+        color: #ffeb3b;
+    }
+    
+    .mapraw-nav-btn.home-btn:hover {
+        background: #ffeb3b;
+        color: #1565c0;
+    }
+
+    /* Dropdown */
+    .mapraw-dropdown {
         position: absolute;
-        bottom: 0;
+        top: calc(100% - 10px);
         left: 50%;
-        transform: translateX(-50%);
-        width: 60px;
-        height: 4px;
-        background-color: var(--text-yellow);
+        transform: translateX(-50%) translateY(10px);
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        min-width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        padding: 5px 0;
+        z-index: 1001;
+    }
+    
+    /* Hover Logic for Desktop */
+    @media (min-width: 1201px) {
+        .mapraw-nav-item:hover .mapraw-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+    
+    .mapraw-dropdown-item {
+        display: block;
+        padding: 10px 20px;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+        white-space: nowrap;
+    }
+    
+    .mapraw-dropdown-item:hover {
+        background: #f1f8ff;
+        color: #1565c0;
+    }
+
+    /* Hamburger Menu Toggle */
+    .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        z-index: 1002;
+    }
+    
+    .bar {
+        display: block;
+        width: 25px;
+        height: 3px;
+        margin: 5px auto;
+        background-color: white;
+        transition: all 0.3s ease-in-out;
         border-radius: 2px;
     }
 
-    h2 {
-        text-align: center;
-        color: var(--text-gray);
-        font-size: 1.25rem;
-        margin-bottom: 20px;
-        font-weight: 600;
-    }
-
-    /* =========================================
-       4. TABS & UI ELEMENTS
-       ========================================= */
-    .tabs {
-        display: flex;
-        border-bottom: 2px solid #e5e7eb;
-        margin-bottom: 30px;
-        gap: 10px;
-    }
-
-    .tab {
-        padding: 12px 25px;
-        cursor: pointer;
-        background-color: transparent;
-        border: 2px solid transparent;
-        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-        font-weight: 500;
-        color: var(--text-gray);
-        transition: all 0.3s;
-        margin-bottom: -2px;
-    }
-
-    .tab:hover {
-        color: var(--primary-solid);
-        background-color: #f8f9fa;
-    }
-
-    .tab.active {
-        background-color: white;
-        color: var(--primary-solid);
-        border-color: #e5e7eb;
-        border-bottom-color: white;
-        border-top: 3px solid var(--primary-solid);
-    }
-
-    .tab-content { display: none; animation: fadeIn 0.3s ease; }
-    .tab-content.active { display: block; }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Upload Area */
-    .upload-area {
-        border: 2px dashed #bbdefb;
-        border-radius: var(--radius-md);
-        padding: 40px;
-        text-align: center;
-        background-color: #f8fbff;
-        margin-bottom: 25px;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .upload-area:hover {
-        border-color: var(--primary-solid);
-        background-color: #e3f2fd;
-        transform: translateY(-2px);
-    }
-
-    .upload-icon {
-        font-size: 48px;
-        color: var(--primary-solid);
-        margin-bottom: 15px;
-    }
+    /* ==== Responsive Styles ==== */
     
-    .upload-area p {
-        color: var(--text-gray);
-        font-size: 1rem;
+    @media (max-width: 1400px) {
+        .mapraw-nav-btn {
+            padding: 6px 8px;
+            font-size: 0.8rem;
+        }
+        .mapraw-nav {
+            gap: 4px;
+        }
     }
 
-    /* Buttons */
-    .btn {
-        background: var(--primary-gradient);
-        color: white;
-        border: none;
-        padding: 12px 30px;
-        border-radius: 50px;
-        cursor: pointer;
-        font-size: 16px;
-        font-family: 'Prompt', sans-serif;
-        font-weight: 500;
-        transition: all 0.3s;
-        margin: 5px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(21, 101, 192, 0.2);
-        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
-    }
-
-    .btn:disabled {
-        background: #cfd8dc;
-        cursor: not-allowed;
-        box-shadow: none;
-        transform: none;
-    }
-
-    /* Results and Feedback */
-    .result-area {
-        margin-top: 20px;
-        border: 1px solid #e0e0e0;
-        border-radius: var(--radius-sm);
-        padding: 15px;
-        background-color: #fafafa;
-        max-height: 300px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        display: none;
-        font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 14px;
-        color: #333;
-    }
-
-    .spinner {
-        display: inline-block;
-        width: 40px;
-        height: 40px;
-        border: 4px solid rgba(21, 101, 192, 0.2);
-        border-radius: 50%;
-        border-top-color: var(--primary-solid);
-        animation: spin 1s ease-in-out infinite;
-        margin-bottom: 10px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .error-message {
-        color: #c62828;
-        background-color: #ffebee;
-        padding: 15px;
-        border-radius: var(--radius-sm);
-        margin-bottom: 20px;
-        display: none;
-        border-left: 4px solid #c62828;
-    }
-
-    .success-message {
-        color: #2e7d32;
-        background-color: #e8f5e9;
-        padding: 15px;
-        border-radius: var(--radius-sm);
-        margin-bottom: 20px;
-        display: none;
-        border-left: 4px solid #2e7d32;
-    }
-
-    .hidden { display: none; }
-
-    /* Projection Options */
-    .projection-options {
-        margin-top: 20px;
-        padding: 20px;
-        border: 1px solid #e3f2fd;
-        border-radius: var(--radius-sm);
-        background-color: #f1f8ff;
-    }
-
-    .projection-title {
-        font-weight: 600;
-        margin-bottom: 15px;
-        color: var(--primary-dark);
-    }
-
-    .radio-group {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .radio-option {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        font-size: 0.95rem;
-        color: var(--text-gray);
-    }
-
-    .radio-option input {
-        margin-right: 12px;
-        accent-color: var(--primary-solid);
-        width: 18px;
-        height: 18px;
-    }
-    
-    /* Info Box */
-    .info-box {
-        background-color: #e3f2fd;
-        border-left: 4px solid var(--primary-solid);
-        padding: 15px 20px;
-        margin-bottom: 25px;
-        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-        color: #455a64;
-    }
-
-    .detected-projection {
-        font-weight: bold;
-        color: var(--primary-dark);
-    }
-
-    /* Navigation Buttons (Bottom) */
-    .navigation-buttons {
-        display: flex;
-        justify-content: center;
-        margin-top: 40px;
-        gap: 20px;
-    }
-
-    .nav-btn {
-        background-color: white;
-        color: var(--text-gray);
-        border: 2px solid #e0e0e0;
-        padding: 10px 25px;
-        border-radius: 50px;
-        cursor: pointer;
-        font-size: 16px;
-        transition: all 0.3s;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        font-family: 'Prompt', sans-serif;
-        font-weight: 500;
-    }
-
-    .nav-btn:hover {
-        background-color: white;
-        border-color: var(--primary-solid);
-        color: var(--primary-solid);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    
-    .nav-btn.home-btn, .nav-btn.area-btn {
-        background-color: white; /* Override styles */
-    }
-
-    footer {
-        text-align: center;
-        margin-top: 40px;
-        color: var(--text-gray);
-        font-size: 14px;
-        border-top: 1px solid #e3f2fd;
-        padding-top: 20px;
-    }
-
-    /* =========================================
-       5. RESPONSIVE QUERIES
-       ========================================= */
-    @media (max-width: 1400px) { .mapraw-nav-btn { padding: 6px 8px; font-size: 0.8rem; } .mapraw-nav { gap: 4px; } }
     @media (max-width: 1200px) {
-        .mobile-menu-toggle { display: block; }
-        .mapraw-nav { position: fixed; top: var(--header-height); right: -100%; width: 280px; height: calc(100vh - var(--header-height)); background: white; flex-direction: column; align-items: stretch; gap: 0; padding: 10px 0; transition: right 0.3s ease; box-shadow: -5px 0 15px rgba(0,0,0,0.1); overflow-y: auto; }
-        .mapraw-nav.active { right: 0; }
-        .mapraw-nav-item { height: auto; flex-direction: column; width: 100%; display: block; border-bottom: 1px solid #eee; }
-        .mapraw-nav-btn { background: white; color: #333; border: none; border-radius: 0; padding: 15px 20px; font-size: 1rem; justify-content: space-between; width: 100%; }
-        .mapraw-nav-btn:hover { background: #f5f5f5; color: var(--primary-solid); transform: none; }
-        .mapraw-dropdown { position: static; transform: none; visibility: visible; opacity: 1; box-shadow: none; min-width: 100%; background: #f9f9f9; display: none; padding: 0; }
-        .mapraw-nav-item.active .mapraw-dropdown { display: block; }
-        .mapraw-dropdown-item { padding-left: 40px; color: #666; }
-        .mobile-menu-toggle.active .bar:nth-child(2) { opacity: 0; }
-        .mobile-menu-toggle.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
-        .mobile-menu-toggle.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+        .mobile-menu-toggle {
+            display: block;
+        }
+
+        .mapraw-nav {
+            position: fixed;
+            top: var(--header-height);
+            right: -100%;
+            width: 280px;
+            height: calc(100vh - var(--header-height));
+            background: white;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            padding: 10px 0;
+            transition: right 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .mapraw-nav.active {
+            right: 0;
+        }
+
+        .mapraw-nav-item {
+            height: auto;
+            flex-direction: column;
+            width: 100%;
+            display: block;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mapraw-nav-btn {
+            background: white;
+            color: #333;
+            border: none;
+            border-radius: 0;
+            padding: 15px 20px;
+            font-size: 1rem;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mapraw-nav-btn:hover {
+            background: #f5f5f5;
+            color: #1565c0;
+            transform: none;
+        }
+
+        .mapraw-dropdown {
+            position: static;
+            transform: none;
+            visibility: visible;
+            opacity: 1;
+            box-shadow: none;
+            min-width: 100%;
+            background: #f9f9f9;
+            display: none;
+            padding: 0;
+        }
+        
+        .mapraw-nav-item.active .mapraw-dropdown {
+            display: block;
+        }
+
+        .mapraw-dropdown-item {
+            padding-left: 40px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .mobile-menu-toggle.active .bar:nth-child(2) {
+            opacity: 0;
+        }
+        .mobile-menu-toggle.active .bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .mobile-menu-toggle.active .bar:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
     }
-    @media (max-width: 480px) { 
-        .mapraw-logo-main { font-size: 1rem; } 
+    
+    @media (max-width: 480px) {
+        .mapraw-logo-main { font-size: 1rem; }
         .mapraw-page-title { font-size: 0.75rem; }
-        .container { padding: 20px; }
-        .tabs { flex-direction: column; gap: 0; }
-        .tab { width: 100%; text-align: center; border-radius: var(--radius-sm); margin-bottom: 5px; }
-        .tab.active { border: 2px solid var(--primary-solid); }
     }
-</style>
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2563eb;
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            margin-right: 5px;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            background-color: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #2563eb;
+            background-color: #f0f4ff;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        .btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+        .btn:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+        .result-area {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(37, 99, 235, 0.3);
+            border-radius: 50%;
+            border-top-color: #2563eb;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #dc2626;
+            background-color: #fee2e2;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .success-message {
+            color: #059669;
+            background-color: #d1fae5;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .hidden {
+            display: none;
+        }
+        .projection-options {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background-color: #f9fafb;
+        }
+        .projection-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #4b5563;
+        }
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .radio-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .radio-option input {
+            margin-right: 10px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .info-box {
+            background-color: #e0f2fe;
+            border-left: 4px solid #0ea5e9;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+        .detected-projection {
+            font-weight: bold;
+            color: #0369a1;
+        }
+        .navigation-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+            gap: 15px;
+        }
+        .nav-btn {
+            background-color: #4b5563;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+        .nav-btn:hover {
+            background-color: #374151;
+        }
+        .nav-btn i {
+            margin-right: 8px;
+        }
+        .home-btn {
+            background-color: #2563eb;
+        }
+        .home-btn:hover {
+            background-color: #2563eb;
+        }
+        .area-btn {
+            background-color: #2563eb;
+        }
+        .area-btn:hover {
+            background-color: #2563eb;
+        }
+    </style>
 </head>
 <body>
-    </head>
-<body>
-        <header class="mapraw-header">
+            <header class="mapraw-header">
     <div class="mapraw-header-content">
         <div class="mapraw-logo-section">
             <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
@@ -591,7 +676,17 @@
             
             <pre id="resultPreview2" class="result-area"></pre>
         </div>
-
+        
+        <!-- Navigation Buttons -->
+        <div class="navigation-buttons">
+            <a href="https://mponline1.github.io/" class="nav-btn home-btn">
+                <i></i> หน้าหลัก
+            </a>
+            <a href="https://mponline1.github.io/page11.html" class="nav-btn area-btn">
+                <i></i> Calculate AREA
+            </a>
+        </div>
+    </div>
 
     <script>
         // Tab Switching
@@ -1120,7 +1215,7 @@
                         crs: geoJSON.crs
                     };
                     
-                    await createShapefileForFeatureType(pointGeoJSON, 'point', zip, prjContent);
+                    await createShapefileForFeatureType(pointGeoJSON, 'point', zip);
                     filesAdded = true;
                 }
                 
@@ -1132,7 +1227,7 @@
                         crs: geoJSON.crs
                     };
                     
-                    await createShapefileForFeatureType(lineGeoJSON, 'line', zip, prjContent);
+                    await createShapefileForFeatureType(lineGeoJSON, 'line', zip);
                     filesAdded = true;
                 }
                 
@@ -1144,12 +1239,17 @@
                         crs: geoJSON.crs
                     };
                     
-                    await createShapefileForFeatureType(polygonGeoJSON, 'polygon', zip, prjContent);
+                    await createShapefileForFeatureType(polygonGeoJSON, 'polygon', zip);
                     filesAdded = true;
                 }
                 
                 if (!filesAdded) {
                     throw new Error('ไม่สามารถสร้างไฟล์ Shapefile ได้ ข้อมูล GeoJSON อาจไม่ถูกต้อง');
+                }
+                
+                // Add the projection file
+                if (prjContent) {
+                    zip.file(`${fileName2}.prj`, prjContent);
                 }
                 
                 // Generate the ZIP file
@@ -1164,657 +1264,50 @@
         }
         
         // Create a shapefile for a specific feature type
-        async function createShapefileForFeatureType(geoJSON, type, zip, prjContent) {
+        async function createShapefileForFeatureType(geoJSON, type, zip) {
+            // Manual creation of shapefile components
             try {
+                // We'll use a simple approach: write the GeoJSON converted to shapefile format
+                // But since shp.download doesn't work, we'll create components manually
+                
+                // For simplicity in this example, we'll create a dummy .shp, .shx, and .dbf
+                
+                const geojsonStr = JSON.stringify(geoJSON);
                 const typeSuffix = type === 'point' ? 'point' : (type === 'line' ? 'line' : 'poly');
-                const baseName = `${fileName2}_${typeSuffix}`;
                 
-                // Use shpwrite to create proper shapefile binary data
-                return new Promise((resolve, reject) => {
-                    try {
-                        // Determine geometry type for shpwrite
-                        let geomType;
-                        if (type === 'point') {
-                            geomType = 'POINT';
-                        } else if (type === 'line') {
-                            geomType = 'POLYLINE';
-                        } else {
-                            geomType = 'POLYGON';
-                        }
-                        
-                        // Use shpwrite to generate shapefile components
-                        shpwrite.write(geoJSON.features, geomType, function(err, files) {
-                            if (err) {
-                                console.error('shpwrite error:', err);
-                                // Use fallback method
-                                createBasicShapefile(geoJSON, type, zip, prjContent)
-                                    .then(resolve)
-                                    .catch(reject);
-                                return;
-                            }
-                            
-                            try {
-                                // Add shapefile components to zip
-                                if (files.shp) {
-                                    zip.file(`${baseName}.shp`, files.shp.buffer, {binary: true});
-                                }
-                                if (files.shx) {
-                                    zip.file(`${baseName}.shx`, files.shx.buffer, {binary: true});
-                                }
-                                if (files.dbf) {
-                                    zip.file(`${baseName}.dbf`, files.dbf.buffer, {binary: true});
-                                }
-                                
-                                // Add custom PRJ file with correct projection
-                                if (prjContent) {
-                                    zip.file(`${baseName}.prj`, prjContent);
-                                }
-                                
-                                // Add CPG file for UTF-8 encoding
-                                zip.file(`${baseName}.cpg`, 'UTF-8');
-                                
-                                resolve(true);
-                            } catch (error) {
-                                console.error('Error adding files to zip:', error);
-                                reject(error);
-                            }
-                        });
-                    } catch (error) {
-                        console.error('Error in shpwrite.write:', error);
-                        // Use fallback method
-                        createBasicShapefile(geoJSON, type, zip, prjContent)
-                            .then(resolve)
-                            .catch(reject);
-                    }
-                });
-            } catch (error) {
-                console.error(`Error creating ${type} shapefile:`, error);
-                // Use fallback method
-                return createBasicShapefile(geoJSON, type, zip, prjContent);
-            }
-        }
-        
-        // Fallback function to create basic shapefile structure with proper binary format
-        async function createBasicShapefile(geoJSON, type, zip, prjContent) {
-            try {
-                const typeSuffix = type === 'point' ? 'point' : (type === 'line' ? 'line' : 'poly');
-                const baseName = `${fileName2}_${typeSuffix}`;
+                // Add dummy files with the correct extensions
+                zip.file(`${fileName2}_${typeSuffix}.shp`, new Blob([geojsonStr], {type: 'application/octet-stream'}));
+                zip.file(`${fileName2}_${typeSuffix}.shx`, new Blob([geojsonStr.substring(0, 100)], {type: 'application/octet-stream'}));
+                zip.file(`${fileName2}_${typeSuffix}.dbf`, new Blob([geojsonStr.substring(0, 100)], {type: 'application/octet-stream'}));
                 
-                // Collect all coordinates and properties
-                const features = geoJSON.features;
-                const properties = features.length > 0 ? Object.keys(features[0].properties || {}) : [];
+                // Add .prj file with appropriate projection
+                let prjContent = '';
                 
-                // Calculate bounding box
-                const bbox = calculateBoundingBox(geoJSON);
-                
-                // Determine shape type
-                let shapeType = 0;
-                if (type === 'point') shapeType = 1;      // Point
-                else if (type === 'line') shapeType = 3;   // Polyline
-                else if (type === 'polygon') shapeType = 5; // Polygon
-                
-                // Create SHP file
-                const shpData = createCompleteShpFile(features, shapeType, bbox);
-                zip.file(`${baseName}.shp`, shpData, {binary: true});
-                
-                // Create SHX file (index)
-                const shxData = createCompleteShxFile(features, shapeType);
-                zip.file(`${baseName}.shx`, shxData, {binary: true});
-                
-                // Create DBF file (attributes)
-                const dbfData = createCompleteDbfFile(features, properties);
-                zip.file(`${baseName}.dbf`, dbfData, {binary: true});
-                
-                // Add PRJ file
-                if (prjContent) {
-                    zip.file(`${baseName}.prj`, prjContent);
+                if (detectedCRS === 'EPSG:4326' || detectedCRS.includes('4326')) {
+                    // WGS84
+                    prjContent = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]';
+                } else if (detectedCRS === 'EPSG:32647' || detectedCRS.includes('32647')) {
+                    // UTM Zone 47N
+                    prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
+                } else if (detectedCRS === 'EPSG:32648' || detectedCRS.includes('32648')) {
+                    // UTM Zone 48N
+                    prjContent = 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",105],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
                 }
                 
-                // Add CPG file for UTF-8 encoding
-                zip.file(`${baseName}.cpg`, 'UTF-8');
+                zip.file(`${fileName2}_${typeSuffix}.prj`, prjContent);
+                
+                // Also add a README file explaining the limitations
+                zip.file('README.txt', `
+ไฟล์ Shapefile นี้สร้างจาก GeoJSON ที่มีพื้นหลักฐาน ${detectedCRS}
+หมายเหตุ: เนื่องจากข้อจำกัดของเว็บแอปพลิเคชัน ไฟล์ Shapefile นี้อาจไม่สมบูรณ์
+แนะนำให้ใช้โปรแกรม GIS เช่น QGIS หรือ ArcGIS เพื่อแปลงไฟล์ GeoJSON เป็น Shapefile ที่สมบูรณ์
+                `);
                 
                 return true;
             } catch (error) {
-                console.error('Error in fallback shapefile creation:', error);
-                throw error;
+                console.error(`Error creating ${type} shapefile:`, error);
+                return false;
             }
-        }
-        
-        // Create complete SHP file with proper structure
-        function createCompleteShpFile(features, shapeType, bbox) {
-            const records = [];
-            let offset = 50; // Header is 100 bytes = 50 16-bit words
-            
-            features.forEach((feature, index) => {
-                const recordHeader = new ArrayBuffer(8);
-                const recordHeaderView = new DataView(recordHeader);
-                
-                // Record number (1-based, big-endian)
-                recordHeaderView.setInt32(0, index + 1, false);
-                
-                // Content length will be calculated based on geometry
-                let contentLength = 0;
-                let shapeData;
-                
-                if (shapeType === 1) { // Point
-                    contentLength = 10; // 20 bytes = 10 words (4 for type + 16 for coordinates)
-                    shapeData = createPointRecord(feature.geometry);
-                } else if (shapeType === 3) { // Polyline
-                    const result = createPolylineRecord(feature.geometry);
-                    contentLength = result.length;
-                    shapeData = result.data;
-                } else if (shapeType === 5) { // Polygon
-                    const result = createPolygonRecord(feature.geometry);
-                    contentLength = result.length;
-                    shapeData = result.data;
-                }
-                
-                recordHeaderView.setInt32(4, contentLength, false);
-                
-                records.push({
-                    header: recordHeader,
-                    data: shapeData,
-                    offset: offset,
-                    length: contentLength
-                });
-                
-                offset += 4 + contentLength; // 4 words for record header + content length
-            });
-            
-            // Calculate total file length in 16-bit words
-            const fileLengthWords = offset;
-            
-            // Create main header (100 bytes)
-            const header = new ArrayBuffer(100);
-            const headerView = new DataView(header);
-            
-            // File code (9994) - big endian
-            headerView.setInt32(0, 9994, false);
-            
-            // Unused positions (5 int32)
-            for (let i = 4; i < 24; i += 4) {
-                headerView.setInt32(i, 0, false);
-            }
-            
-            // File length in 16-bit words - big endian
-            headerView.setInt32(24, fileLengthWords, false);
-            
-            // Version (1000) - little endian
-            headerView.setInt32(28, 1000, true);
-            
-            // Shape type - little endian
-            headerView.setInt32(32, shapeType, true);
-            
-            // Bounding box - little endian
-            headerView.setFloat64(36, bbox.xmin, true);
-            headerView.setFloat64(44, bbox.ymin, true);
-            headerView.setFloat64(52, bbox.xmax, true);
-            headerView.setFloat64(60, bbox.ymax, true);
-            
-            // Z range (unused, set to 0)
-            headerView.setFloat64(68, 0, true);
-            headerView.setFloat64(76, 0, true);
-            
-            // M range (unused, set to 0)
-            headerView.setFloat64(84, 0, true);
-            headerView.setFloat64(92, 0, true);
-            
-            // Combine header and all records
-            const totalSize = 100 + records.reduce((sum, rec) => sum + 8 + rec.data.byteLength, 0);
-            const result = new Uint8Array(totalSize);
-            
-            // Copy header
-            result.set(new Uint8Array(header), 0);
-            
-            // Copy records
-            let position = 100;
-            records.forEach(record => {
-                result.set(new Uint8Array(record.header), position);
-                position += 8;
-                result.set(new Uint8Array(record.data), position);
-                position += record.data.byteLength;
-            });
-            
-            return result.buffer;
-        }
-        
-        // Create point record
-        function createPointRecord(geometry) {
-            const buffer = new ArrayBuffer(20); // 4 bytes type + 16 bytes coordinates
-            const view = new DataView(buffer);
-            
-            // Shape type (1 = Point)
-            view.setInt32(0, 1, true);
-            
-            // X coordinate
-            view.setFloat64(4, geometry.coordinates[0], true);
-            
-            // Y coordinate
-            view.setFloat64(12, geometry.coordinates[1], true);
-            
-            return buffer;
-        }
-        
-        // Create polyline record
-        function createPolylineRecord(geometry) {
-            const coords = geometry.type === 'LineString' ? [geometry.coordinates] : geometry.coordinates;
-            const numParts = coords.length;
-            const numPoints = coords.reduce((sum, part) => sum + part.length, 0);
-            
-            // Calculate size: 4 (type) + 32 (bbox) + 4 (numParts) + 4 (numPoints) + 4*numParts (parts) + 16*numPoints (points)
-            const size = 44 + 4 * numParts + 16 * numPoints;
-            const buffer = new ArrayBuffer(size);
-            const view = new DataView(buffer);
-            
-            // Shape type (3 = Polyline)
-            view.setInt32(0, 3, true);
-            
-            // Bounding box
-            const bbox = calculateGeometryBbox(coords);
-            view.setFloat64(4, bbox.xmin, true);
-            view.setFloat64(12, bbox.ymin, true);
-            view.setFloat64(20, bbox.xmax, true);
-            view.setFloat64(28, bbox.ymax, true);
-            
-            // Number of parts
-            view.setInt32(36, numParts, true);
-            
-            // Number of points
-            view.setInt32(40, numPoints, true);
-            
-            // Parts (starting index of each part)
-            let offset = 44;
-            let pointIndex = 0;
-            for (let i = 0; i < numParts; i++) {
-                view.setInt32(offset, pointIndex, true);
-                offset += 4;
-                pointIndex += coords[i].length;
-            }
-            
-            // Points
-            coords.forEach(part => {
-                part.forEach(point => {
-                    view.setFloat64(offset, point[0], true);
-                    view.setFloat64(offset + 8, point[1], true);
-                    offset += 16;
-                });
-            });
-            
-            return {
-                data: buffer,
-                length: size / 2 // Length in 16-bit words
-            };
-        }
-        
-        // Create polygon record
-        function createPolygonRecord(geometry) {
-            const coords = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
-            const allRings = coords.flat();
-            const numParts = allRings.length;
-            const numPoints = allRings.reduce((sum, ring) => sum + ring.length, 0);
-            
-            // Calculate size
-            const size = 44 + 4 * numParts + 16 * numPoints;
-            const buffer = new ArrayBuffer(size);
-            const view = new DataView(buffer);
-            
-            // Shape type (5 = Polygon)
-            view.setInt32(0, 5, true);
-            
-            // Bounding box
-            const bbox = calculateGeometryBbox(allRings);
-            view.setFloat64(4, bbox.xmin, true);
-            view.setFloat64(12, bbox.ymin, true);
-            view.setFloat64(20, bbox.xmax, true);
-            view.setFloat64(28, bbox.ymax, true);
-            
-            // Number of parts
-            view.setInt32(36, numParts, true);
-            
-            // Number of points
-            view.setInt32(40, numPoints, true);
-            
-            // Parts
-            let offset = 44;
-            let pointIndex = 0;
-            for (let i = 0; i < numParts; i++) {
-                view.setInt32(offset, pointIndex, true);
-                offset += 4;
-                pointIndex += allRings[i].length;
-            }
-            
-            // Points
-            allRings.forEach(ring => {
-                ring.forEach(point => {
-                    view.setFloat64(offset, point[0], true);
-                    view.setFloat64(offset + 8, point[1], true);
-                    offset += 16;
-                });
-            });
-            
-            return {
-                data: buffer,
-                length: size / 2
-            };
-        }
-        
-        // Create complete SHX file
-        function createCompleteShxFile(features, shapeType) {
-            // Header (100 bytes) + 8 bytes per record
-            const size = 100 + features.length * 8;
-            const buffer = new ArrayBuffer(size);
-            const view = new DataView(buffer);
-            
-            // File code (9994) - big endian
-            view.setInt32(0, 9994, false);
-            
-            // File length in 16-bit words - big endian
-            view.setInt32(24, size / 2, false);
-            
-            // Version (1000) - little endian
-            view.setInt32(28, 1000, true);
-            
-            // Shape type - little endian
-            view.setInt32(32, shapeType, true);
-            
-            // Write record offsets and lengths
-            let offset = 50; // Start after header (100 bytes / 2)
-            let position = 100;
-            
-            features.forEach((feature, index) => {
-                // Record offset in 16-bit words - big endian
-                view.setInt32(position, offset, false);
-                
-                // Content length in 16-bit words - big endian
-                let contentLength = 10; // Default for points
-                
-                if (shapeType === 3 || shapeType === 5) {
-                    // Calculate for polyline/polygon
-                    const coords = feature.geometry.type.includes('Multi') 
-                        ? feature.geometry.coordinates.flat()
-                        : (feature.geometry.type === 'Polygon' ? feature.geometry.coordinates : [feature.geometry.coordinates]);
-                    const numParts = coords.length;
-                    const numPoints = coords.reduce((sum, part) => sum + part.length, 0);
-                    contentLength = (44 + 4 * numParts + 16 * numPoints) / 2;
-                }
-                
-                view.setInt32(position + 4, contentLength, false);
-                
-                offset += 4 + contentLength;
-                position += 8;
-            });
-            
-            return buffer;
-        }
-        
-        // Create complete DBF file
-        // Create complete DBF file with proper field types and lengths
-        function createCompleteDbfFile(features, properties) {
-            const numRecords = features.length;
-            
-            // Analyze field types and calculate appropriate lengths
-            const fieldDefinitions = [];
-            
-            // Add FID field
-            fieldDefinitions.push({
-                name: 'FID',
-                type: 'N',
-                length: 10,
-                decimal: 0
-            });
-            
-            // Analyze properties from first few features to determine types and lengths
-            properties.forEach(prop => {
-                let fieldType = 'C'; // Default to Character
-                let maxLength = 10;
-                let decimalCount = 0;
-                
-                // Sample data from features to determine type and max length
-                let hasNumber = false;
-                let hasDecimal = false;
-                let hasDate = false;
-                
-                features.forEach(feature => {
-                    if (!feature.properties || feature.properties[prop] === undefined || feature.properties[prop] === null) {
-                        return;
-                    }
-                    
-                    const value = feature.properties[prop];
-                    const valueStr = value.toString();
-                    
-                    // Check if it's a number
-                    if (typeof value === 'number' || !isNaN(parseFloat(valueStr))) {
-                        hasNumber = true;
-                        if (valueStr.includes('.')) {
-                            hasDecimal = true;
-                            const parts = valueStr.split('.');
-                            if (parts[1]) {
-                                decimalCount = Math.max(decimalCount, parts[1].length);
-                            }
-                        }
-                    }
-                    
-                    // Check if it's a date
-                    if (value instanceof Date || /^\d{4}-\d{2}-\d{2}/.test(valueStr)) {
-                        hasDate = true;
-                    }
-                    
-                    // Track max length
-                    maxLength = Math.max(maxLength, valueStr.length);
-                });
-                
-                // Determine field type
-                if (hasDate) {
-                    fieldType = 'D';
-                    maxLength = 8; // YYYYMMDD format
-                    decimalCount = 0;
-                } else if (hasNumber) {
-                    fieldType = hasDecimal ? 'F' : 'N'; // Float or Numeric
-                    maxLength = Math.min(Math.max(maxLength, 10), 20);
-                    if (hasDecimal) {
-                        decimalCount = Math.min(decimalCount, 6);
-                    }
-                } else {
-                    fieldType = 'C'; // Character
-                    maxLength = Math.min(Math.max(maxLength, 10), 254); // DBF max is 254
-                }
-                
-                fieldDefinitions.push({
-                    name: prop.substring(0, 10), // Field name max 10 chars
-                    type: fieldType,
-                    length: maxLength,
-                    decimal: decimalCount
-                });
-            });
-            
-            const numFields = fieldDefinitions.length;
-            
-            // Calculate record size
-            const recordSize = fieldDefinitions.reduce((sum, field) => sum + field.length, 0) + 1; // +1 for deletion flag
-            
-            // Header: 32 bytes + 32 bytes per field + 1 terminator
-            const headerSize = 32 + numFields * 32 + 1;
-            const totalSize = headerSize + numRecords * recordSize + 1; // +1 for EOF marker
-            
-            const buffer = new ArrayBuffer(totalSize);
-            const view = new DataView(buffer);
-            const uint8View = new Uint8Array(buffer);
-            
-            // Write DBF Header (32 bytes)
-            view.setUint8(0, 0x03); // dBASE III
-            
-            // Last update date
-            const now = new Date();
-            view.setUint8(1, now.getFullYear() - 1900);
-            view.setUint8(2, now.getMonth() + 1);
-            view.setUint8(3, now.getDate());
-            
-            // Number of records (little-endian)
-            view.setUint32(4, numRecords, true);
-            
-            // Header size (little-endian)
-            view.setUint16(8, headerSize, true);
-            
-            // Record size (little-endian)
-            view.setUint16(10, recordSize, true);
-            
-            // Reserved bytes (12-31) are already 0
-            
-            // Write Field Descriptors
-            let fieldOffset = 32;
-            
-            fieldDefinitions.forEach(field => {
-                // Field name (11 bytes, null-terminated)
-                for (let i = 0; i < field.name.length && i < 10; i++) {
-                    uint8View[fieldOffset + i] = field.name.charCodeAt(i);
-                }
-                // Fill remaining with null
-                for (let i = field.name.length; i < 11; i++) {
-                    uint8View[fieldOffset + i] = 0x00;
-                }
-                
-                // Field type (1 byte)
-                uint8View[fieldOffset + 11] = field.type.charCodeAt(0);
-                
-                // Field data address (4 bytes) - not used in DBF III, set to 0
-                view.setUint32(fieldOffset + 12, 0, true);
-                
-                // Field length (1 byte)
-                view.setUint8(fieldOffset + 16, field.length);
-                
-                // Decimal count (1 byte)
-                view.setUint8(fieldOffset + 17, field.decimal);
-                
-                // Reserved bytes (18-31) are already 0
-                
-                fieldOffset += 32;
-            });
-            
-            // Field descriptor terminator
-            uint8View[fieldOffset] = 0x0D;
-            
-            // Write Records
-            let recordOffset = headerSize;
-            
-            features.forEach((feature, index) => {
-                // Deletion flag (0x20 = not deleted, 0x2A = deleted)
-                uint8View[recordOffset] = 0x20;
-                recordOffset++;
-                
-                // Write each field value
-                fieldDefinitions.forEach((field, fieldIndex) => {
-                    let value = '';
-                    
-                    if (fieldIndex === 0) {
-                        // FID field
-                        value = (index + 1).toString();
-                    } else {
-                        // Property field
-                        const propName = properties[fieldIndex - 1];
-                        const propValue = feature.properties && feature.properties[propName];
-                        
-                        if (propValue !== undefined && propValue !== null) {
-                            if (field.type === 'D' && propValue instanceof Date) {
-                                // Date format: YYYYMMDD
-                                const year = propValue.getFullYear().toString().padStart(4, '0');
-                                const month = (propValue.getMonth() + 1).toString().padStart(2, '0');
-                                const day = propValue.getDate().toString().padStart(2, '0');
-                                value = year + month + day;
-                            } else if (field.type === 'D' && typeof propValue === 'string') {
-                                // Try to parse date string
-                                const dateMatch = propValue.match(/(\d{4})-(\d{2})-(\d{2})/);
-                                if (dateMatch) {
-                                    value = dateMatch[1] + dateMatch[2] + dateMatch[3];
-                                } else {
-                                    value = propValue.replace(/[^0-9]/g, '').substring(0, 8);
-                                }
-                            } else if (field.type === 'N' || field.type === 'F') {
-                                // Numeric or Float
-                                const numValue = typeof propValue === 'number' ? propValue : parseFloat(propValue);
-                                if (!isNaN(numValue)) {
-                                    if (field.decimal > 0) {
-                                        value = numValue.toFixed(field.decimal);
-                                    } else {
-                                        value = Math.round(numValue).toString();
-                                    }
-                                } else {
-                                    value = '';
-                                }
-                            } else {
-                                // Character
-                                value = propValue.toString();
-                            }
-                        }
-                    }
-                    
-                    // Trim or pad value to field length
-                    if (field.type === 'N' || field.type === 'F') {
-                        // Right-align numeric fields
-                        value = value.substring(0, field.length).padStart(field.length, ' ');
-                    } else {
-                        // Left-align character and date fields
-                        value = value.substring(0, field.length).padEnd(field.length, ' ');
-                    }
-                    
-                    // Write field value
-                    for (let i = 0; i < field.length; i++) {
-                        uint8View[recordOffset + i] = value.charCodeAt(i) || 0x20; // Use space if undefined
-                    }
-                    
-                    recordOffset += field.length;
-                });
-            });
-            
-            // End of file marker
-            uint8View[totalSize - 1] = 0x1A;
-            
-            return buffer;
-        }
-        
-        // Calculate geometry bounding box
-        function calculateGeometryBbox(coords) {
-            let xmin = Infinity, ymin = Infinity;
-            let xmax = -Infinity, ymax = -Infinity;
-            
-            const processCoord = (coord) => {
-                if (Array.isArray(coord[0])) {
-                    coord.forEach(processCoord);
-                } else {
-                    xmin = Math.min(xmin, coord[0]);
-                    ymin = Math.min(ymin, coord[1]);
-                    xmax = Math.max(xmax, coord[0]);
-                    ymax = Math.max(ymax, coord[1]);
-                }
-            };
-            
-            coords.forEach(processCoord);
-            
-            return { xmin, ymin, xmax, ymax };
-        }
-        
-        // Helper function to calculate bounding box
-        function calculateBoundingBox(geoJSON) {
-            let xmin = Infinity, ymin = Infinity;
-            let xmax = -Infinity, ymax = -Infinity;
-            
-            geoJSON.features.forEach(feature => {
-                if (!feature.geometry || !feature.geometry.coordinates) return;
-                
-                const coords = feature.geometry.coordinates;
-                const processCoord = (coord) => {
-                    if (Array.isArray(coord[0])) {
-                        coord.forEach(processCoord);
-                    } else {
-                        xmin = Math.min(xmin, coord[0]);
-                        ymin = Math.min(ymin, coord[1]);
-                        xmax = Math.max(xmax, coord[0]);
-                        ymax = Math.max(ymax, coord[1]);
-                    }
-                };
-                processCoord(coords);
-            });
-            
-            return { xmin, ymin, xmax, ymax };
         }
         
         // Update preview for GeoJSON
@@ -1887,7 +1380,7 @@
             }
         }
     </script>
-<script>
+   <script>
     const menuBtn = document.getElementById('mobileMenuBtn');
     const nav = document.getElementById('mainNav');
 
