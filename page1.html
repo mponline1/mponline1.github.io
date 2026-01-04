@@ -116,6 +116,124 @@
 
         .esri-view .esri-view-surface--inset-outline:focus::after { outline: none !important; }
         
+        /* ======================== FIX SKETCH TOOLBAR FOR MOBILE ======================== */
+        /* แก้ไข Sketch Toolbar ให้แสดงผลได้ดีทั้งบนคอมและมือถือ */
+        
+        /* Sketch Panel - ปรับให้อยู่ในตำแหน่งที่เหมาะสม */
+        .esri-sketch__panel {
+            position: relative !important;
+            max-height: none !important;
+            overflow: visible !important;
+            z-index: 1001 !important;
+        }
+        
+        /* Sketch Toolbar Container */
+        .esri-ui-top-left .esri-sketch {
+            max-width: none !important;
+        }
+        
+        /* ปรับ UI Corner สำหรับมือถือ */
+        .esri-ui-corner {
+            position: absolute !important;
+        }
+        
+        .esri-ui-top-left {
+            top: 85px !important; /* ใกล้ header มากขึ้น */
+            right: 10px !important; /* ย้ายไปทางขวาแทน เพื่อไม่ซ้อน Draw Tools */
+            left: auto !important;
+            max-width: 400px !important;
+            z-index: 1001 !important;
+        }
+        
+        /* ======================== RESPONSIVE DESIGN FOR TABLETS & MOBILE ======================== */
+        
+        /* Desktop & Large Screen - ปรับให้ไม่ซ้อนกับ Draw Tools */
+        @media (min-width: 1025px) {
+            .esri-ui-top-left {
+                top: 85px !important;
+                right: 10px !important;
+                left: auto !important;
+            }
+        }
+        
+        /* Tablet (รวม Samsung Tab S7: 2560x1600, 11 inch) */
+        @media (max-width: 1024px) {
+            .esri-ui-top-left {
+                top: 80px !important;
+                left: 5px !important;
+                right: auto !important;
+                max-width: calc(100vw - 10px) !important;
+            }
+            
+            .esri-sketch__panel {
+                flex-wrap: wrap !important;
+                max-width: calc(100vw - 20px) !important;
+            }
+            
+            /* ปรับขนาดปุ่ม Sketch ให้พอดีกับหน้าจอ */
+            .esri-sketch__button {
+                min-width: 32px !important;
+                min-height: 32px !important;
+                padding: 4px !important;
+            }
+            
+            /* ปรับ Section ของ Sketch */
+            .esri-sketch__section {
+                flex-wrap: wrap !important;
+            }
+        }
+        
+        /* Mobile Portrait (หน้าจอแนวตั้ง) */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .esri-ui-top-left {
+                top: 75px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                max-width: calc(100vw - 20px) !important;
+            }
+            
+            .esri-sketch__panel {
+                justify-content: center !important;
+                max-width: 95vw !important;
+            }
+        }
+        
+        /* Mobile Landscape (หน้าจอแนวนอน) */
+        @media (max-width: 896px) and (orientation: landscape) {
+            .esri-ui-top-left {
+                top: 75px !important;
+                left: 5px !important;
+                max-width: 50vw !important;
+            }
+            
+            .esri-sketch__panel {
+                flex-direction: column !important;
+                max-height: calc(100vh - 100px) !important;
+                overflow-y: auto !important;
+            }
+        }
+        
+        /* Small Mobile */
+        @media (max-width: 480px) {
+            .esri-ui-top-left {
+                top: 70px !important;
+            }
+            
+            .esri-sketch__button {
+                min-width: 28px !important;
+                min-height: 28px !important;
+            }
+        }
+        
+        /* ป้องกัน Toolbar หาย */
+        .esri-sketch {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* ======================== END FIX ======================== */
+        
         .top-toolbar-container {
             position: absolute;
             top: auto;            
