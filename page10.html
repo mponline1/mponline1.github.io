@@ -1524,7 +1524,7 @@ Image Dimensions:
       }
       
       function createAndProcessGrid(polygon) {
-        const gridSize = 500; 
+        const gridSize = 200; 
         const geodesicBuffer = geometryEngine.geodesicBuffer(polygon, 0, "meters");
         const extent = geodesicBuffer.extent;
         const width = extent.width;
