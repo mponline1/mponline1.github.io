@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CONVERT GIS FILE</title>
+    <title>CONVERT GIS FILE - MAPRAW</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shpjs/3.6.3/shp.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-
     /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
 
     :root {
         --primary-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+        --primary-solid: #1565c0;
+        --primary-dark: #0d47a1;
+        --primary-light: #e3f2fd;
         --text-white: #ffffff;
         --text-yellow: #ffeb3b;
         --bg-glass: rgba(255, 255, 255, 0.1);
@@ -25,6 +27,33 @@
     body {
         margin: 0;
         padding-top: var(--header-height);
+        font-family: 'Prompt', sans-serif;
+        background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
+        color: #333;
+        min-height: 100vh;
+    }
+
+    /* Container */
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-top: 30px;
+    }
+
+    h1 {
+        text-align: center;
+        color: #2563eb;
+        margin-bottom: 30px;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    h2 {
+        color: #1e40af;
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+        font-weight: 600;
     }
 
     /* Header Structure */
@@ -250,350 +279,589 @@
         }
 
         .mapraw-nav-btn:hover {
-            background: #f5f5f5;
-            color: #1565c0;
+            background: #f8f9fa;
             transform: none;
+        }
+
+        .mapraw-nav-btn.home-btn {
+            background: #1565c0;
+            color: white;
+        }
+
+        .mapraw-nav-btn.home-btn:hover {
+            background: #0d47a1;
         }
 
         .mapraw-dropdown {
             position: static;
-            transform: none;
-            visibility: visible;
             opacity: 1;
+            visibility: visible;
+            transform: none;
             box-shadow: none;
-            min-width: 100%;
-            background: #f9f9f9;
-            display: none;
+            border-radius: 0;
             padding: 0;
+            background: #f8f9fa;
+            display: none;
         }
-        
+
         .mapraw-nav-item.active .mapraw-dropdown {
             display: block;
         }
 
         .mapraw-dropdown-item {
-            padding-left: 40px;
+            padding: 12px 20px 12px 40px;
             font-size: 0.9rem;
-            color: #666;
+        }
+
+        .mobile-menu-toggle.active .bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
         }
 
         .mobile-menu-toggle.active .bar:nth-child(2) {
             opacity: 0;
         }
-        .mobile-menu-toggle.active .bar:nth-child(1) {
-            transform: translateY(8px) rotate(45deg);
-        }
+
         .mobile-menu-toggle.active .bar:nth-child(3) {
             transform: translateY(-8px) rotate(-45deg);
         }
     }
-    
-    @media (max-width: 480px) {
-        .mapraw-logo-main { font-size: 1rem; }
-        .mapraw-page-title { font-size: 0.75rem; }
+
+    @media (max-width: 768px) {
+        .mapraw-logo-main {
+            font-size: 1rem;
+        }
+        
+        .mapraw-page-title {
+            font-size: 0.8rem;
+        }
+
+        .mapraw-header-content {
+            padding: 0 15px;
+        }
     }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            background-color: #f8f9fa;
+    /* Main Container */
+    .main-container {
+        padding: 2rem;
+        margin: 0 auto;
+        max-width: 900px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(30, 136, 229, 0.1);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border-top: 4px solid var(--primary-solid);
+    }
+
+    .title-container {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .main-title {
+        color: var(--primary-dark);
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+        color: #546e7a;
+        font-size: 1rem;
+    }
+
+    /* Tabs */
+    .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        justify-content: center;
+        flex-wrap: wrap;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .tab {
+        padding: 12px 30px;
+        cursor: pointer;
+        background-color: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s;
+        color: #666;
+        font-size: 1rem;
+    }
+
+    .tab.active {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+    }
+
+    .tab-content {
+        display: none;
+        background-color: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 30px;
+    }
+
+    .tab-content.active {
+        display: block;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
         }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Upload Area */
+    .upload-area {
+        border: 2px dashed #ccc;
+        border-radius: 12px;
+        padding: 40px 20px;
+        text-align: center;
+        background-color: #f8f9fa;
+        margin-bottom: 25px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .upload-area:hover {
+        border-color: #2563eb;
+        background-color: #f0f4ff;
+    }
+
+    .upload-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+
+    .upload-area p {
+        color: #666;
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    /* Projection Options */
+    .projection-options {
+        margin-bottom: 25px;
+    }
+
+    .projection-title {
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #333;
+        font-size: 1.05rem;
+    }
+
+    .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .radio-option {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        background-color: #f8f9fa;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .radio-option:hover {
+        border-color: #2563eb;
+        background-color: #f0f4ff;
+    }
+
+    .radio-option input[type="radio"] {
+        margin-right: 10px;
+        cursor: pointer;
+        width: 18px;
+        height: 18px;
+    }
+
+    .radio-option input[type="radio"]:checked + span {
+        color: #2563eb;
+        font-weight: 600;
+    }
+
+    .radio-option span {
+        flex: 1;
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    /* Buttons */
+    .btn {
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        font-family: 'Prompt', sans-serif;
+        font-size: 1rem;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    /* Messages */
+    .error-message,
+    .success-message {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .error-message {
+        background-color: #fee;
+        color: #c00;
+        border-left: 4px solid #c00;
+    }
+
+    .success-message {
+        background-color: #efe;
+        color: #060;
+        border-left: 4px solid #060;
+    }
+
+    .info-box {
+        background: #e3f2fd;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #2563eb;
+    }
+
+    .info-box p {
+        margin: 5px 0;
+        color: #1e40af;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .detected-projection {
+        font-weight: 700;
+        color: #2563eb;
+    }
+
+    /* Result Area */
+    .result-area {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: 0.85rem;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        display: none;
+        margin-top: 20px;
+    }
+
+    /* Spinner */
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #2563eb;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    /* Navigation Buttons */
+    .navigation-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+
+    .nav-btn {
+        padding: 12px 25px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95rem;
+        border: 2px solid #2563eb;
+        color: #2563eb;
+        background: white;
+    }
+
+    .nav-btn:hover {
+        background: #f0f4ff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .nav-btn.home-btn {
+        background: white;
+        color: #666;
+        border-color: #ccc;
+    }
+
+    .nav-btn.home-btn:hover {
+        background: #f8f9fa;
+        color: #333;
+        border-color: #999;
+    }
+
+    .nav-btn.area-btn {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }
+
+    .nav-btn.area-btn:hover {
+        background: #1e40af;
+        border-color: #1e40af;
+        color: white;
+    }
+
+    @media (max-width: 768px) {
         .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+        }
+
+        .tabs {
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .tab {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+        }
+
+        .tab-content {
             padding: 20px;
         }
-        h1, h2 {
-            text-align: center;
-            color: #2563eb;
-            margin-bottom: 20px;
-        }
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #e5e7eb;
-            margin-bottom: 20px;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            background-color: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            border-bottom: none;
-            border-radius: 8px 8px 0 0;
-            margin-right: 5px;
-            transition: all 0.3s;
-        }
-        .tab.active {
-            background-color: #2563eb;
-            color: white;
-            border-color: #2563eb;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .upload-area {
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            background-color: #f8f9fa;
-            margin-bottom: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .upload-area:hover {
-            border-color: #2563eb;
-            background-color: #f0f4ff;
-        }
-        .upload-icon {
-            font-size: 48px;
-            color: #2563eb;
-            margin-bottom: 10px;
-        }
-        .btn {
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            margin: 5px;
-        }
-        .btn:hover {
-            background-color: #1d4ed8;
-        }
-        .btn:disabled {
-            background-color: #93c5fd;
-            cursor: not-allowed;
-        }
-        .result-area {
-            margin-top: 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            max-height: 300px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            display: none;
-        }
-        .spinner {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(37, 99, 235, 0.3);
-            border-radius: 50%;
-            border-top-color: #2563eb;
-            animation: spin 1s ease-in-out infinite;
-            margin-bottom: 10px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .error-message {
-            color: #dc2626;
-            background-color: #fee2e2;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        .success-message {
-            color: #059669;
-            background-color: #d1fae5;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        .hidden {
-            display: none;
-        }
-        .projection-options {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            background-color: #f9fafb;
-        }
-        .projection-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #4b5563;
-        }
+
         .radio-group {
-            display: flex;
+            gap: 8px;
+        }
+
+        .radio-option {
+            padding: 10px;
+        }
+
+        .navigation-buttons {
+            flex-direction: column;
+        }
+
+        .nav-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .mapraw-logo-main {
+            font-size: 1rem;
+        }
+        
+        .mapraw-page-title {
+            font-size: 0.8rem;
+        }
+
+        .mapraw-header-content {
+            padding: 0 15px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .main-container {
+            padding: 1rem;
+        }
+
+        .card {
+            padding: 1.5rem;
+        }
+
+        .main-title {
+            font-size: 1.5rem;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+        }
+
+        .tabs {
+            gap: 8px;
+        }
+
+        .tab {
+            padding: 8px 15px;
+            font-size: 0.85rem;
+        }
+
+        .radio-group {
             flex-direction: column;
             gap: 10px;
         }
-        .radio-option {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-        }
-        .radio-option input {
-            margin-right: 10px;
-        }
-        footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #6b7280;
-            font-size: 14px;
-        }
-        .info-box {
-            background-color: #e0f2fe;
-            border-left: 4px solid #0ea5e9;
-            padding: 10px 15px;
-            margin-bottom: 20px;
-            border-radius: 0 4px 4px 0;
-        }
-        .detected-projection {
-            font-weight: bold;
-            color: #0369a1;
-        }
+
         .navigation-buttons {
-            display: flex;
-            justify-content: center;
-            margin-top: 30px;
-            gap: 15px;
+            flex-direction: column;
         }
+
         .nav-btn {
-            background-color: #4b5563;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
+            width: 100%;
+            justify-content: center;
         }
-        .nav-btn:hover {
-            background-color: #374151;
-        }
-        .nav-btn i {
-            margin-right: 8px;
-        }
-        .home-btn {
-            background-color: #2563eb;
-        }
-        .home-btn:hover {
-            background-color: #2563eb;
-        }
-        .area-btn {
-            background-color: #2563eb;
-        }
-        .area-btn:hover {
-            background-color: #2563eb;
-        }
+    }
     </style>
 </head>
 <body>
-            <header class="mapraw-header">
-    <div class="mapraw-header-content">
-        <div class="mapraw-logo-section">
-            <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
-            <p class="mapraw-page-title">Calculate AREA</p>
-        </div>
-        
-        <button class="mobile-menu-toggle" id="mobileMenuBtn">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-        </button>
+    <!-- Header -->
+    <header class="mapraw-header">
+        <div class="mapraw-header-content">
+            <div class="mapraw-logo-section">
+                <h1 class="mapraw-logo-main">TOOL FROM <span>MAPRAW</span></h1>
+                <p class="mapraw-page-title">Calculate AREA</p>
+            </div>
+            
+            <button class="mobile-menu-toggle" id="mobileMenuBtn">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
 
-        <nav class="mapraw-nav" id="mainNav">
-            <div class="mapraw-nav-item">
-                <a href="index.html" class="mapraw-nav-btn home-btn">
-                    <span>🏠 หน้าหลัก</span>
-                </a>
-            </div>
-            
-            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                <div class="mapraw-nav-btn">
-                    <span>📋 เครื่องมือสำรวจ</span>
-                    <span style="font-size: 0.8em">▼</span>
+            <nav class="mapraw-nav" id="mainNav">
+                <div class="mapraw-nav-item">
+                    <a href="index.html" class="mapraw-nav-btn home-btn">
+                        <span>🏠 หน้าหลัก</span>
+                    </a>
                 </div>
-                <div class="mapraw-dropdown">
-                    <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
-                    <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>📋 เครื่องมือสำรวจ</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page1.html" class="mapraw-dropdown-item">NoteMAP</a>
+                        <a href="#" class="mapraw-dropdown-item">SURVEY WORK</a>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                <div class="mapraw-nav-btn">
-                    <span>🔧 เครื่องมือเตรียมข้อมูล</span>
-                    <span style="font-size: 0.8em">▼</span>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>🔧 เครื่องมือเตรียมข้อมูล</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
+                        <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
+                        <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
+                        <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
+                        <a href="page13.html" class="mapraw-dropdown-item">Perpendicular Line</a>
+                    </div>
                 </div>
-                <div class="mapraw-dropdown">
-                    <a href="page2.html" class="mapraw-dropdown-item">Reclass BLDG</a>
-                    <a href="page5.html" class="mapraw-dropdown-item">Prepare PLLU</a>
-                    <a href="page8.html" class="mapraw-dropdown-item">SHAPEFILE TO EXCEL</a>
-                    <a href="page10.html" class="mapraw-dropdown-item">CAPTURE MAP</a>
-                    <a href="page13.html" class="mapraw-dropdown-item">Perpendicular Line</a>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>⚙️ เครื่องมือประมวลผล</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
+                        <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
+                        <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
+                        <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
+                        <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                <div class="mapraw-nav-btn">
-                    <span>⚙️ เครื่องมือประมวลผล</span>
-                    <span style="font-size: 0.8em">▼</span>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>⚖️ เครื่องมือกฎหมาย</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
+                        <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
+                    </div>
                 </div>
-                <div class="mapraw-dropdown">
-                    <a href="page3.html" class="mapraw-dropdown-item">Calculate Landuse</a>
-                    <a href="page6.html" class="mapraw-dropdown-item">Calculate Population</a>
-                    <a href="page11.html" class="mapraw-dropdown-item">Calculate AREA</a>
-                    <a href="page14.html" class="mapraw-dropdown-item">RECLASS FACTORY</a>
-                    <a href="page12.html" class="mapraw-dropdown-item">COMPARISON LANDUSE</a>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>🧮 คำนวณเบื้องต้น</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                <div class="mapraw-nav-btn">
-                    <span>⚖️ เครื่องมือกฎหมาย</span>
-                    <span style="font-size: 0.8em">▼</span>
+                
+                <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
+                    <div class="mapraw-nav-btn">
+                        <span>🎯 เครื่องมืออื่นๆ</span>
+                        <span style="font-size: 0.8em">▼</span>
+                    </div>
+                    <div class="mapraw-dropdown">
+                        <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
+                    </div>
                 </div>
-                <div class="mapraw-dropdown">
-                    <a href="page4.html" class="mapraw-dropdown-item">Town Planning Laws</a>
-                    <a href="page15.html" class="mapraw-dropdown-item">Building Laws</a>
-                </div>
-            </div>
-            
-            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                <div class="mapraw-nav-btn">
-                    <span>🧮 คำนวณเบื้องต้น</span>
-                    <span style="font-size: 0.8em">▼</span>
-                </div>
-                <div class="mapraw-dropdown">
-                    <a href="page7.html" class="mapraw-dropdown-item">AREA Calculator</a>
-                </div>
-            </div>
-            
-            <div class="mapraw-nav-item" onclick="toggleMobileDropdown(this)">
-                <div class="mapraw-nav-btn">
-                    <span>🎯 เครื่องมืออื่นๆ</span>
-                    <span style="font-size: 0.8em">▼</span>
-                </div>
-                <div class="mapraw-dropdown">
-                    <a href="page9.html" class="mapraw-dropdown-item">CREATE QRCODE</a>
-                </div>
-            </div>
-        </nav>
-    </div>
-</header>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
     <div class="container">
         <h1>CONVERT GIS FILE</h1>
         
@@ -689,40 +957,35 @@
     </div>
 
     <script>
-        // Tab Switching
+        // Tab switching
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
         
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                // Remove active class from all tabs and contents
                 tabs.forEach(t => t.classList.remove('active'));
                 tabContents.forEach(c => c.classList.remove('active'));
                 
-                // Add active class to clicked tab and corresponding content
                 tab.classList.add('active');
                 const tabId = tab.getAttribute('data-tab');
-                document.getElementById(tabId === 'tab1' ? 'tab1' : 'tab2').classList.add('active');
+                document.getElementById(tabId).classList.add('active');
             });
         });
-        
-        // Define projection definitions
+
+        // Projection definitions
         const projDefinitions = {
-            'EPSG:4326': '+proj=longlat +datum=WGS84 +no_defs', // WGS84 - standard GeoJSON
-            'EPSG:32647': '+proj=utm +zone=47 +datum=WGS84 +units=m +no_defs', // UTM zone 47N
-            'EPSG:32648': '+proj=utm +zone=48 +datum=WGS84 +units=m +no_defs'  // UTM zone 48N
+            'EPSG:4326': '+proj=longlat +datum=WGS84 +no_defs',
+            'EPSG:32647': '+proj=utm +zone=47 +datum=WGS84 +units=m +no_defs',
+            'EPSG:32648': '+proj=utm +zone=48 +datum=WGS84 +units=m +no_defs'
         };
         
-        // Register projections with proj4js
         for (const [code, def] of Object.entries(projDefinitions)) {
             proj4.defs(code, def);
         }
-        
-        // ******************************************
-        // PART 1: SHAPEFILE TO GEOJSON
-        // ******************************************
-        
-        // DOM Elements
+
+        // ============================================
+        // PART 1: Shapefile to GeoJSON
+        // ============================================
         const uploadArea1 = document.getElementById('uploadArea1');
         const fileInput1 = document.getElementById('fileInput1');
         const loadingSpinner1 = document.getElementById('loadingSpinner1');
@@ -732,44 +995,44 @@
         const errorMessage1 = document.getElementById('errorMessage1');
         const successMessage1 = document.getElementById('successMessage1');
         const projectionOptions1 = document.getElementsByName('projection1');
-        
-        // Global variables
+
         let originalGeoJSON = null;
         let convertedGeoJSON = null;
         let fileName1 = 'converted';
-        
-        // Setup event listeners
+
         uploadArea1.addEventListener('click', () => fileInput1.click());
+        
         uploadArea1.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadArea1.style.borderColor = '#2563eb';
-            uploadArea1.style.backgroundColor = '#f0f4ff';
+            uploadArea1.style.borderColor = '#1565c0';
         });
-        uploadArea1.addEventListener('dragleave', () => {
-            uploadArea1.style.borderColor = '#ccc';
-            uploadArea1.style.backgroundColor = '#f8f9fa';
+        
+        uploadArea1.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea1.style.borderColor = '#bbdefb';
         });
+        
         uploadArea1.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadArea1.style.borderColor = '#ccc';
-            uploadArea1.style.backgroundColor = '#f8f9fa';
-            
-            if (e.dataTransfer.files.length) {
+            uploadArea1.style.borderColor = '#bbdefb';
+            if (e.dataTransfer.files.length > 0) {
                 handleShapefileUpload(e.dataTransfer.files[0]);
             }
         });
+
         fileInput1.addEventListener('change', (e) => {
-            if (e.target.files.length) {
+            if (e.target.files.length > 0) {
                 handleShapefileUpload(e.target.files[0]);
             }
         });
+
         downloadBtn1.addEventListener('click', downloadGeoJSON);
-        
+
         // Add event listeners for projection change
         projectionOptions1.forEach(option => {
             option.addEventListener('change', () => {
                 if (originalGeoJSON) {
-                    const selectedProjection = getSelectedProjection1();
+                    const selectedProjection = [...projectionOptions1].find(r => r.checked).value;
                     
                     if (selectedProjection === 'original') {
                         convertedGeoJSON = originalGeoJSON;
@@ -787,21 +1050,10 @@
                 }
             });
         });
-        
-        // Function to get selected projection
-        function getSelectedProjection1() {
-            for (const option of projectionOptions1) {
-                if (option.checked) {
-                    return option.value;
-                }
-            }
-            return 'original';
-        }
-        
-        // Function to handle file upload
+
         function handleShapefileUpload(file) {
             if (!file.name.endsWith('.zip')) {
-                showError1('กรุณาอัปโหลดไฟล์ ZIP ที่มีข้อมูล shapefile');
+                showError1('กรุณาอัปโหลดไฟล์ ZIP ที่มี Shapefile');
                 return;
             }
             
@@ -812,106 +1064,81 @@
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
-                    const zipData = e.target.result;
-                    await processShapefileZip(zipData);
+                    await processShapefileZip(e.target.result);
                 } catch (error) {
-                    console.error('Conversion error:', error);
-                    showError1(`เกิดข้อผิดพลาดในการแปลงไฟล์: ${error.message}`);
+                    showError1(error.message);
                     hideLoading1();
                 }
             };
-            reader.onerror = () => {
-                showError1('เกิดข้อผิดพลาดในการอ่านไฟล์');
-                hideLoading1();
-            };
             reader.readAsArrayBuffer(file);
         }
-        
-        // Process zip file
+
         async function processShapefileZip(zipData) {
             try {
-                const zip = await JSZip.loadAsync(zipData);
-                const fileNames = Object.keys(zip.files);
-                
-                // Check for required shapefile components
-                const hasSHP = fileNames.some(name => name.toLowerCase().endsWith('.shp'));
-                const hasDBF = fileNames.some(name => name.toLowerCase().endsWith('.dbf'));
-                
-                if (!hasSHP || !hasDBF) {
-                    throw new Error('ไฟล์ ZIP ต้องมีไฟล์ .shp และ .dbf เป็นอย่างน้อย');
-                }
-                
-                // Using shp.js to convert
                 const geojson = await shp(zipData);
                 originalGeoJSON = geojson;
                 
-                // Apply projection transformation if needed
-                const selectedProjection = getSelectedProjection1();
+                const selectedProjection = [...projectionOptions1].find(r => r.checked).value;
+                
                 if (selectedProjection !== 'original') {
                     convertedGeoJSON = transformGeoJSON(originalGeoJSON, selectedProjection);
                 } else {
                     convertedGeoJSON = originalGeoJSON;
                 }
                 
-                // Update preview
                 updatePreview1(convertedGeoJSON);
-                
-                // Show success
                 hideLoading1();
                 showSuccess1();
                 
             } catch (error) {
-                console.error('Error processing zip:', error);
-                showError1(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ ZIP: ${error.message}`);
-                hideLoading1();
+                throw new Error(`ไม่สามารถอ่านไฟล์ Shapefile ได้: ${error.message}`);
             }
         }
-        
-        // Function to transform GeoJSON to a different projection
-        function transformGeoJSON(geojson, targetProjection) {
-            // Deep clone the original GeoJSON to avoid modifying it
-            const transformedGeoJSON = JSON.parse(JSON.stringify(geojson));
+
+        function transformGeoJSON(geojson, targetCRS) {
+            const transformed = JSON.parse(JSON.stringify(geojson));
             
-            // Function to transform coordinates
-            function transformCoordinates(coords) {
-                if (Array.isArray(coords[0]) && typeof coords[0][0] === 'number') {
-                    // This is a LineString
-                    return coords.map(coord => proj4('EPSG:4326', targetProjection, coord));
-                } else if (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
-                    // This is a Polygon or MultiLineString
-                    return coords.map(line => transformCoordinates(line));
-                } else if (Array.isArray(coords[0]) && Array.isArray(coords[0][0]) && Array.isArray(coords[0][0][0])) {
-                    // This is a MultiPolygon
-                    return coords.map(polygon => transformCoordinates(polygon));
-                } else {
-                    // This is a Point
-                    return proj4('EPSG:4326', targetProjection, coords);
+            const transformCoordinates = (coords) => {
+                if (typeof coords[0] === 'number') {
+                    // Point
+                    return proj4('EPSG:4326', targetCRS, coords);
                 }
-            }
+                
+                if (Array.isArray(coords[0]) && typeof coords[0][0] === 'number') {
+                    // LineString or list of Points
+                    return coords.map(coord => proj4('EPSG:4326', targetCRS, coord));
+                }
+                
+                if (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
+                    // Polygon or MultiLineString
+                    return coords.map(ring => transformCoordinates(ring));
+                }
+                
+                return coords;
+            };
             
-            // Process each feature
-            if (transformedGeoJSON.type === 'FeatureCollection') {
-                transformedGeoJSON.features.forEach(feature => {
-                    if (feature.geometry) {
+            if (transformed.type === 'FeatureCollection') {
+                transformed.features.forEach(feature => {
+                    if (feature.geometry && feature.geometry.coordinates) {
                         feature.geometry.coordinates = transformCoordinates(feature.geometry.coordinates);
                     }
                 });
-            } else if (transformedGeoJSON.type === 'Feature') {
-                transformedGeoJSON.geometry.coordinates = transformCoordinates(transformedGeoJSON.geometry.coordinates);
+            } else if (transformed.type === 'Feature') {
+                if (transformed.geometry && transformed.geometry.coordinates) {
+                    transformed.geometry.coordinates = transformCoordinates(transformed.geometry.coordinates);
+                }
             }
             
-            // Update CRS property
-            transformedGeoJSON.crs = {
+            transformed.crs = {
                 type: 'name',
                 properties: {
-                    name: targetProjection
+                    name: targetCRS
                 }
             };
             
-            return transformedGeoJSON;
+            return transformed;
         }
-        
-        // Update preview
+
         function updatePreview1(geojson) {
             const jsonString = JSON.stringify(geojson, null, 2);
             const preview = jsonString.length > 500 
@@ -921,60 +1148,43 @@
             resultPreview1.textContent = preview;
             resultPreview1.style.display = 'block';
         }
-        
-        // Download GeoJSON function
+
         function downloadGeoJSON() {
             if (!convertedGeoJSON) return;
             
-            const jsonString = JSON.stringify(convertedGeoJSON);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const selectedProjection = getSelectedProjection1();
-            let downloadFileName = fileName1;
-            
-            if (selectedProjection !== 'original') {
-                downloadFileName += `_${selectedProjection.replace(':', '_')}`;
-            }
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${downloadFileName}.geojson`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
+            const blob = new Blob([JSON.stringify(convertedGeoJSON, null, 2)], {
+                type: 'application/json'
+            });
+            saveAs(blob, `${fileName1}.geojson`);
             showMessage1('ดาวน์โหลดไฟล์ GeoJSON เรียบร้อยแล้ว!', 'success');
         }
-        
-        // UI Helper functions
+
         function resetUI1() {
             errorMessage1.style.display = 'none';
             successMessage1.style.display = 'none';
             resultPreview1.style.display = 'none';
             resultContainer1.classList.add('hidden');
         }
-        
+
         function showLoading1() {
             loadingSpinner1.classList.remove('hidden');
         }
-        
+
         function hideLoading1() {
             loadingSpinner1.classList.add('hidden');
         }
-        
+
         function showSuccess1() {
             resultContainer1.classList.remove('hidden');
-            showMessage1('การแปลงไฟล์เสร็จสมบูรณ์!', 'success');
+            showMessage1('แปลงไฟล์สำเร็จ!', 'success');
         }
-        
+
         function showError1(message) {
             errorMessage1.textContent = message;
             errorMessage1.style.display = 'block';
             successMessage1.style.display = 'none';
         }
-        
+
         function showMessage1(message, type) {
             if (type === 'error') {
                 errorMessage1.textContent = message;
@@ -986,12 +1196,10 @@
                 errorMessage1.style.display = 'none';
             }
         }
-        
-        // ******************************************
-        // PART 2: GEOJSON TO SHAPEFILE
-        // ******************************************
-        
-        // DOM Elements
+
+        // ============================================
+        // PART 2: GeoJSON to Shapefile
+        // ============================================
         const uploadArea2 = document.getElementById('uploadArea2');
         const fileInput2 = document.getElementById('fileInput2');
         const loadingSpinner2 = document.getElementById('loadingSpinner2');
@@ -1001,258 +1209,295 @@
         const errorMessage2 = document.getElementById('errorMessage2');
         const successMessage2 = document.getElementById('successMessage2');
         const projectionInfo = document.getElementById('projectionInfo');
-        const detectedProjection = document.getElementById('detectedProjection');
-        
-        // Global variables for GeoJSON to Shapefile
-        let originalGeoJSONData = null;
-        let fileName2 = 'converted';
-        let detectedCRS = 'EPSG:4326'; // Default CRS
+        const detectedProjectionSpan = document.getElementById('detectedProjection');
+
         let shapefileZip = null;
-        
-        // Setup event listeners
+        let fileName2 = 'converted';
+        let detectedCRS = 'EPSG:4326';
+
         uploadArea2.addEventListener('click', () => fileInput2.click());
+        
         uploadArea2.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadArea2.style.borderColor = '#2563eb';
-            uploadArea2.style.backgroundColor = '#f0f4ff';
+            uploadArea2.style.borderColor = '#1565c0';
         });
-        uploadArea2.addEventListener('dragleave', () => {
-            uploadArea2.style.borderColor = '#ccc';
-            uploadArea2.style.backgroundColor = '#f8f9fa';
+        
+        uploadArea2.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea2.style.borderColor = '#bbdefb';
         });
+        
         uploadArea2.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadArea2.style.borderColor = '#ccc';
-            uploadArea2.style.backgroundColor = '#f8f9fa';
-            
-            if (e.dataTransfer.files.length) {
+            uploadArea2.style.borderColor = '#bbdefb';
+            if (e.dataTransfer.files.length > 0) {
                 handleGeoJSONUpload(e.dataTransfer.files[0]);
             }
         });
+
         fileInput2.addEventListener('change', (e) => {
-            if (e.target.files.length) {
+            if (e.target.files.length > 0) {
                 handleGeoJSONUpload(e.target.files[0]);
             }
         });
+
         downloadBtn2.addEventListener('click', downloadShapefile);
-        
-        // Function to handle GeoJSON file upload
+
         function handleGeoJSONUpload(file) {
-            if (!file.name.endsWith('.geojson') && !file.name.endsWith('.json')) {
-                showError2('กรุณาอัปโหลดไฟล์ GeoJSON (.geojson หรือ .json)');
+            if (!file.name.match(/\.(json|geojson)$/i)) {
+                showError2('กรุณาอัปโหลดไฟล์ GeoJSON (.json หรือ .geojson)');
                 return;
             }
             
-            fileName2 = file.name.replace('.geojson', '').replace('.json', '');
+            fileName2 = file.name.replace(/\.[^/.]+$/, "");
             resetUI2();
             showLoading2();
             
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
-                    const jsonData = e.target.result;
-                    await processGeoJSONFile(jsonData);
+                    const geojsonText = e.target.result;
+                    const geoJSON = JSON.parse(geojsonText);
+                    
+                    // Detect CRS
+                    detectedCRS = detectCRS(geoJSON);
+                    detectedProjectionSpan.textContent = detectedCRS;
+                    projectionInfo.classList.remove('hidden');
+                    
+                    // Create Shapefile
+                    const success = await createShapefile(geoJSON);
+                    
+                    if (success) {
+                        updatePreview2(geoJSON);
+                        hideLoading2();
+                        showSuccess2();
+                    } else {
+                        throw new Error('ไม่สามารถสร้างไฟล์ Shapefile ได้');
+                    }
+                    
                 } catch (error) {
-                    console.error('GeoJSON processing error:', error);
-                    showError2(`เกิดข้อผิดพลาดในการอ่านไฟล์ GeoJSON: ${error.message}`);
+                    showError2(`รูปแบบไฟล์ GeoJSON ไม่ถูกต้อง: ${error.message}`);
                     hideLoading2();
                 }
             };
-            reader.onerror = () => {
-                showError2('เกิดข้อผิดพลาดในการอ่านไฟล์');
-                hideLoading2();
-            };
             reader.readAsText(file);
         }
-        
-        // Process GeoJSON file
-        async function processGeoJSONFile(jsonData) {
-            try {
-                // Parse the GeoJSON data
-                const geoJSONObj = JSON.parse(jsonData);
-                originalGeoJSONData = geoJSONObj;
-                
-                // Detect the projection/CRS from the GeoJSON
-                detectGeoJSONProjection(geoJSONObj);
-                
-                // Process with the detected projection
-                await processGeoJSONWithProjection();
-                
-                // Show success
-                hideLoading2();
-                showSuccess2();
-                
-            } catch (error) {
-                console.error('Error processing GeoJSON:', error);
-                showError2(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ GeoJSON: ${error.message}`);
-                hideLoading2();
-            }
-        }
-        
-        // Function to detect projection from GeoJSON
-        function detectGeoJSONProjection(geoJSON) {
-            let crs = 'EPSG:4326'; // Default
-            
-            // Check if the GeoJSON has a CRS property
+
+        function detectCRS(geoJSON) {
+            // Check CRS in GeoJSON
             if (geoJSON.crs && geoJSON.crs.properties && geoJSON.crs.properties.name) {
                 const crsName = geoJSON.crs.properties.name;
-                
-                // Handle different CRS formats (e.g., 'EPSG:4326', 'urn:ogc:def:crs:EPSG::4326', etc.)
-                if (crsName.includes('EPSG')) {
-                    // Extract the EPSG code
-                    let epsgCode = '';
+                if (crsName.includes('4326')) return 'EPSG:4326';
+                if (crsName.includes('32647')) return 'EPSG:32647';
+                if (crsName.includes('32648')) return 'EPSG:32648';
+            }
+            
+            // Check coordinate values to guess CRS
+            let sampleCoord = null;
+            
+            if (geoJSON.type === 'FeatureCollection' && geoJSON.features.length > 0) {
+                const firstFeature = geoJSON.features[0];
+                if (firstFeature.geometry && firstFeature.geometry.coordinates) {
+                    sampleCoord = firstFeature.geometry.coordinates;
+                }
+            } else if (geoJSON.type === 'Feature' && geoJSON.geometry) {
+                sampleCoord = geoJSON.geometry.coordinates;
+            }
+            
+            if (sampleCoord) {
+                const flatCoord = flattenCoordinates(sampleCoord);
+                if (flatCoord.length >= 2) {
+                    const [x, y] = flatCoord;
                     
-                    if (crsName.startsWith('EPSG:')) {
-                        epsgCode = crsName; // Already in the right format
-                    } else if (crsName.includes('EPSG')) {
-                        // Try to extract the code using regex
-                        const epsgMatch = crsName.match(/EPSG[:]{0,2}(\d+)/);
-                        if (epsgMatch && epsgMatch[1]) {
-                            epsgCode = `EPSG:${epsgMatch[1]}`;
-                        }
+                    // Check if it's lat/lon (WGS84)
+                    if (Math.abs(x) <= 180 && Math.abs(y) <= 90) {
+                        return 'EPSG:4326';
                     }
                     
-                    // Check if we found a valid EPSG code and it's in our supported list
-                    if (epsgCode && projDefinitions[epsgCode]) {
-                        crs = epsgCode;
+                    // Check if it's UTM Zone 47N (Thailand West)
+                    if (x >= 166000 && x <= 834000 && y >= 0 && y <= 10000000) {
+                        return 'EPSG:32647';
+                    }
+                    
+                    // Check if it's UTM Zone 48N (Thailand East)
+                    if (x >= 166000 && x <= 834000 && y >= 0 && y <= 10000000) {
+                        return 'EPSG:32648';
                     }
                 }
             }
             
-            // Update the detected projection information
-            detectedCRS = crs;
-            detectedProjection.textContent = crs === 'EPSG:4326' ? 
-                'EPSG:4326 (WGS84)' : 
-                crs === 'EPSG:32647' ? 
-                'EPSG:32647 (UTM Zone 47N)' : 
-                crs === 'EPSG:32648' ? 
-                'EPSG:32648 (UTM Zone 48N)' : 
-                crs;
-            
-            // Show the projection info box
-            projectionInfo.classList.remove('hidden');
-            
-            return crs;
+            // Default to WGS84
+            return 'EPSG:4326';
         }
-        
-        // Process GeoJSON with detected projection
-        async function processGeoJSONWithProjection() {
-            try {
-                // Use only the detected projection
-                await createShapefile(originalGeoJSONData);
-                
-                // Update preview
-                updatePreview2(originalGeoJSONData);
-                
-                showMessage2(`GeoJSON แปลงเป็น Shapefile เรียบร้อยแล้วโดยใช้พื้นหลักฐาน ${detectedCRS}`, 'success');
-                
-            } catch (error) {
-                console.error('Error processing GeoJSON with projection:', error);
-                showError2(`เกิดข้อผิดพลาดในการแปลงพื้นหลักฐาน: ${error.message}`);
+
+        function flattenCoordinates(coords) {
+            if (typeof coords[0] === 'number') {
+                return coords;
             }
+            return flattenCoordinates(coords[0]);
         }
-        
-        // Function to create Shapefile from GeoJSON
+
         async function createShapefile(geoJSON) {
             try {
-                // Create a new instance of JSZip
                 const zip = new JSZip();
                 
-                // Extract features from GeoJSON
-                let features = [];
-                if (geoJSON.type === 'FeatureCollection') {
-                    features = geoJSON.features;
-                } else if (geoJSON.type === 'Feature') {
-                    features = [geoJSON];
-                }
+                // Separate features by geometry type
+                const points = [];
+                const lines = [];
+                const polygons = [];
                 
-                if (features.length === 0) {
-                    throw new Error('ไม่พบข้อมูล Feature ในไฟล์ GeoJSON');
-                }
-                
-                // Group features by geometry type
-                let points = [];
-                let lines = [];
-                let polygons = [];
+                const features = geoJSON.type === 'FeatureCollection' 
+                    ? geoJSON.features 
+                    : [geoJSON];
                 
                 features.forEach(feature => {
                     if (!feature.geometry) return;
                     
-                    const geomType = feature.geometry.type.toLowerCase();
+                    const geomType = feature.geometry.type;
                     
-                    if (geomType === 'point' || geomType === 'multipoint') {
+                    // Normalize geometry type
+                    if (geomType === 'Point' || geomType === 'MultiPoint') {
                         points.push(feature);
-                    } else if (geomType === 'linestring' || geomType === 'multilinestring') {
+                    } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
                         lines.push(feature);
-                    } else if (geomType === 'polygon' || geomType === 'multipolygon') {
+                    } else if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
                         polygons.push(feature);
+                    } else {
+                        console.warn(`Unknown geometry type: ${geomType}`, feature);
                     }
                 });
                 
-                // Flag to track if we added any shapefiles
                 let filesAdded = false;
                 
-                // Create a .prj file with the correct projection
+                // Create .prj file content
                 let prjContent = '';
                 
                 if (detectedCRS === 'EPSG:4326' || detectedCRS.includes('4326')) {
-                    // WGS84
                     prjContent = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]';
                 } else if (detectedCRS === 'EPSG:32647' || detectedCRS.includes('32647')) {
-                    // UTM Zone 47N
                     prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
                 } else if (detectedCRS === 'EPSG:32648' || detectedCRS.includes('32648')) {
-                    // UTM Zone 48N
                     prjContent = 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",105],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
                 }
                 
                 // Create separate shapefiles for each geometry type
-                // Points
                 if (points.length > 0) {
                     const pointGeoJSON = {
                         type: 'FeatureCollection',
                         features: points,
                         crs: geoJSON.crs
                     };
-                    
-                    await createShapefileForFeatureType(pointGeoJSON, 'point', zip);
+                    console.log(`Creating Point shapefile: ${points.length} features`);
+                    await createShapefileForFeatureType(pointGeoJSON, 'point', zip, prjContent);
                     filesAdded = true;
                 }
                 
-                // Lines
                 if (lines.length > 0) {
                     const lineGeoJSON = {
                         type: 'FeatureCollection',
                         features: lines,
                         crs: geoJSON.crs
                     };
-                    
-                    await createShapefileForFeatureType(lineGeoJSON, 'line', zip);
+                    console.log(`Creating Line shapefile: ${lines.length} features`);
+                    await createShapefileForFeatureType(lineGeoJSON, 'line', zip, prjContent);
                     filesAdded = true;
                 }
                 
-                // Polygons
                 if (polygons.length > 0) {
                     const polygonGeoJSON = {
                         type: 'FeatureCollection',
                         features: polygons,
                         crs: geoJSON.crs
                     };
-                    
-                    await createShapefileForFeatureType(polygonGeoJSON, 'polygon', zip);
+                    console.log(`Creating Polygon shapefile: ${polygons.length} features`);
+                    await createShapefileForFeatureType(polygonGeoJSON, 'polygon', zip, prjContent);
                     filesAdded = true;
                 }
                 
                 if (!filesAdded) {
-                    throw new Error('ไม่สามารถสร้างไฟล์ Shapefile ได้ ข้อมูล GeoJSON อาจไม่ถูกต้อง');
+                    throw new Error('ไม่พบข้อมูล Feature ใน GeoJSON');
                 }
                 
-                // Add the projection file
-                if (prjContent) {
-                    zip.file(`${fileName2}.prj`, prjContent);
-                }
+                // Add README
+                zip.file('README.txt', `╔═══════════════════════════════════════════════════════════════╗
+║  Shapefile สร้างโดย MAPRAW GIS File Converter               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📋 ข้อมูลทั่วไป
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ระบบพิกัด: ${detectedCRS}
+วันที่สร้าง: ${new Date().toLocaleString('th-TH')}
+Character Encoding: UTF-8 / TIS-620
+
+📁 รายการไฟล์ในแต่ละ Shapefile
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ .shp      = ไฟล์เรขาคณิต (geometry data)
+✓ .shx      = ไฟล์ดัชนี (spatial index)
+✓ .dbf      = ไฟล์ตารางข้อมูล (attribute table)
+✓ .prj      = ไฟล์ระบบพิกัด (coordinate system)
+✓ .cpg      = ไฟล์กำหนด encoding (UTF-8)
+✓ .xml      = ไฟล์ metadata
+✓ .geojson  = ไฟล์ GeoJSON ต้นฉบับสำหรับอ้างอิง
+✓ _fields.txt = ไฟล์อธิบาย field names (สำหรับภาษาไทย)
+
+🌏 การรองรับภาษาไทย
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ ข้อมูล attributes รองรับภาษาไทยด้วย TIS-620 encoding
+✅ ชื่อ field ภาษาไทยจะถูกแปลงเป็น FIELD_1, FIELD_2, ...
+✅ ดูความหมายของ field names ได้จากไฟล์ *_fields.txt
+
+📖 วิธีใช้งาน
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. แตก ZIP file ออกมา
+2. เปิดไฟล์ .shp ใน GIS software (QGIS, ArcGIS, MapInfo, etc.)
+3. ตรวจสอบ field mapping จากไฟล์ *_fields.txt
+4. หากภาษาไทยไม่แสดงผล ให้ตั้งค่า encoding เป็น TIS-620 หรือ UTF-8
+
+⚙️ การตั้งค่า Encoding ใน GIS Software
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QGIS:
+  - Layer Properties → Source → Encoding → เลือก "TIS-620" หรือ "UTF-8"
+  
+ArcGIS:
+  - Layer Properties → Fields → Field Properties → Encoding
+
+📊 Attribute Data Types
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+C = Character (ข้อความ)
+N = Numeric (ตัวเลขจำนวนเต็ม)
+F = Float (ตัวเลขทศนิยม)
+L = Logical (True/False)
+D = Date (วันที่ รูปแบบ YYYYMMDD)
+
+⚠️ ข้อจำกัด
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- ชื่อ field สูงสุด 10 ตัวอักษร (ASCII only)
+- ความยาว field ตัวอักษรสูงสุด 254 characters
+- จำนวน fields สูงสุด 254 fields
+- ภาษาไทย 1 ตัวอักษร = 3 bytes ใน UTF-8
+
+💡 Tips
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- ใช้ไฟล์ .geojson สำหรับอ้างอิงข้อมูลต้นฉบับ
+- ดูไฟล์ *_fields.txt เพื่อเทียบชื่อ field
+- หากภาษาไทยแสดงผลไม่ถูกต้อง ลองเปลี่ยน encoding
+
+📞 การสนับสนุน
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+สร้างโดย: MAPRAW GIS File Converter
+เว็บไซต์: https://mponline1.github.io/
+รองรับ: QGIS, ArcGIS, MapInfo, Global Mapper และ GIS software อื่นๆ
+
+╔═══════════════════════════════════════════════════════════════╗
+║  หากพบปัญหาการแสดงผลภาษาไทย                                ║
+║  โปรดตรวจสอบการตั้งค่า encoding ของโปรแกรม GIS            ║
+╚═══════════════════════════════════════════════════════════════╝
+`);
                 
-                // Generate the ZIP file
+                // Add original GeoJSON for reference
+                zip.file(`${fileName2}_original.geojson`, JSON.stringify(geoJSON, null, 2));
+                
+                // Generate ZIP
                 shapefileZip = await zip.generateAsync({type: 'blob'});
                 
                 return true;
@@ -1262,46 +1507,88 @@
                 throw new Error(`เกิดข้อผิดพลาดในการสร้างไฟล์ Shapefile: ${error.message}`);
             }
         }
-        
-        // Create a shapefile for a specific feature type
-        async function createShapefileForFeatureType(geoJSON, type, zip) {
-            // Manual creation of shapefile components
+
+        async function createShapefileForFeatureType(geoJSON, type, zip, prjContent) {
             try {
-                // We'll use a simple approach: write the GeoJSON converted to shapefile format
-                // But since shp.download doesn't work, we'll create components manually
-                
-                // For simplicity in this example, we'll create a dummy .shp, .shx, and .dbf
-                
-                const geojsonStr = JSON.stringify(geoJSON);
                 const typeSuffix = type === 'point' ? 'point' : (type === 'line' ? 'line' : 'poly');
+                const baseName = `${fileName2}_${typeSuffix}`;
                 
-                // Add dummy files with the correct extensions
-                zip.file(`${fileName2}_${typeSuffix}.shp`, new Blob([geojsonStr], {type: 'application/octet-stream'}));
-                zip.file(`${fileName2}_${typeSuffix}.shx`, new Blob([geojsonStr.substring(0, 100)], {type: 'application/octet-stream'}));
-                zip.file(`${fileName2}_${typeSuffix}.dbf`, new Blob([geojsonStr.substring(0, 100)], {type: 'application/octet-stream'}));
-                
-                // Add .prj file with appropriate projection
-                let prjContent = '';
-                
-                if (detectedCRS === 'EPSG:4326' || detectedCRS.includes('4326')) {
-                    // WGS84
-                    prjContent = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]';
-                } else if (detectedCRS === 'EPSG:32647' || detectedCRS.includes('32647')) {
-                    // UTM Zone 47N
-                    prjContent = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
-                } else if (detectedCRS === 'EPSG:32648' || detectedCRS.includes('32648')) {
-                    // UTM Zone 48N
-                    prjContent = 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",105],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
+                // Get all features
+                const features = geoJSON.features;
+                if (!features || features.length === 0) {
+                    return false;
                 }
                 
-                zip.file(`${fileName2}_${typeSuffix}.prj`, prjContent);
+                // Calculate bounding box
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
                 
-                // Also add a README file explaining the limitations
-                zip.file('README.txt', `
-ไฟล์ Shapefile นี้สร้างจาก GeoJSON ที่มีพื้นหลักฐาน ${detectedCRS}
-หมายเหตุ: เนื่องจากข้อจำกัดของเว็บแอปพลิเคชัน ไฟล์ Shapefile นี้อาจไม่สมบูรณ์
-แนะนำให้ใช้โปรแกรม GIS เช่น QGIS หรือ ArcGIS เพื่อแปลงไฟล์ GeoJSON เป็น Shapefile ที่สมบูรณ์
-                `);
+                features.forEach(feature => {
+                    if (!feature.geometry || !feature.geometry.coordinates) return;
+                    
+                    const coords = getAllCoordinates(feature.geometry.coordinates);
+                    coords.forEach(([x, y]) => {
+                        minX = Math.min(minX, x);
+                        minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x);
+                        maxY = Math.max(maxY, y);
+                    });
+                });
+                
+                // Determine shape type based on actual geometry
+                let shapeType;
+                const firstFeature = features[0];
+                const geomType = firstFeature.geometry.type;
+                
+                if (type === 'point') {
+                    if (geomType === 'MultiPoint') {
+                        shapeType = 8; // MultiPoint
+                    } else {
+                        shapeType = 1; // Point
+                    }
+                } else if (type === 'line') {
+                    if (geomType === 'MultiLineString') {
+                        shapeType = 3; // PolyLine (can handle multiple lines)
+                    } else {
+                        shapeType = 3; // PolyLine
+                    }
+                } else {
+                    if (geomType === 'MultiPolygon') {
+                        shapeType = 5; // Polygon (can handle multiple polygons)
+                    } else {
+                        shapeType = 5; // Polygon
+                    }
+                }
+                
+                // Create .shp file (Main File)
+                const shpData = createShpFile(features, shapeType, minX, minY, maxX, maxY);
+                zip.file(`${baseName}.shp`, shpData);
+                
+                // Create .shx file (Index File)
+                const shxData = createShxFile(features, shapeType, minX, minY, maxX, maxY);
+                zip.file(`${baseName}.shx`, shxData);
+                
+                // Create .dbf file (Attribute Table)
+                const dbfData = createDbfFile(features);
+                zip.file(`${baseName}.dbf`, dbfData);
+                
+                // Create .prj file (Projection)
+                zip.file(`${baseName}.prj`, prjContent);
+                
+                // Create .cpg file (Character Encoding) - use UTF-8 for better Thai support
+                zip.file(`${baseName}.cpg`, 'UTF-8');
+                
+                // Create field mapping file for Thai field names
+                if (features.length > 0 && features[0].properties) {
+                    const fieldMapping = createFieldMappingFile(features);
+                    zip.file(`${baseName}_fields.txt`, fieldMapping);
+                }
+                
+                // Create .xml file (Metadata)
+                const xmlContent = createXmlMetadata(baseName, type, features.length, detectedCRS);
+                zip.file(`${baseName}.xml`, xmlContent);
+                
+                // Create .geojson file for reference
+                zip.file(`${baseName}.geojson`, JSON.stringify(geoJSON, null, 2));
                 
                 return true;
             } catch (error) {
@@ -1310,7 +1597,742 @@
             }
         }
         
-        // Update preview for GeoJSON
+        // Helper function to get all coordinates from geometry
+        function getAllCoordinates(coords) {
+            const result = [];
+            
+            function extract(c) {
+                if (typeof c[0] === 'number') {
+                    result.push(c);
+                } else {
+                    c.forEach(extract);
+                }
+            }
+            
+            extract(coords);
+            return result;
+        }
+        
+        // Create .shp file (ESRI Shapefile binary format)
+        function createShpFile(features, shapeType, minX, minY, maxX, maxY) {
+            const records = [];
+            let fileLength = 100; // Header length
+            
+            features.forEach((feature, index) => {
+                if (!feature.geometry || !feature.geometry.coordinates) {
+                    console.warn(`Feature ${index} has no geometry`);
+                    return;
+                }
+                
+                const recordHeader = new ArrayBuffer(8);
+                const recordHeaderView = new DataView(recordHeader);
+                
+                // Record number (big-endian)
+                recordHeaderView.setInt32(0, index + 1, false);
+                
+                // Create record content based on shape type
+                let recordContent;
+                const coords = feature.geometry.coordinates;
+                const geomType = feature.geometry.type;
+                
+                if (shapeType === 1) { // Point
+                    if (geomType === 'Point') {
+                        // Single Point
+                        recordContent = new ArrayBuffer(20);
+                        const view = new DataView(recordContent);
+                        view.setInt32(0, 1, true); // Shape Type
+                        view.setFloat64(4, coords[0], true); // X
+                        view.setFloat64(12, coords[1], true); // Y
+                    } else if (geomType === 'MultiPoint') {
+                        // MultiPoint
+                        const numPoints = coords.length;
+                        recordContent = new ArrayBuffer(40 + 16 * numPoints);
+                        const view = new DataView(recordContent);
+                        
+                        let offset = 0;
+                        view.setInt32(offset, 8, true); offset += 4; // Shape Type: MultiPoint
+                        
+                        // Bounding box
+                        let pMinX = Infinity, pMinY = Infinity, pMaxX = -Infinity, pMaxY = -Infinity;
+                        coords.forEach(([x, y]) => {
+                            pMinX = Math.min(pMinX, x);
+                            pMinY = Math.min(pMinY, y);
+                            pMaxX = Math.max(pMaxX, x);
+                            pMaxY = Math.max(pMaxY, y);
+                        });
+                        
+                        view.setFloat64(offset, pMinX, true); offset += 8;
+                        view.setFloat64(offset, pMinY, true); offset += 8;
+                        view.setFloat64(offset, pMaxX, true); offset += 8;
+                        view.setFloat64(offset, pMaxY, true); offset += 8;
+                        view.setInt32(offset, numPoints, true); offset += 4;
+                        
+                        coords.forEach(([x, y]) => {
+                            view.setFloat64(offset, x, true); offset += 8;
+                            view.setFloat64(offset, y, true); offset += 8;
+                        });
+                    }
+                } else if (shapeType === 3) { // PolyLine
+                    let allParts = [];
+                    let allPoints = [];
+                    
+                    if (geomType === 'LineString') {
+                        // Single LineString
+                        allParts = [0];
+                        allPoints = coords;
+                    } else if (geomType === 'MultiLineString') {
+                        // MultiLineString
+                        let pointCount = 0;
+                        coords.forEach(line => {
+                            allParts.push(pointCount);
+                            allPoints = allPoints.concat(line);
+                            pointCount += line.length;
+                        });
+                    }
+                    
+                    const numParts = allParts.length;
+                    const numPoints = allPoints.length;
+                    
+                    // Calculate bounding box
+                    let lMinX = Infinity, lMinY = Infinity, lMaxX = -Infinity, lMaxY = -Infinity;
+                    allPoints.forEach(([x, y]) => {
+                        lMinX = Math.min(lMinX, x);
+                        lMinY = Math.min(lMinY, y);
+                        lMaxX = Math.max(lMaxX, x);
+                        lMaxY = Math.max(lMaxY, y);
+                    });
+                    
+                    recordContent = new ArrayBuffer(44 + 4 * numParts + 16 * numPoints);
+                    const view = new DataView(recordContent);
+                    
+                    let offset = 0;
+                    view.setInt32(offset, 3, true); offset += 4; // Shape Type: PolyLine
+                    view.setFloat64(offset, lMinX, true); offset += 8;
+                    view.setFloat64(offset, lMinY, true); offset += 8;
+                    view.setFloat64(offset, lMaxX, true); offset += 8;
+                    view.setFloat64(offset, lMaxY, true); offset += 8;
+                    view.setInt32(offset, numParts, true); offset += 4;
+                    view.setInt32(offset, numPoints, true); offset += 4;
+                    
+                    // Parts array
+                    allParts.forEach(partIndex => {
+                        view.setInt32(offset, partIndex, true); offset += 4;
+                    });
+                    
+                    // Points array
+                    allPoints.forEach(([x, y]) => {
+                        view.setFloat64(offset, x, true); offset += 8;
+                        view.setFloat64(offset, y, true); offset += 8;
+                    });
+                } else if (shapeType === 5) { // Polygon
+                    let allParts = [];
+                    let allPoints = [];
+                    
+                    if (geomType === 'Polygon') {
+                        // Single Polygon
+                        let pointCount = 0;
+                        coords.forEach(ring => {
+                            allParts.push(pointCount);
+                            allPoints = allPoints.concat(ring);
+                            pointCount += ring.length;
+                        });
+                    } else if (geomType === 'MultiPolygon') {
+                        // MultiPolygon
+                        let pointCount = 0;
+                        coords.forEach(polygon => {
+                            polygon.forEach(ring => {
+                                allParts.push(pointCount);
+                                allPoints = allPoints.concat(ring);
+                                pointCount += ring.length;
+                            });
+                        });
+                    }
+                    
+                    const numParts = allParts.length;
+                    const numPoints = allPoints.length;
+                    
+                    // Calculate bounding box
+                    let pMinX = Infinity, pMinY = Infinity, pMaxX = -Infinity, pMaxY = -Infinity;
+                    allPoints.forEach(([x, y]) => {
+                        pMinX = Math.min(pMinX, x);
+                        pMinY = Math.min(pMinY, y);
+                        pMaxX = Math.max(pMaxX, x);
+                        pMaxY = Math.max(pMaxY, y);
+                    });
+                    
+                    recordContent = new ArrayBuffer(44 + 4 * numParts + 16 * numPoints);
+                    const view = new DataView(recordContent);
+                    
+                    let offset = 0;
+                    view.setInt32(offset, 5, true); offset += 4; // Shape Type: Polygon
+                    view.setFloat64(offset, pMinX, true); offset += 8;
+                    view.setFloat64(offset, pMinY, true); offset += 8;
+                    view.setFloat64(offset, pMaxX, true); offset += 8;
+                    view.setFloat64(offset, pMaxY, true); offset += 8;
+                    view.setInt32(offset, numParts, true); offset += 4;
+                    view.setInt32(offset, numPoints, true); offset += 4;
+                    
+                    // Parts array
+                    allParts.forEach(partIndex => {
+                        view.setInt32(offset, partIndex, true); offset += 4;
+                    });
+                    
+                    // Points array
+                    allPoints.forEach(([x, y]) => {
+                        view.setFloat64(offset, x, true); offset += 8;
+                        view.setFloat64(offset, y, true); offset += 8;
+                    });
+                }
+                
+                if (!recordContent) {
+                    console.error(`Could not create record content for feature ${index}`, feature);
+                    return;
+                }
+                
+                // Record content length in 16-bit words (big-endian)
+                recordHeaderView.setInt32(4, recordContent.byteLength / 2, false);
+                
+                records.push(recordHeader);
+                records.push(recordContent);
+                fileLength += 8 + recordContent.byteLength;
+            });
+            
+            // Create header
+            const header = new ArrayBuffer(100);
+            const headerView = new DataView(header);
+            
+            headerView.setInt32(0, 9994, false); // File code (big-endian)
+            // Skip bytes 4-20 (unused)
+            headerView.setInt32(24, fileLength / 2, false); // File length in 16-bit words (big-endian)
+            headerView.setInt32(28, 1000, true); // Version (little-endian)
+            headerView.setInt32(32, shapeType, true); // Shape type (little-endian)
+            headerView.setFloat64(36, minX, true); // Xmin
+            headerView.setFloat64(44, minY, true); // Ymin
+            headerView.setFloat64(52, maxX, true); // Xmax
+            headerView.setFloat64(60, maxY, true); // Ymax
+            // Zmin, Zmax, Mmin, Mmax (bytes 68-99) can be 0
+            
+            // Combine header and records
+            const result = new Uint8Array(fileLength);
+            let offset = 0;
+            
+            result.set(new Uint8Array(header), offset);
+            offset += 100;
+            
+            records.forEach(record => {
+                result.set(new Uint8Array(record), offset);
+                offset += record.byteLength;
+            });
+            
+            return result;
+        }
+        
+        // Create .shx file (Index)
+        function createShxFile(features, shapeType, minX, minY, maxX, maxY) {
+            const numRecords = features.length;
+            const fileLength = 100 + (numRecords * 8);
+            const buffer = new ArrayBuffer(fileLength);
+            const view = new DataView(buffer);
+            
+            // Header (same structure as .shp)
+            view.setInt32(0, 9994, false); // File code (big-endian)
+            view.setInt32(24, fileLength / 2, false); // File length in 16-bit words (big-endian)
+            view.setInt32(28, 1000, true); // Version (little-endian)
+            view.setInt32(32, shapeType, true); // Shape type (little-endian)
+            view.setFloat64(36, minX, true); // Xmin
+            view.setFloat64(44, minY, true); // Ymin
+            view.setFloat64(52, maxX, true); // Xmax
+            view.setFloat64(60, maxY, true); // Ymax
+            
+            // Index records - calculate actual record sizes
+            let offset = 50; // Start after header (in 16-bit words)
+            
+            for (let i = 0; i < numRecords; i++) {
+                const feature = features[i];
+                let recordLength;
+                
+                if (shapeType === 1) { // Point
+                    recordLength = 10; // 20 bytes / 2 = 10 words
+                } else if (shapeType === 8) { // MultiPoint
+                    const numPoints = feature.geometry.coordinates.length;
+                    recordLength = 20 + 8 * numPoints; // (40 + 16*n bytes) / 2
+                } else if (shapeType === 3) { // PolyLine
+                    const geomType = feature.geometry.type;
+                    let numPoints, numParts;
+                    
+                    if (geomType === 'LineString') {
+                        numParts = 1;
+                        numPoints = feature.geometry.coordinates.length;
+                    } else { // MultiLineString
+                        numParts = feature.geometry.coordinates.length;
+                        numPoints = feature.geometry.coordinates.reduce((sum, line) => sum + line.length, 0);
+                    }
+                    recordLength = 22 + 2 * numParts + 8 * numPoints; // (44 + 4*p + 16*n bytes) / 2
+                } else if (shapeType === 5) { // Polygon
+                    const geomType = feature.geometry.type;
+                    let numPoints, numParts;
+                    
+                    if (geomType === 'Polygon') {
+                        numParts = feature.geometry.coordinates.length;
+                        numPoints = feature.geometry.coordinates.reduce((sum, ring) => sum + ring.length, 0);
+                    } else { // MultiPolygon
+                        numParts = 0;
+                        numPoints = 0;
+                        feature.geometry.coordinates.forEach(polygon => {
+                            numParts += polygon.length;
+                            polygon.forEach(ring => {
+                                numPoints += ring.length;
+                            });
+                        });
+                    }
+                    recordLength = 22 + 2 * numParts + 8 * numPoints; // (44 + 4*p + 16*n bytes) / 2
+                }
+                
+                // Write offset and length (big-endian)
+                view.setInt32(100 + i * 8, offset, false);
+                view.setInt32(104 + i * 8, recordLength, false);
+                
+                offset += recordLength + 4; // Record length + header (8 bytes = 4 words)
+            }
+            
+            return new Uint8Array(buffer);
+        }
+        
+        // Create .dbf file (dBASE format) with full Thai support
+        function createDbfFile(features) {
+            // Get all unique attribute keys and determine their types
+            const fieldInfo = new Map();
+            
+            features.forEach(f => {
+                if (f.properties) {
+                    Object.entries(f.properties).forEach(([key, value]) => {
+                        if (!fieldInfo.has(key)) {
+                            // Determine field type and length based on all values
+                            let fieldType = 'C'; // Character (default)
+                            let fieldLength = 254;
+                            let decimal = 0;
+                            
+                            if (typeof value === 'number') {
+                                if (Number.isInteger(value)) {
+                                    fieldType = 'N'; // Numeric
+                                    const maxVal = Math.max(...features.map(f => Math.abs(f.properties?.[key] || 0)));
+                                    fieldLength = Math.min(18, Math.max(10, String(Math.floor(maxVal)).length + 1));
+                                    decimal = 0;
+                                } else {
+                                    fieldType = 'F'; // Float
+                                    fieldLength = 19;
+                                    decimal = 11;
+                                }
+                            } else if (typeof value === 'boolean') {
+                                fieldType = 'L'; // Logical
+                                fieldLength = 1;
+                                decimal = 0;
+                            } else if (value instanceof Date || (typeof value === 'string' && !isNaN(Date.parse(value)))) {
+                                fieldType = 'D'; // Date
+                                fieldLength = 8;
+                                decimal = 0;
+                            } else if (typeof value === 'string') {
+                                // Calculate max length needed for this field across all features
+                                const maxLength = Math.max(...features.map(f => {
+                                    const val = f.properties?.[key];
+                                    if (val === null || val === undefined) return 0;
+                                    // Count bytes for Thai characters (3 bytes per Thai char in UTF-8)
+                                    const str = String(val);
+                                    let byteCount = 0;
+                                    for (let i = 0; i < str.length; i++) {
+                                        const code = str.charCodeAt(i);
+                                        if (code >= 0x0E00 && code <= 0x0E7F) {
+                                            byteCount += 3; // Thai character
+                                        } else if (code > 127) {
+                                            byteCount += 2; // Other Unicode
+                                        } else {
+                                            byteCount += 1; // ASCII
+                                        }
+                                    }
+                                    return byteCount;
+                                }));
+                                fieldLength = Math.min(254, Math.max(50, maxLength + 10)); // Add buffer
+                            }
+                            
+                            fieldInfo.set(key, { 
+                                type: fieldType, 
+                                length: fieldLength, 
+                                decimal: decimal,
+                                originalKey: key
+                            });
+                        }
+                    });
+                }
+            });
+            
+            // Convert to array - keep ALL fields up to DBF limit
+            const allFields = Array.from(fieldInfo.entries());
+            
+            // Create field definitions
+            const fields = allFields.map(([name, info]) => {
+                // Preserve original field name but limit length
+                let fieldName = name;
+                
+                // If field name is Thai or contains special chars, create safe name
+                let safeName = fieldName;
+                const hasThaiOrSpecial = /[^\x00-\x7F]/.test(fieldName) || /[^A-Za-z0-9_]/.test(fieldName);
+                
+                if (hasThaiOrSpecial) {
+                    // Create abbreviated English name
+                    safeName = 'FIELD_' + (allFields.indexOf([name, info]) + 1);
+                }
+                
+                safeName = safeName.substring(0, 10).toUpperCase();
+                
+                return {
+                    name: safeName,
+                    originalName: fieldName,
+                    type: info.type,
+                    length: info.length,
+                    decimal: info.decimal
+                };
+            });
+            
+            // Add default FID field if no fields exist
+            if (fields.length === 0) {
+                fields.push({ 
+                    name: 'FID', 
+                    originalName: 'FID',
+                    type: 'N', 
+                    length: 10,
+                    decimal: 0
+                });
+            }
+            
+            const numRecords = features.length;
+            const numFields = fields.length;
+            const headerLength = 32 + (numFields * 32) + 1;
+            const recordLength = fields.reduce((sum, f) => sum + f.length, 1); // +1 for deletion flag
+            
+            const fileLength = headerLength + (numRecords * recordLength) + 1; // +1 for EOF marker
+            const buffer = new ArrayBuffer(fileLength);
+            const view = new DataView(buffer);
+            const bytes = new Uint8Array(buffer);
+            
+            // Header
+            const now = new Date();
+            view.setUint8(0, 0x03); // Version: dBASE III
+            view.setUint8(1, now.getFullYear() - 1900); // Year
+            view.setUint8(2, now.getMonth() + 1); // Month
+            view.setUint8(3, now.getDate()); // Day
+            view.setUint32(4, numRecords, true); // Number of records
+            view.setUint16(8, headerLength, true); // Header length
+            view.setUint16(10, recordLength, true); // Record length
+            // Bytes 12-13: Reserved
+            // Byte 14: Flag for incomplete transaction
+            // Byte 15: Encryption flag
+            // Bytes 16-27: Reserved for multi-user
+            // Byte 28: MDX flag
+            view.setUint8(29, 0x03); // Language driver ID (0x03 = Windows ANSI)
+            
+            // Field descriptors
+            let offset = 32;
+            
+            fields.forEach((field, idx) => {
+                // Field name (11 bytes, null-terminated)
+                const fieldNameBytes = new TextEncoder().encode(field.name);
+                for (let i = 0; i < Math.min(fieldNameBytes.length, 10); i++) {
+                    bytes[offset + i] = fieldNameBytes[i];
+                }
+                for (let i = fieldNameBytes.length; i < 11; i++) {
+                    bytes[offset + i] = 0x00;
+                }
+                
+                bytes[offset + 11] = field.type.charCodeAt(0); // Field type
+                view.setUint32(offset + 12, 0, true); // Field data address (not used)
+                bytes[offset + 16] = field.length; // Field length
+                bytes[offset + 17] = field.decimal; // Decimal count
+                // Bytes 18-19: Work area ID
+                // Byte 20: Example
+                // Bytes 21-30: Reserved
+                // Byte 31: MDX field flag
+                
+                offset += 32;
+            });
+            
+            bytes[offset] = 0x0D; // Field descriptor terminator
+            offset++;
+            
+            // Records
+            features.forEach((feature, idx) => {
+                bytes[offset] = 0x20; // Not deleted (space character)
+                offset++;
+                
+                fields.forEach((field, fieldIdx) => {
+                    let value = '';
+                    const propValue = feature.properties?.[field.originalName];
+                    
+                    if (propValue !== undefined && propValue !== null) {
+                        if (field.type === 'N') {
+                            // Numeric (Integer)
+                            const num = Number(propValue);
+                            if (!isNaN(num)) {
+                                value = String(Math.floor(num)).substring(0, field.length).padStart(field.length, ' ');
+                            } else {
+                                value = ''.padStart(field.length, ' ');
+                            }
+                        } else if (field.type === 'F') {
+                            // Float
+                            const num = Number(propValue);
+                            if (!isNaN(num)) {
+                                value = num.toFixed(field.decimal).substring(0, field.length).padStart(field.length, ' ');
+                            } else {
+                                value = ''.padStart(field.length, ' ');
+                            }
+                        } else if (field.type === 'L') {
+                            // Logical
+                            const bool = Boolean(propValue);
+                            value = bool ? 'T' : 'F';
+                        } else if (field.type === 'D') {
+                            // Date (YYYYMMDD)
+                            let date = propValue instanceof Date ? propValue : new Date(propValue);
+                            if (!isNaN(date.getTime())) {
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                value = `${year}${month}${day}`;
+                            } else {
+                                value = '        '; // 8 spaces for invalid date
+                            }
+                        } else {
+                            // Character - encode to TIS-620 for Thai support
+                            const str = String(propValue);
+                            value = encodeToTIS620(str, field.length);
+                        }
+                    } else if (field.originalName === 'FID') {
+                        // Default FID field
+                        value = String(idx + 1).padStart(field.length, ' ');
+                    } else {
+                        // Empty value
+                        value = ''.padStart(field.length, ' ');
+                    }
+                    
+                    // Ensure value is exactly field.length
+                    if (value.length > field.length) {
+                        value = value.substring(0, field.length);
+                    } else if (value.length < field.length) {
+                        value = value.padEnd(field.length, ' ');
+                    }
+                    
+                    // Write to buffer as bytes
+                    const valueBytes = encodeStringToBytes(value);
+                    for (let i = 0; i < field.length; i++) {
+                        bytes[offset + i] = i < valueBytes.length ? valueBytes[i] : 0x20;
+                    }
+                    offset += field.length;
+                });
+            });
+            
+            bytes[offset] = 0x1A; // EOF marker
+            
+            return bytes;
+        }
+        
+        // Helper function to encode Thai text to TIS-620
+        function encodeToTIS620(str, maxLength) {
+            const bytes = [];
+            
+            for (let i = 0; i < str.length && bytes.length < maxLength; i++) {
+                const char = str[i];
+                const code = str.charCodeAt(i);
+                
+                // Thai characters (Unicode 0x0E00-0x0E7F → TIS-620 0xA0-0xFF)
+                if (code >= 0x0E00 && code <= 0x0E7F) {
+                    const tis620Code = code - 0x0E00 + 0xA0;
+                    bytes.push(tis620Code);
+                }
+                // ASCII characters
+                else if (code <= 0x7F) {
+                    bytes.push(code);
+                }
+                // Other Unicode characters - try to preserve or use placeholder
+                else {
+                    bytes.push(0x3F); // Question mark for unsupported characters
+                }
+            }
+            
+            // Convert bytes array to string
+            let result = '';
+            for (let i = 0; i < bytes.length; i++) {
+                result += String.fromCharCode(bytes[i]);
+            }
+            
+            return result;
+        }
+        
+        // Helper function to encode string to bytes
+        function encodeStringToBytes(str) {
+            const bytes = [];
+            for (let i = 0; i < str.length; i++) {
+                bytes.push(str.charCodeAt(i) & 0xFF);
+            }
+            return bytes;
+        }
+        
+        // Create field mapping file for Thai field names
+        function createFieldMappingFile(features) {
+            const fieldInfo = new Map();
+            
+            features.forEach(f => {
+                if (f.properties) {
+                    Object.keys(f.properties).forEach(key => {
+                        if (!fieldInfo.has(key)) {
+                            fieldInfo.set(key, true);
+                        }
+                    });
+                }
+            });
+            
+            const allFields = Array.from(fieldInfo.keys());
+            let mapping = '====================================\n';
+            mapping += 'Field Name Mapping (DBF ↔ Original)\n';
+            mapping += '====================================\n\n';
+            mapping += 'DBF files have limitations on field names:\n';
+            mapping += '- Maximum 10 characters\n';
+            mapping += '- ASCII characters only (A-Z, 0-9, _)\n\n';
+            mapping += 'This file maps the shortened field names in the .dbf file\n';
+            mapping += 'to the original field names from your GeoJSON.\n\n';
+            mapping += 'Format: DBF_FIELD_NAME = Original Field Name\n';
+            mapping += '----------------------------------------\n\n';
+            
+            allFields.forEach((originalName, idx) => {
+                const hasThaiOrSpecial = /[^\x00-\x7F]/.test(originalName) || /[^A-Za-z0-9_]/.test(originalName);
+                let safeName;
+                
+                if (hasThaiOrSpecial) {
+                    safeName = 'FIELD_' + (idx + 1);
+                } else {
+                    safeName = originalName.substring(0, 10).toUpperCase();
+                }
+                
+                mapping += `${safeName.padEnd(12)} = ${originalName}\n`;
+            });
+            
+            mapping += '\n====================================\n';
+            mapping += `Total Fields: ${allFields.length}\n`;
+            mapping += 'Encoding: UTF-8\n';
+            mapping += '====================================\n';
+            
+            return mapping;
+        }
+        
+        // Create field mapping file for Thai field names
+        function createFieldMappingFile(features) {
+            const fieldInfo = new Map();
+            
+            features.forEach(f => {
+                if (f.properties) {
+                    Object.keys(f.properties).forEach(key => {
+                        if (!fieldInfo.has(key)) {
+                            fieldInfo.set(key, true);
+                        }
+                    });
+                }
+            });
+            
+            const allFields = Array.from(fieldInfo.keys());
+            let mapping = '====================================\n';
+            mapping += 'Field Name Mapping (DBF ↔ Original)\n';
+            mapping += '====================================\n\n';
+            mapping += 'DBF files have limitations on field names:\n';
+            mapping += '- Maximum 10 characters\n';
+            mapping += '- ASCII characters only (A-Z, 0-9, _)\n\n';
+            mapping += 'This file maps the shortened field names in the .dbf file\n';
+            mapping += 'to the original field names from your GeoJSON.\n\n';
+            mapping += 'Format: DBF_FIELD_NAME = Original Field Name\n';
+            mapping += '----------------------------------------\n\n';
+            
+            allFields.forEach((originalName, idx) => {
+                const hasThaiOrSpecial = /[^\x00-\x7F]/.test(originalName) || /[^A-Za-z0-9_]/.test(originalName);
+                let safeName;
+                
+                if (hasThaiOrSpecial) {
+                    safeName = 'FIELD_' + (idx + 1);
+                } else {
+                    safeName = originalName.substring(0, 10).toUpperCase();
+                }
+                
+                mapping += `${safeName.padEnd(12)} = ${originalName}\n`;
+            });
+            
+            mapping += '\n====================================\n';
+            mapping += `Total Fields: ${allFields.length}\n`;
+            mapping += 'Character Encoding: UTF-8\n';
+            mapping += 'Thai text encoded in: TIS-620 (in DBF)\n';
+            mapping += '====================================\n';
+            
+            return mapping;
+        }
+        
+        // Create .xml metadata file
+        function createXmlMetadata(baseName, type, featureCount, crs) {
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<metadata xml:lang="th">
+  <Esri>
+    <CreaDate>${new Date().toISOString().split('T')[0]}</CreaDate>
+    <CreaTime>${new Date().toTimeString().split(' ')[0].replace(/:/g, '')}</CreaTime>
+    <ArcGISFormat>1.0</ArcGISFormat>
+    <SyncOnce>TRUE</SyncOnce>
+    <DataProperties>
+      <lineage>
+        <Process ToolSource="MAPRAW GIS File Converter">
+          <export>GeoJSON to Shapefile</export>
+        </Process>
+      </lineage>
+    </DataProperties>
+  </Esri>
+  <dataIdInfo>
+    <idCitation>
+      <resTitle>${baseName}</resTitle>
+    </idCitation>
+    <searchKeys>
+      <keyword>Shapefile</keyword>
+      <keyword>${type}</keyword>
+      <keyword>GIS</keyword>
+    </searchKeys>
+    <dataLang>
+      <languageCode value="tha"/>
+      <countryCode value="TH"/>
+    </dataLang>
+    <dataChar>
+      <CharSetCd value="021"/>
+    </dataChar>
+  </dataIdInfo>
+  <distInfo>
+    <distributor>
+      <distorCont>
+        <rpOrgName>MAPRAW</rpOrgName>
+      </distorCont>
+    </distributor>
+    <distFormat>
+      <formatName>Shapefile</formatName>
+    </distFormat>
+  </distInfo>
+  <spatRepInfo>
+    <VectSpatRep>
+      <geometObjs>
+        <geoObjTyp>
+          <GeoObjTypCd value="${type === 'point' ? '1' : type === 'line' ? '2' : '3'}"/>
+        </geoObjTyp>
+        <geoObjCnt>${featureCount}</geoObjCnt>
+      </geometObjs>
+    </VectSpatRep>
+  </spatRepInfo>
+  <refSysInfo>
+    <RefSystem>
+      <refSysID>
+        <identCode>${crs}</identCode>
+      </refSysID>
+    </RefSystem>
+  </refSysInfo>
+</metadata>`;
+        }
+
         function updatePreview2(geojson) {
             const jsonString = JSON.stringify(geojson, null, 2);
             const preview = jsonString.length > 500 
@@ -1320,27 +2342,13 @@
             resultPreview2.textContent = preview;
             resultPreview2.style.display = 'block';
         }
-        
-        // Download Shapefile function
+
         function downloadShapefile() {
             if (!shapefileZip) return;
-            
-            // Create a URL for the blob
-            const url = URL.createObjectURL(shapefileZip);
-            
-            // Create a download link
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${fileName2}_shapefile.zip`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
+            saveAs(shapefileZip, `${fileName2}_shapefile.zip`);
             showMessage2('ดาวน์โหลดไฟล์ Shapefile เรียบร้อยแล้ว!', 'success');
         }
-        
-        // UI Helper functions for GeoJSON to Shapefile
+
         function resetUI2() {
             errorMessage2.style.display = 'none';
             successMessage2.style.display = 'none';
@@ -1348,26 +2356,26 @@
             resultContainer2.classList.add('hidden');
             projectionInfo.classList.add('hidden');
         }
-        
+
         function showLoading2() {
             loadingSpinner2.classList.remove('hidden');
         }
-        
+
         function hideLoading2() {
             loadingSpinner2.classList.add('hidden');
         }
-        
+
         function showSuccess2() {
             resultContainer2.classList.remove('hidden');
             showMessage2('การแปลงไฟล์เสร็จสมบูรณ์!', 'success');
         }
-        
+
         function showError2(message) {
             errorMessage2.textContent = message;
             errorMessage2.style.display = 'block';
             successMessage2.style.display = 'none';
         }
-        
+
         function showMessage2(message, type) {
             if (type === 'error') {
                 errorMessage2.textContent = message;
@@ -1379,29 +2387,31 @@
                 errorMessage2.style.display = 'none';
             }
         }
+
+        // ============================================
+        // Mobile Menu Handler
+        // ============================================
+        const menuBtn = document.getElementById('mobileMenuBtn');
+        const nav = document.getElementById('mainNav');
+
+        menuBtn.addEventListener('click', () => {
+            menuBtn.classList.toggle('active');
+            nav.classList.toggle('active');
+        });
+
+        function toggleMobileDropdown(element) {
+            if (window.innerWidth <= 1200) {
+                element.classList.toggle('active');
+            }
+        }
+        
+        // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
+        document.addEventListener('click', (e) => {
+            if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
+                nav.classList.remove('active');
+                menuBtn.classList.remove('active');
+            }
+        });
     </script>
-   <script>
-    const menuBtn = document.getElementById('mobileMenuBtn');
-    const nav = document.getElementById('mainNav');
-
-    menuBtn.addEventListener('click', () => {
-        menuBtn.classList.toggle('active');
-        nav.classList.toggle('active');
-    });
-
-    function toggleMobileDropdown(element) {
-        if (window.innerWidth <= 1200) {
-            element.classList.toggle('active');
-        }
-    }
-    
-    // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
-    document.addEventListener('click', (e) => {
-        if (!nav.contains(e.target) && !menuBtn.contains(e.target) && nav.classList.contains('active')) {
-            nav.classList.remove('active');
-            menuBtn.classList.remove('active');
-        }
-    });
-</script>
 </body>
 </html>
