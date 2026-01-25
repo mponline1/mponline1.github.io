@@ -1447,6 +1447,7 @@
                 
                 // แปลงข้อมูลเป็น string ถ้าจำเป็น
                 const blUse = row.BL_USE ? row.BL_USE.toString() : '';
+                const blType = row.BL_TYPE ? row.BL_TYPE.toString() : '';
                 
                 // กำหนดค่า class
                 newRow.class = buildingClassMapping[blUse] || '99';
@@ -1472,6 +1473,34 @@
                 
                 // เพิ่มคำอธิบาย size
                 newRow.size_desc = sizeDescriptions[newRow.size];
+                
+                // ประมวลผลฟิลด์ TYPE_BUILD
+                const classNum = parseInt(newRow.class);
+                const blTypeNum = parseInt(blType);
+                
+                if (newRow.class === '10' && blTypeNum === 1) {
+                    newRow.TYPE_BUILD = 'บ้านเดี่ยวเพื่อการอยู่อาศัย';
+                } else if (newRow.class === '10' && blTypeNum === 2) {
+                    newRow.TYPE_BUILD = 'บ้านแฝด';
+                } else if (newRow.class === '10' && blTypeNum === 3) {
+                    newRow.TYPE_BUILD = 'บ้านแถว';
+                } else if (newRow.class === '10' && blTypeNum === 4) {
+                    newRow.TYPE_BUILD = 'ห้องแถว';
+                } else if (newRow.class === '10' && blTypeNum === 5) {
+                    newRow.TYPE_BUILD = 'ตึกแถว';
+                } else if (newRow.class === '10' && blTypeNum === 6) {
+                    newRow.TYPE_BUILD = 'อาคารชุด หอพัก อยู่อาศัยรวม';
+                } else if (blUse === '2220') {
+                    newRow.TYPE_BUILD = 'โรงแรม รีสอร์ท';
+                } else if (newRow.class === '20' && blTypeNum === 1 && blUse !== '2220') {
+                    newRow.TYPE_BUILD = 'อาคารเดี่ยวประกอบพาณิชยกรรม';
+                } else if (newRow.class === '30' || newRow.class === '33') {
+                    newRow.TYPE_BUILD = 'อุตสาหกรรมและคลังสินค้า';
+                } else if (blTypeNum === 1 && classNum >= 40) {
+                    newRow.TYPE_BUILD = 'อาคารเดี่ยวเพื่อประกอบกิจการอื่นๆ';
+                } else {
+                    newRow.TYPE_BUILD = 'อื่นๆ';
+                }
                 
                 return newRow;
             });
