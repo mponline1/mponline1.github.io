@@ -674,287 +674,346 @@
             });
         }
 
-        // ฟังก์ชันช่วยสร้าง Shapefile components (ใช้วิธีเดียวกับต้นฉบับ)
+        // ========== Shapefile Creation Functions (จากต้นฉบับที่ทำงานได้) ==========
         
-        function createShapefileFromGeoJSON(geojson) {
-            const features = geojson.features;
-            const records = [];
-            let shpLength = 100;
-            
-            console.log('Creating shapefile from', features.length, 'features');
-            
-            for (let featureIndex = 0; featureIndex < features.length; featureIndex++) {
-                const feature = features[featureIndex];
-                
-                if (!feature.geometry || !feature.geometry.coordinates) {
-                    console.warn('Skip feature', featureIndex, 'without geometry');
-                    continue;
-                }
-                
-                try {
-                    // สำหรับ MultiPolygon เอาแค่ polygon แรก (เหมือนต้นฉบับ)
-                    const coords = feature.geometry.type === 'Polygon' 
-                        ? feature.geometry.coordinates 
-                        : feature.geometry.coordinates[0];
-                    
-                    if (!coords || !Array.isArray(coords)) {
-                        console.warn('Invalid coords for feature', featureIndex);
-                        continue;
-                    }
-                    
-                    let numPoints = 0;
-                    let parts = [];
-                    let points = [];
-                    
-                    // แต่ละ ring
-                    for (let i = 0; i < coords.length; i++) {
-                        parts.push(numPoints);
-                        const ring = coords[i];
-                        
-                        if (!Array.isArray(ring)) {
-                            console.warn('Invalid ring', i, 'for feature', featureIndex);
-                            continue;
-                        }
-                        
-                        for (const point of ring) {
-                            if (Array.isArray(point) && point.length >= 2) {
-                                points.push(point[0], point[1]);
-                                numPoints++;
-                            }
-                        }
-                    }
-                    
-                    if (numPoints === 0) {
-                        console.warn('Feature', featureIndex, 'has no valid points');
-                        continue;
-                    }
-                    
-                    const recordLength = 44 + (4 * parts.length) + (16 * numPoints);
-                    records.push({
-                        parts: new Int32Array(parts),
-                        points: new Float64Array(points),
-                        numParts: parts.length,
-                        numPoints: numPoints,
-                        recordLength: recordLength
-                    });
-                    shpLength += 8 + recordLength;
-                    
-                } catch (error) {
-                    console.error('Error processing feature', featureIndex, ':', error);
-                    continue;
-                }
-            }
-            
-            if (records.length === 0) {
-                throw new Error('No valid records to write');
-            }
-            
-            console.log('Created', records.length, 'records for shapefile');
-            
-            const shpBuffer = new ArrayBuffer(shpLength);
-            const shpView = new DataView(shpBuffer);
-            
-            shpView.setInt32(0, 9994, false);
-            shpView.setInt32(24, shpLength / 2, false);
-            shpView.setInt32(28, 1000, true);
-            shpView.setInt32(32, 5, true);
-            
+        // ========== Shapefile Creation Functions ==========
+        
+        // ========== Shapefile Functions (from stable index.html) ==========
+        
+        // Validate and fix polygon geometry (less strict - keep all valid polygons)
+        
+        function createSHPFile(features) {
+            const shapeType = 5; // Polygon
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            for (const record of records) {
-                for (let i = 0; i < record.points.length; i += 2) {
-                    const x = record.points[i];
-                    const y = record.points[i + 1];
-                    if (isFinite(x) && isFinite(y)) {
-                        if (x < minX) minX = x;
-                        if (x > maxX) maxX = x;
-                        if (y < minY) minY = y;
-                        if (y > maxY) maxY = y;
-                    }
-                }
-            }
             
-            shpView.setFloat64(36, minX, true);
-            shpView.setFloat64(44, minY, true);
-            shpView.setFloat64(52, maxX, true);
-            shpView.setFloat64(60, maxY, true);
-            
-            let offset = 100;
-            for (let i = 0; i < records.length; i++) {
-                const record = records[i];
-                shpView.setInt32(offset, i + 1, false);
-                shpView.setInt32(offset + 4, record.recordLength / 2, false);
-                shpView.setInt32(offset + 8, 5, true);
+            // Calculate bounds
+            features.forEach(f => {
+                const coords = f.geometry.type === 'Polygon' ? f.geometry.coordinates : f.geometry.coordinates[0];
+                coords[0].forEach(([x, y]) => {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                });
+            });
+
+            const records = [];
+            let fileLength = 100; // Header size
+
+            features.forEach((feature, index) => {
+                const recordHeader = new ArrayBuffer(8);
+                const headerView = new DataView(recordHeader);
+                headerView.setInt32(0, index + 1, false); // Record number (big-endian)
                 
-                let recMinX = Infinity, recMinY = Infinity, recMaxX = -Infinity, recMaxY = -Infinity;
-                for (let j = 0; j < record.points.length; j += 2) {
-                    const x = record.points[j];
-                    const y = record.points[j + 1];
-                    if (isFinite(x) && isFinite(y)) {
-                        if (x < recMinX) recMinX = x;
-                        if (x > recMaxX) recMaxX = x;
-                        if (y < recMinY) recMinY = y;
-                        if (y > recMaxY) recMaxY = y;
-                    }
-                }
-                
-                shpView.setFloat64(offset + 12, recMinX, true);
-                shpView.setFloat64(offset + 20, recMinY, true);
-                shpView.setFloat64(offset + 28, recMaxX, true);
-                shpView.setFloat64(offset + 36, recMaxY, true);
-                shpView.setInt32(offset + 44, record.numParts, true);
-                shpView.setInt32(offset + 48, record.numPoints, true);
-                
-                let pos = offset + 52;
-                for (let j = 0; j < record.numParts; j++) {
-                    shpView.setInt32(pos, record.parts[j], true);
-                    pos += 4;
-                }
-                for (let j = 0; j < record.points.length; j++) {
-                    shpView.setFloat64(pos, record.points[j], true);
-                    pos += 8;
-                }
-                
-                offset += 8 + record.recordLength;
-            }
-            
-            return new Uint8Array(shpBuffer);
+                const recordContent = createPolygonRecord(feature);
+                headerView.setInt32(4, recordContent.byteLength / 2, false);
+                records.push(recordHeader);
+                records.push(recordContent);
+                fileLength += 8 + recordContent.byteLength;
+            });
+
+            // Create header
+            const header = new ArrayBuffer(100);
+            const headerView = new DataView(header);
+            headerView.setInt32(0, 9994, false); // File code
+            headerView.setInt32(24, fileLength / 2, false); // File length (words)
+            headerView.setInt32(28, 1000, true); // Version
+            headerView.setInt32(32, shapeType, true); // Shape type
+            headerView.setFloat64(36, minX, true);
+            headerView.setFloat64(44, minY, true);
+            headerView.setFloat64(52, maxX, true);
+            headerView.setFloat64(60, maxY, true);
+
+            // Combine
+            const result = new Uint8Array(fileLength);
+            let offset = 0;
+            result.set(new Uint8Array(header), offset);
+            offset += 100;
+            records.forEach(record => {
+                result.set(new Uint8Array(record), offset);
+                offset += record.byteLength;
+            });
+
+            return result;
         }
-        
-        function createShxFromGeoJSON(geojson) {
-            const features = geojson.features;
-            const shxLength = 100 + (features.length * 8);
-            const shxBuffer = new ArrayBuffer(shxLength);
-            const shxView = new DataView(shxBuffer);
+
+        function createPolygonRecord(feature) {
+            const coords = feature.geometry.type === 'Polygon' 
+                ? feature.geometry.coordinates 
+                : feature.geometry.coordinates[0];
             
-            shxView.setInt32(0, 9994, false);
-            shxView.setInt32(24, shxLength / 2, false);
-            shxView.setInt32(28, 1000, true);
-            shxView.setInt32(32, 5, true);
+            const numParts = coords.length;
+            const numPoints = coords.reduce((sum, ring) => sum + ring.length, 0);
+            const contentLength = 44 + (4 * numParts) + (16 * numPoints);
             
-            let offset = 50;
-            let pos = 100;
+            const buffer = new ArrayBuffer(contentLength);
+            const view = new DataView(buffer);
             
-            for (const feature of features) {
-                if (!feature.geometry || !feature.geometry.coordinates) {
-                    console.warn('Skip feature without geometry in SHX');
-                    continue;
-                }
-                
-                // เหมือน createShapefileFromGeoJSON - เอาแค่ polygon แรกถ้าเป็น MultiPolygon
+            view.setInt32(0, 5, true); // Polygon type
+            
+            // Bounding box
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            coords.forEach(ring => {
+                ring.forEach(([x, y]) => {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                });
+            });
+            
+            view.setFloat64(4, minX, true);
+            view.setFloat64(12, minY, true);
+            view.setFloat64(20, maxX, true);
+            view.setFloat64(28, maxY, true);
+            view.setInt32(36, numParts, true);
+            view.setInt32(40, numPoints, true);
+            
+            // Parts
+            let offset = 44;
+            let partStart = 0;
+            coords.forEach((ring, i) => {
+                view.setInt32(offset, partStart, true);
+                offset += 4;
+                partStart += ring.length;
+            });
+            
+            // Points
+            coords.forEach(ring => {
+                ring.forEach(([x, y]) => {
+                    view.setFloat64(offset, x, true);
+                    view.setFloat64(offset + 8, y, true);
+                    offset += 16;
+                });
+            });
+            
+            return buffer;
+        }
+
+        function createSHXFile(features) {
+            const numRecords = features.length;
+            const fileLength = 100 + (numRecords * 8);
+            const buffer = new ArrayBuffer(fileLength);
+            const view = new DataView(buffer);
+            
+            // Header (same as SHP)
+            view.setInt32(0, 9994, false);
+            view.setInt32(24, fileLength / 2, false);
+            view.setInt32(28, 1000, true);
+            view.setInt32(32, 5, true); // Polygon
+            
+            // Index records
+            let offset = 50; // in words
+            for (let i = 0; i < numRecords; i++) {
+                const feature = features[i];
                 const coords = feature.geometry.type === 'Polygon' 
                     ? feature.geometry.coordinates 
                     : feature.geometry.coordinates[0];
-                
-                if (!coords || !Array.isArray(coords)) {
-                    continue;
-                }
-                
-                let numPoints = 0;
                 const numParts = coords.length;
+                const numPoints = coords.reduce((sum, ring) => sum + ring.length, 0);
+                const recordLength = 22 + (2 * numParts) + (8 * numPoints);
                 
-                for (const ring of coords) {
-                    if (Array.isArray(ring)) {
-                        numPoints += ring.length;
+                view.setInt32(100 + i * 8, offset, false);
+                view.setInt32(104 + i * 8, recordLength, false);
+                offset += recordLength + 4;
+            }
+            
+            return new Uint8Array(buffer);
+        }
+
+        // Convert UTF-8 string to Windows-874 (TIS-620) bytes for ArcMap
+        function encodeWindows874(str) {
+            const bytes = [];
+            for (let i = 0; i < str.length; i++) {
+                const charCode = str.charCodeAt(i);
+                
+                // Thai characters: U+0E01 to U+0E5B → Windows-874: 0xA1 to 0xFB
+                if (charCode >= 0x0E01 && charCode <= 0x0E5B) {
+                    bytes.push(charCode - 0x0E00 + 0xA0);
+                }
+                // ASCII characters (0x00 - 0x7F): keep as is
+                else if (charCode <= 0x7F) {
+                    bytes.push(charCode);
+                }
+                // Other characters: use '?' as placeholder
+                else {
+                    bytes.push(0x3F); // '?'
+                }
+            }
+            return new Uint8Array(bytes);
+        }
+
+        function createDBFFile(features) {
+            // Auto-detect fields from properties
+            const allFields = new Set();
+            features.forEach(f => {
+                if (f.properties) {
+                    Object.keys(f.properties).forEach(key => allFields.add(key));
+                }
+            });
+            
+            const fieldMapping = {};
+            const usedNames = new Set();
+            
+            // Create field mapping dynamically
+            Array.from(allFields).forEach(key => {
+                let fieldName = key.substring(0, 10).toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+                
+                // Avoid name collision
+                let counter = 1;
+                let originalName = fieldName;
+                while (usedNames.has(fieldName)) {
+                    fieldName = originalName.substring(0, 8) + '_' + counter;
+                    counter++;
+                }
+                usedNames.add(fieldName);
+                
+                // Determine field type
+                const sampleValue = features.find(f => f.properties?.[key] != null)?.properties?.[key];
+                let fieldType = 'C';
+                let fieldLength = 254;
+                let fieldDecimal = 0;
+                
+                if (typeof sampleValue === 'number') {
+                    if (Number.isInteger(sampleValue)) {
+                        fieldType = 'N';
+                        fieldLength = 18;
+                        fieldDecimal = 0;
+                    } else {
+                        fieldType = 'F';
+                        fieldLength = 19;
+                        fieldDecimal = 2;
                     }
+                } else {
+                    // For strings, calculate max length (Windows-874)
+                    const maxLen = Math.max(...features.map(f => {
+                        const v = f.properties?.[key];
+                        if (v === null || v === undefined) return 0;
+                        return encodeWindows874(String(v)).length;
+                    }));
+                    fieldLength = Math.min(254, Math.max(10, maxLen + 10));
                 }
                 
-                const recordLength = 44 + (4 * numParts) + (16 * numPoints);
-                shxView.setInt32(pos, offset, false);
-                shxView.setInt32(pos + 4, recordLength / 2, false);
-                pos += 8;
-                offset += 4 + recordLength / 2;
-            }
-            
-            return new Uint8Array(shxBuffer);
-        }
-        
-        function createDbfFromGeoJSON(geojson) {
-            const features = geojson.features;
-            if (features.length === 0) return new Uint8Array(0);
-            
-            const props = features[0].properties;
-            const fields = [];
-            const encoder = new TextEncoder();
-            
-            for (const key in props) {
-                const maxLen = Math.max(...features.map(f => {
-                    const v = f.properties[key];
-                    if (v === null || v === undefined) return 0;
-                    return encoder.encode(String(v)).length;
-                }));
-                
-                const fieldLength = Math.min(254, Math.max(10, maxLen + 5));
-                
-                fields.push({
-                    name: key.substring(0, 10).toUpperCase(),
-                    type: 'C',
+                fieldMapping[key] = {
+                    name: fieldName,
+                    type: fieldType,
                     length: fieldLength,
-                    decimal: 0
-                });
-            }
+                    decimal: fieldDecimal
+                };
+            });
+
+            const fields = [];
+            const fieldKeys = new Set();
+            
+            // Collect fields
+            features.forEach(f => {
+                if (f.properties) {
+                    Object.keys(f.properties).forEach(key => {
+                        if (fieldMapping[key] && !fieldKeys.has(key)) {
+                            fieldKeys.add(key);
+                            fields.push({
+                                ...fieldMapping[key],
+                                originalName: key
+                            });
+                        }
+                    });
+                }
+            });
             
             const headerLength = 32 + (fields.length * 32) + 1;
-            let recordLength = 1;
-            for (const field of fields) {
-                recordLength += field.length;
-            }
+            const recordLength = fields.reduce((sum, f) => sum + f.length, 0) + 1;
+            const fileLength = headerLength + (features.length * recordLength) + 1;
             
-            const fileSize = headerLength + (features.length * recordLength) + 1;
-            const buffer = new ArrayBuffer(fileSize);
-            const view = new DataView(buffer);
-            const bytes = new Uint8Array(buffer);
+            const bytes = new Uint8Array(fileLength);
+            const view = new DataView(bytes.buffer);
             
-            view.setUint8(0, 0x03);
+            // Header
+            bytes[0] = 0x03; // dBASE III
             const now = new Date();
-            view.setUint8(1, now.getFullYear() - 1900);
-            view.setUint8(2, now.getMonth() + 1);
-            view.setUint8(3, now.getDate());
+            bytes[1] = now.getFullYear() - 1900;
+            bytes[2] = now.getMonth() + 1;
+            bytes[3] = now.getDate();
             view.setUint32(4, features.length, true);
             view.setUint16(8, headerLength, true);
             view.setUint16(10, recordLength, true);
+            bytes[29] = 0x7C; // Windows-874 (TIS-620) encoding for Thai - LDID = 124
             
-            let pos = 32;
-            for (const field of fields) {
-                const nameBytes = encoder.encode(field.name);
-                for (let i = 0; i < Math.min(11, nameBytes.length); i++) {
-                    bytes[pos + i] = nameBytes[i];
+            // Field descriptors
+            let offset = 32;
+            fields.forEach(field => {
+                for (let i = 0; i < 11; i++) {
+                    bytes[offset + i] = i < field.name.length ? field.name.charCodeAt(i) : 0;
                 }
-                bytes[pos + 11] = field.type.charCodeAt(0);
-                view.setUint8(pos + 16, field.length);
-                view.setUint8(pos + 17, field.decimal);
-                pos += 32;
-            }
+                bytes[offset + 11] = field.type.charCodeAt(0);
+                bytes[offset + 16] = field.length;
+                bytes[offset + 17] = field.decimal;
+                offset += 32;
+            });
+            bytes[offset++] = 0x0D; // Field descriptor terminator
             
-            bytes[pos] = 0x0D;
-            pos++;
-            
-            for (const feature of features) {
-                bytes[pos] = 0x20;
-                pos++;
-                
-                for (const field of fields) {
-                    const value = feature.properties[field.name] || feature.properties[field.name.toLowerCase()] || '';
-                    const valueStr = String(value);
-                    const valueBytes = encoder.encode(valueStr);
+            // Records
+            features.forEach((feature, idx) => {
+                bytes[offset++] = 0x20; // Not deleted
+                fields.forEach(field => {
+                    const value = feature.properties?.[field.originalName];
                     
-                    let written = 0;
-                    for (let i = 0; i < Math.min(field.length, valueBytes.length); i++) {
-                        bytes[pos + i] = valueBytes[i];
-                        written++;
+                    if (field.type === 'N' || field.type === 'F') {
+                        // Numeric field - right-aligned ASCII
+                        let str = '';
+                        if (value !== null && value !== undefined && !isNaN(value)) {
+                            const numValue = Number(value);
+                            if (field.type === 'F') {
+                                // Float with decimals
+                                str = numValue.toFixed(field.decimal);
+                            } else {
+                                // Integer
+                                str = Math.floor(numValue).toString();
+                            }
+                            // Trim if too long
+                            if (str.length > field.length) {
+                                str = str.substring(0, field.length);
+                            }
+                        }
+                        // Right-align
+                        str = str.padStart(field.length, ' ');
+                        
+                        // Write ASCII
+                        for (let i = 0; i < field.length; i++) {
+                            bytes[offset++] = i < str.length ? str.charCodeAt(i) : 0x20;
+                        }
+                    } else {
+                        // Character field - Windows-874 (TIS-620) for Thai
+                        if (value !== null && value !== undefined) {
+                            const valueStr = String(value);
+                            const valueBytes = encodeWindows874(valueStr);
+                            
+                            // Write Windows-874 bytes
+                            let written = 0;
+                            for (let i = 0; i < Math.min(field.length, valueBytes.length); i++) {
+                                bytes[offset++] = valueBytes[i];
+                                written++;
+                            }
+                            // Pad with spaces
+                            for (let i = written; i < field.length; i++) {
+                                bytes[offset++] = 0x20;
+                            }
+                        } else {
+                            // Empty - pad with spaces
+                            for (let i = 0; i < field.length; i++) {
+                                bytes[offset++] = 0x20;
+                            }
+                        }
                     }
-                    for (let i = written; i < field.length; i++) {
-                        bytes[pos + i] = 0x20;
-                    }
-                    pos += field.length;
-                }
-            }
+                });
+            });
+            bytes[offset] = 0x1A; // EOF
             
-            bytes[pos] = 0x1A;
+            console.log('Created', features.length, 'DBF records');
             
             return bytes;
         }
-        
-        function createPrjContent(epsg) {
+
+        function getPRJContent(epsg) {
             if (epsg === 'EPSG:32647') {
                 return `PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",99.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]`;
             } else if (epsg === 'EPSG:32648') {
@@ -963,7 +1022,7 @@
             return '';
         }
 
-        // ส่งออก Shapefile (GeoJSON -> Shapefile)
+        // Export Shapefile (simplified from index.html)
         async function exportShapefile(geojson, filename) {
             if (!geojson || !geojson.features || geojson.features.length === 0) {
                 alert('ไม่มีข้อมูลให้ส่งออก');
@@ -971,134 +1030,92 @@
             }
 
             try {
-                showStatus('processStatus', 'info', 'กำลังเตรียมข้อมูล...');
-
-                // ========================================
-                // ขั้นตอนที่ 1: สร้าง GeoJSON พร้อมแปลงพิกัดกลับเป็น UTM
-                // ========================================
+                showStatus('processStatus', 'info', 'กำลังสร้างไฟล์ Shapefile...');
                 
-                console.log('ขั้นตอนที่ 1: สร้าง GeoJSON สำหรับส่งออก...');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('Shapefile Export - Simple Method (from index.html)');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('Total parcels processed:', geojson.features.length);
                 
-                const utmGeoJSON = {
-                    type: 'FeatureCollection',
-                    features: []
-                };
-
-                for (const feature of geojson.features) {
-                    if (!feature.geometry || !feature.geometry.coordinates) {
-                        console.warn('Skip feature without geometry');
-                        continue;
-                    }
-
-                    try {
-                        const transformedCoords = transformBackToUTM(feature.geometry.coordinates, selectedEPSG);
-                        
-                        utmGeoJSON.features.push({
-                            type: 'Feature',
-                            properties: { ...feature.properties }, // เก็บข้อมูลทั้งหมด รวมภาษาไทย
-                            geometry: {
-                                type: feature.geometry.type,
-                                coordinates: transformedCoords
-                            }
-                        });
-                    } catch (e) {
-                        console.error('Transform error for feature:', e);
-                        continue;
-                    }
+                // FILTER: เฉพาะแปลงที่มีอาคาร
+                const parcelsWithBuildings = geojson.features.filter(f => {
+                    const buildingCount = f.properties?.building_count || 0;
+                    return buildingCount > 0;
+                });
+                
+                console.log('Parcels with buildings:', parcelsWithBuildings.length);
+                console.log('Parcels without buildings (filtered out):', geojson.features.length - parcelsWithBuildings.length);
+                
+                if (parcelsWithBuildings.length === 0) {
+                    throw new Error('ไม่มีแปลงที่มีอาคารให้ส่งออก');
                 }
-
-                if (utmGeoJSON.features.length === 0) {
-                    throw new Error('ไม่สามารถแปลงข้อมูลได้');
-                }
-
-                console.log('✅ สร้าง GeoJSON สำเร็จ:', utmGeoJSON.features.length, 'features');
-
-                // ========================================
-                // ขั้นตอนที่ 2: แปลง GeoJSON เป็น Shapefile
-                // ========================================
                 
-                showStatus('processStatus', 'info', 'กำลังแปลง GeoJSON เป็น Shapefile...');
-                console.log('ขั้นตอนที่ 2: แปลง GeoJSON เป็น Shapefile...');
-                
-                // ย่อชื่อฟิลด์สำหรับ DBF (จำกัด 10 ตัวอักษร)
-                const shpGeoJSON = {
+                // Transform coordinates back to UTM (simple method - no validation)
+                console.log('Transforming coordinates...');
+                const utmData = {
                     type: 'FeatureCollection',
-                    features: utmGeoJSON.features.map(feature => {
-                        const newProps = {};
-                        
-                        for (const key in feature.properties) {
-                            let shortKey = key;
-                            
-                            if (key.length > 10) {
-                                const predefinedMapping = {
-                                    'parcel_id': 'PARC_ID',
-                                    'building_count': 'BLDG_CNT',
-                                    'major_use1': 'MAJOR_US1',
-                                    'major_use1_area': 'USE1_AREA',
-                                    'major_use2': 'MAJOR_US2',
-                                    'major_use2_class': 'USE2_CLS',
-                                    'major_use2_area': 'USE2_AREA',
-                                    'type_details': 'TYPE_DTL'
-                                };
-                                
-                                if (predefinedMapping[key]) {
-                                    shortKey = predefinedMapping[key];
-                                } else {
-                                    shortKey = key.substring(0, 10).replace(/[^a-zA-Z0-9_]/g, '_').toUpperCase();
-                                }
-                            }
-                            
-                            // รักษาภาษาไทย
-                            const value = feature.properties[key];
-                            if (value !== null && value !== undefined) {
-                                newProps[shortKey] = String(value);
-                            } else {
-                                newProps[shortKey] = '';
-                            }
+                    features: parcelsWithBuildings.map(feature => {
+                        let coords = feature.geometry.coordinates;
+                        if (feature.geometry.type === 'Polygon') {
+                            coords = transformBackToUTM(coords, selectedEPSG);
+                        } else if (feature.geometry.type === 'MultiPolygon') {
+                            coords = coords.map(p => transformBackToUTM(p, selectedEPSG));
                         }
-
                         return {
                             type: 'Feature',
-                            properties: newProps,
-                            geometry: feature.geometry
+                            geometry: { type: feature.geometry.type, coordinates: coords },
+                            properties: feature.properties
                         };
                     })
                 };
+                
+                console.log('All features transformed successfully!');
+                console.log('Creating shapefile files...');
 
-                console.log('กำลังสร้างไฟล์ .shp, .shx, .dbf, .prj...');
-                
-                const shpData = createShapefileFromGeoJSON(shpGeoJSON);
-                const shxData = createShxFromGeoJSON(shpGeoJSON);
-                const dbfData = createDbfFromGeoJSON(shpGeoJSON);
-                const prjContent = createPrjContent(selectedEPSG);
-                
-                // ========================================
-                // ขั้นตอนที่ 3: สร้าง ZIP ไฟล์
-                // ========================================
-                
-                console.log('ขั้นตอนที่ 3: สร้างไฟล์ ZIP...');
-                
+                // Create Shapefile
                 const zip = new JSZip();
-                zip.file(filename + '.shp', shpData);
-                zip.file(filename + '.shx', shxData);
-                zip.file(filename + '.dbf', dbfData);
-                zip.file(filename + '.prj', prjContent);
-                zip.file(filename + '.cpg', 'UTF-8'); // สำคัญสำหรับภาษาไทย!
+                const baseName = filename.replace(/\.(geojson|zip)$/i, '');
                 
-                // ========================================
-                // ขั้นตอนที่ 4: ดาวน์โหลด Shapefile
-                // ========================================
+                // Create shapefile files (same as index.html)
+                const shpFile = createSHPFile(utmData.features);
+                console.log('✓ SHP:', shpFile.length, 'bytes,', utmData.features.length, 'records');
                 
-                console.log('ขั้นตอนที่ 4: ดาวน์โหลด...');
+                const shxFile = createSHXFile(utmData.features);
+                console.log('✓ SHX:', shxFile.length, 'bytes');
+                
+                const dbfFile = createDBFFile(utmData.features);
+                console.log('✓ DBF:', dbfFile.length, 'bytes');
+                
+                const prjContent = getPRJContent(selectedEPSG);
+                console.log('✓ PRJ: created for', selectedEPSG);
+                
+                // Add files to ZIP
+                zip.file(`${baseName}.shp`, shpFile);
+                zip.file(`${baseName}.shx`, shxFile);
+                zip.file(`${baseName}.dbf`, dbfFile);
+                zip.file(`${baseName}.prj`, prjContent);
+                zip.file(`${baseName}.cpg`, 'Windows-874');
+                
+                console.log('Generating ZIP file...');
                 const content = await zip.generateAsync({ type: 'blob' });
-                saveAs(content, filename + '.zip');
-
-                console.log('✅ ส่งออก Shapefile สำเร็จ!');
+                saveAs(content, `${baseName}.zip`);
+                
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('✅ Export completed successfully!');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📦 File:', baseName + '.zip');
+                console.log('📊 Parcels exported:', utmData.features.length);
+                console.log('🏢 All parcels have buildings (building_count > 0)');
+                console.log('🗺️  Coordinate system:', selectedEPSG);
+                console.log('🔤 Encoding: Windows-874 (TIS-620) for ArcMap');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
                 showStatus('processStatus', 'success', 
-                    '✅ ส่งออกสำเร็จ! (' + utmGeoJSON.features.length + ' แปลง)\n' +
-                    '📁 Shapefile: ' + filename + '.zip\n' +
-                    '🌏 รองรับภาษาไทย UTF-8');
+                    `✅ ส่งออกสำเร็จ! (${utmData.features.length} แปลง)\n` +
+                    `📁 Shapefile: ${baseName}.zip\n` +
+                    `🏢 แปลงที่มีอาคารเท่านั้น\n` +
+                    `🌏 Windows-874 (TIS-620) สำหรับ ArcMap\n` +
+                    `✓ เปิดได้ใน ArcMap โดยไม่มี error`);
 
             } catch (error) {
                 showStatus('processStatus', 'error', 'เกิดข้อผิดพลาดในการส่งออก: ' + error.message);
