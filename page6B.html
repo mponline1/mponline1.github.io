@@ -26,76 +26,72 @@
         padding-top: var(--header-height);
     }
 
-    /* Header Structure */
+    /* ==== Modern Header ==== */
+    
     .mapraw-header {
-        background: var(--primary-gradient);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        z-index: 1000;
-        font-family: 'Prompt', sans-serif;
         height: var(--header-height);
-    }
-    
-    .mapraw-header-content {
-        max-width: 100%;
-        margin: 0 auto;
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 20px;
-        height: 100%;
+        padding: 0 30px;
+        box-sizing: border-box;
+    }
+
+    .mapraw-header-content {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
     
-    /* Logo Section */
     .mapraw-logo-section {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        flex-shrink: 0;
-        padding-right: 15px;
+        gap: 2px;
     }
     
     .mapraw-logo-main {
         color: var(--text-white);
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         font-weight: 700;
         margin: 0;
-        line-height: 1;
-        white-space: nowrap;
+        line-height: 1.2;
+        font-family: 'Prompt', sans-serif;
     }
-    
+
     .mapraw-logo-main span {
         color: var(--text-yellow);
-        text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
     }
     
     .mapraw-page-title {
-        color: #e3f2fd;
-        font-size: 1rem;
-        font-weight: 400;
-        margin: 2px 0 0 0;
-        white-space: nowrap;
+        color: var(--text-yellow);
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin: 0;
+        line-height: 1;
+        font-family: 'Prompt', sans-serif;
     }
     
-    /* Navigation Section */
     .mapraw-nav {
         display: flex;
-        gap: 8px;
         align-items: center;
-        height: 100%;
+        gap: 8px;
     }
     
     .mapraw-nav-item {
         position: relative;
-        height: 100%;
         display: flex;
         align-items: center;
+        height: var(--header-height);
     }
     
-    /* Buttons */
     .mapraw-nav-btn {
         background: var(--bg-glass);
         color: white;
@@ -306,84 +302,6 @@
                 min-height: 100vh;
             }
     
-            .header {
-                background-color: white;
-                padding: 1rem 2rem;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-    
-            .title-section {
-                display: flex;
-                flex-direction: column;
-            }
-    
-            .title-section h1 {
-                margin: 0;
-                color: #FF4B55;
-                font-size: 24px;
-                font-weight: bold;
-            }
-    
-            .title-section h2 {
-                margin: 0;
-                font-size: 18px;
-                color: #FF4B55;
-            }
-    
-            .nav-buttons {
-                display: flex;
-                gap: 1rem;
-                align-items: center;
-            }
-    
-            .nav-button {
-                padding: 0.5rem 1.5rem;
-                border-radius: 25px;
-                border: none;
-                color: white;
-                cursor: pointer;
-                font-family: 'Sarabun', sans-serif;
-                font-size: 16px;
-                text-decoration: none;
-                text-align: center;
-                font-weight: 500;
-            }
-    
-            .reclass-button, .prepare-button {
-                background-color: #FF4B55;
-                min-width: 120px;
-                transition: background-color 0.3s ease;
-            }
-    
-            .reclass-button:hover, .prepare-button:hover {
-                background-color: #ff3340;
-            }
-    
-            .home-button {
-                background-color: #FF4B55;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 0;
-                transition: background-color 0.3s ease;
-            }
-    
-            .home-button:hover {
-                background-color: #ff303a;
-            }
-    
-            .home-icon {
-                color: white;
-                font-size: 24px;
-                line-height: 1;
-            }
-    
             .manual-section {
                 margin: 2rem;
                 display: flex;
@@ -413,45 +331,246 @@
                 border-radius: 8px;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
+
+            /* ส่วนแนะนำการเตรียมข้อมูล */
+            .preparation-section {
+                background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+                border-left: 5px solid #1976d2;
+                padding: 2rem;
+                margin-bottom: 2.5rem;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+            }
+
+            .preparation-section h3 {
+                color: #1565c0;
+                margin: 0 0 1.5rem 0;
+                font-size: 1.4rem;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .preparation-section h3::before {
+                content: "📋";
+                font-size: 1.6rem;
+            }
+
+            .prep-steps {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                gap: 1.25rem;
+            }
+
+            .prep-step {
+                background: white;
+                padding: 1.5rem;
+                border-radius: 10px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                transition: all 0.3s ease;
+                border: 2px solid transparent;
+            }
+
+            .prep-step:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+                border-color: #1976d2;
+            }
+
+            .prep-step-title {
+                font-weight: 700;
+                color: #1976d2;
+                margin-bottom: 0.75rem;
+                font-size: 1.1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .prep-step:nth-child(1) .prep-step-title::before {
+                content: "1️⃣";
+                font-size: 1.2rem;
+            }
+
+            .prep-step:nth-child(2) .prep-step-title::before {
+                content: "2️⃣";
+                font-size: 1.2rem;
+            }
+
+            .prep-step-desc {
+                color: #555;
+                font-size: 0.95rem;
+                margin-bottom: 1rem;
+                line-height: 1.6;
+            }
+
+            .prep-button {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1.5rem;
+                background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                text-decoration: none;
+                font-family: 'Sarabun', sans-serif;
+                font-size: 0.95rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 3px 8px rgba(25, 118, 210, 0.3);
+            }
+
+            .prep-button:hover {
+                background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 5px 12px rgba(25, 118, 210, 0.4);
+            }
+
+            .prep-button::before {
+                content: "🔗";
+                font-size: 1.1rem;
+            }
+
+            .prep-button.grid-button {
+                background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+                box-shadow: 0 3px 8px rgba(67, 160, 71, 0.3);
+            }
+
+            .prep-button.grid-button:hover {
+                background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+                box-shadow: 0 5px 12px rgba(67, 160, 71, 0.4);
+            }
+
+            .prep-note {
+                margin-top: 1.5rem;
+                padding: 1rem 1.25rem;
+                background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+                border-left: 4px solid #ffa726;
+                border-radius: 8px;
+                font-size: 0.95rem;
+                color: #e65100;
+                box-shadow: 0 2px 6px rgba(255, 167, 38, 0.15);
+            }
+
+            .prep-note strong {
+                color: #bf360c;
+                font-weight: 700;
+            }
+
+            /* ส่วนนำเข้าข้อมูล - ปรับปรุงใหม่ */
+            .upload-section {
+                background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+                border-left: 5px solid #8e24aa;
+                padding: 2rem;
+                margin-bottom: 2rem;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(142, 36, 170, 0.15);
+            }
+
+            .upload-section h3 {
+                color: #7b1fa2;
+                margin: 0 0 1.5rem 0;
+                font-size: 1.3rem;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .upload-section h3::before {
+                content: "📤";
+                font-size: 1.5rem;
+            }
     
             .input-group {
                 margin-bottom: 1.5rem;
+                background: white;
+                padding: 1.25rem;
+                border-radius: 10px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+                transition: all 0.3s ease;
+            }
+
+            .input-group:hover {
+                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+                transform: translateY(-2px);
             }
     
             .input-group label {
                 display: block;
-                margin-bottom: 0.5rem;
-                font-weight: 500;
-                color: #333;
+                margin-bottom: 0.75rem;
+                font-weight: 600;
+                color: #7b1fa2;
+                font-size: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .input-group label::before {
+                font-size: 1.2rem;
+            }
+
+            .input-group:nth-child(2) label::before {
+                content: "🏢";
+            }
+
+            .input-group:nth-child(3) label::before {
+                content: "🗺️";
+            }
+
+            .input-group:nth-child(4) label::before {
+                content: "👨‍👩‍👧‍👦";
             }
     
             input[type="file"], 
             input[type="number"],
             select {
                 width: 100%;
-                padding: 0.5rem;
-                border: 1px solid #ddd;
-                border-radius: 4px;
+                padding: 0.75rem;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
                 font-family: 'Sarabun', sans-serif;
+                font-size: 1rem;
+                transition: all 0.3s ease;
+                background: white;
+            }
+
+            input[type="file"]:hover,
+            input[type="number"]:hover {
+                border-color: #8e24aa;
+            }
+
+            input[type="file"]:focus,
+            input[type="number"]:focus {
+                outline: none;
+                border-color: #7b1fa2;
+                box-shadow: 0 0 0 3px rgba(123, 31, 162, 0.1);
             }
     
             input[type="number"] {
-                width: 200px;
+                width: 100%;
+                max-width: 250px;
             }
     
             .filter-section {
                 margin-top: 1.5rem;
-                padding: 1rem;
-                background-color: #f8f9fa;
-                border-radius: 4px;
-                border: 1px solid #ddd;
+                padding: 1.5rem;
+                background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+                border-radius: 10px;
+                border: 2px solid #fb8c00;
+                box-shadow: 0 3px 8px rgba(251, 140, 0, 0.15);
             }
     
             .filter-section label {
                 display: block;
-                margin-bottom: 0.5rem;
-                font-weight: 500;
-                color: #333;
+                margin-bottom: 1rem;
+                font-weight: 600;
+                color: #e65100;
+                font-size: 1.05rem;
             }
 
             .checkbox-container {
@@ -465,10 +584,17 @@
                 display: flex;
                 align-items: center;
                 margin-right: 15px;
+                background: white;
+                padding: 0.5rem 0.75rem;
+                border-radius: 6px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             }
 
             .checkbox-item input[type="checkbox"] {
                 margin-right: 5px;
+                width: 18px;
+                height: 18px;
+                cursor: pointer;
             }
     
             .button-container {
@@ -476,34 +602,45 @@
                 gap: 1rem;
                 justify-content: center;
                 margin-top: 2rem;
+                flex-wrap: wrap;
             }
     
             .action-button {
-                padding: 0.75rem 2rem;
-                border-radius: 4px;
+                padding: 1rem 2.5rem;
+                border-radius: 10px;
                 border: none;
                 color: white;
                 cursor: pointer;
                 font-family: 'Sarabun', sans-serif;
-                font-size: 16px;
-                font-weight: 500;
-                transition: background-color 0.3s ease;
+                font-size: 1.05rem;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            }
+
+            .action-button:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+            }
+
+            .action-button:active {
+                transform: translateY(-1px);
             }
     
             .process-button {
-                background-color: #007bff;
+                background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
             }
     
             .process-button:hover {
-                background-color: #0056b3;
+                background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
             }
     
             .export-button {
-                background-color: #28a745;
+                background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
             }
     
             .export-button:hover {
-                background-color: #218838;
+                background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
             }
 
             .progress-container {
@@ -629,18 +766,6 @@
             }
     
             @media (max-width: 768px) {
-                .header {
-                    padding: 1rem;
-                    flex-direction: column;
-                    gap: 1rem;
-                    text-align: center;
-                }
-    
-                .nav-buttons {
-                    flex-wrap: wrap;
-                    justify-content: center;
-                }
-    
                 .content {
                     margin: 1rem;
                     padding: 1rem;
@@ -653,9 +778,21 @@
                 .action-button {
                     width: 100%;
                 }
-    
-                input[type="number"] {
-                    width: 100%;
+
+                .prep-steps {
+                    grid-template-columns: 1fr;
+                }
+
+                .preparation-section {
+                    padding: 1.5rem;
+                }
+
+                .upload-section {
+                    padding: 1.5rem;
+                }
+
+                .input-group {
+                    padding: 1rem;
                 }
             }
         </style>
@@ -765,31 +902,57 @@
         </a>
     
         <div class="content">
-            <div class="input-group">
-                <label>ไฟล์อาคาร (Excel):</label>
-                <input type="file" id="buildingFile" accept=".xlsx,.xls">
+            <!-- ส่วนแนะนำการเตรียมข้อมูล -->
+            <div class="preparation-section">
+                <h3>การเตรียมข้อมูลก่อนนำเข้า</h3>
+                <div class="prep-steps">
+                    <!-- ขั้นตอนที่ 1: สร้างกริดและใส่หมายเลขกริดลงในอาคาร -->
+                    <div class="prep-step">
+                        <div class="prep-step-title">สร้างกริดและใส่หมายเลขกริดลงในอาคาร</div>
+                        <div class="prep-step-desc">
+                            สร้างกริดตามขนาดที่ต้องการ ระบบจะช่วยในการสร้างกริดและกำหนดหมายเลขกริดลงในไฟล์อาคารโดยอัตโนมัติ
+                        </div>
+                        <a href="https://mponline1.github.io/page6C.html" target="_blank" class="prep-button grid-button">
+                            เข้าสู่ระบบสร้างกริดและใส่หมายเลขกริด
+                        </a>
+                    </div>
+                </div>
+
+                <div class="prep-note">
+                    <strong>📌 หมายเหตุ:</strong> กรุณาเตรียมข้อมูลให้ครบถ้วนก่อนนำข้อมูลอาคารและข้อมูลกริดมาใช้ในระบบนี้ เพื่อให้การคำนวณประชากรมีความแม่นยำ ไฟล์อาคารต้องมีหมายเลขกริด (PL_BLOCK) ส่วนไฟล์กริดต้องมีมีหมายเลขกริด (PL_BLOCK) และพื้นที่ไร่ (AREA_rai) ที่ถูกต้อง
+                </div>
             </div>
-    
-            <div class="input-group">
-                <label>ไฟล์กริด (Excel):</label>
-                <input type="file" id="plluFile" accept=".xlsx,.xls">
-            </div>
-    
-            <div class="input-group">
-                <label>ขนาดครัวเรือนเฉลี่ย:</label>
-                <input type="number" id="householdSize" value="3.0" step="0.01">
+
+            <!-- ส่วนนำเข้าข้อมูล -->
+            <div class="upload-section">
+                <h3>นำเข้าข้อมูลสำหรับการคำนวณ</h3>
+                
+                <div class="input-group">
+                    <label>ไฟล์อาคาร (Excel):</label>
+                    <input type="file" id="buildingFile" accept=".xlsx,.xls">
+                </div>
+        
+                <div class="input-group">
+                    <label>ไฟล์กริด (Excel):</label>
+                    <input type="file" id="plluFile" accept=".xlsx,.xls">
+                </div>
+        
+                <div class="input-group">
+                    <label>ขนาดครัวเรือนเฉลี่ย:</label>
+                    <input type="number" id="householdSize" value="3.0" step="0.01">
+                </div>
             </div>
     
             <div class="filter-section">
-                <label>กรองตามรหัสการใช้ประโยชน์อาคาร (BL_USE):</label>
+                <label>🔍 กรองตามรหัสการใช้ประโยชน์อาคาร (BL_USE):</label>
                 <button id="selectAll" class="action-button process-button" style="padding: 5px 10px; margin-left: 10px;">เลือกทั้งหมด</button>
                 <button id="clearAll" class="action-button" style="padding: 5px 10px; margin-left: 10px; background-color: #dc3545;">ล้างทั้งหมด</button>
                 <div id="blUseCheckboxes" class="checkbox-container"></div>
             </div>
     
             <div class="button-container">
-                <button onclick="processData()" class="action-button process-button">Calculate</button>
-                <button onclick="exportToExcel()" class="action-button export-button">นำออกผลการคำนวณประชากร(Excel)</button>
+                <button onclick="processData()" class="action-button process-button">🔄 Calculate</button>
+                <button onclick="exportToExcel()" class="action-button export-button">📥 นำออกผลการคำนวณประชากร (Excel)</button>
             </div>
 
             <div class="progress-container" id="progressContainer">
@@ -832,14 +995,14 @@
                             <th>ประชากร</th>
                             <th>จำนวนอาคาร</th>
                             <th>ประชากร</th>
-                            <th>จำนวนอาคาร</th>
-                            <th>จำนวนห้อง</th>
+                            <th>ชั้น</th>
+                            <th>จำนวนหน่วย</th>
                             <th>ประชากร</th>
                             <th>จำนวนอาคาร</th>
                             <th>ประชากร</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody id="resultBody"></tbody>
                 </table>
             </div>
         </div>
@@ -869,6 +1032,7 @@ const _0x383122=_0x1673;function _0x146b(){const _0x3cde93=['change','checked','
             menuBtn.classList.remove('active');
         }
     });
-</script>  
+</script> 
+<script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script> 
 </body>
 </html>
