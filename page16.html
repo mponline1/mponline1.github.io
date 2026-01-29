@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบวาดรูปการใช้ที่ดินอัตโนมัติ</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Sarabun', sans-serif; background: #f5f5f5; }
+        .container { display: flex; height: 100vh; }
+        .sidebar { width: 400px; background: white; padding: 20px; overflow-y: auto; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+        h1 { font-size: 20px; margin-bottom: 20px; color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .section { margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db; }
+        .section-title { font-weight: bold; margin-bottom: 12px; color: #2c3e50; font-size: 16px; }
+        .file-input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; }
+        input[type="file"] { width: 100%; padding: 8px; border: 2px dashed #3498db; border-radius: 5px; background: white; cursor: pointer; }
+        input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: white; font-size: 14px; }
+        input[type="number"]:focus { outline: none; border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+        select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: white; margin-bottom: 10px; }
+        button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.3s; }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .urban-config { background: white; padding: 12px; border-radius: 5px; margin-top: 10px; }
+        .value-list { max-height: 150px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-bottom: 10px; background: #f9f9f9; }
+        .value-item { display: flex; align-items: center; padding: 5px; margin-bottom: 5px; background: white; border-radius: 3px; }
+        .value-item input[type="checkbox"] { margin-right: 8px; }
+        #map { flex: 1; height: 100vh; }
+        .status { padding: 10px; margin-top: 10px; border-radius: 5px; font-size: 13px; display: none; font-weight: 500; }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        #processingProgress { background: linear-gradient(90deg, #e8f4f8 0%, #d1ecf1 100%); color: #0c5460; border-left: 4px solid #3498db; padding: 12px; font-weight: 500; border-radius: 5px; margin-top: 10px; animation: pulse 1.5s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .legend { background: white; padding: 15px; border-radius: 5px; margin-top: 10px; max-height: 400px; overflow-y: auto; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+        .legend-color { width: 30px; height: 20px; border: 1px solid #333; margin-right: 10px; border-radius: 3px; }
+        .layer-item { display: flex; align-items: center; padding: 8px; margin-bottom: 5px; background: #f8f9fa; border-radius: 4px; transition: background 0.2s; }
+        .layer-item:hover { background: #e9ecef; }
+        .layer-item input[type="checkbox"] { margin-right: 10px; cursor: pointer; }
+        .layer-item label { cursor: pointer; user-select: none; flex: 1; }
+        .summary { background: white; padding: 12px; border-radius: 5px; margin-top: 10px; }
+        .summary-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+        .summary-item:last-child { border-bottom: none; }
+        .loading { display: none; text-align: center; padding: 10px; color: #3498db; }
+        .loading.active { display: block; }
+        
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+            transition: background 0.2s;
+        }
+        .layer-item:hover {
+            background: #f8f9fa;
+        }
+        .layer-item input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+        .layer-item label {
+            cursor: pointer;
+            user-select: none;
+            flex: 1;
+        }
+        
+        #showAllLayers, #hideAllLayers {
+            transition: all 0.2s;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        #showAllLayers:hover {
+            background: #229954 !important;
+            transform: translateY(-1px);
+        }
+        #hideAllLayers:hover {
+            background: #c0392b !important;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🗺️ ระบบวาดรูปการใช้ที่ดินอัตโนมัติ</h1>
+
+            <div class="section">
+                <div class="section-title">1. เลือกระบบพิกัดพื้นฐาน</div>
+                <label>ระบบพิกัดของข้อมูล:</label>
+                <select id="epsgSelect">
+                    <option value="EPSG:32647">WGS84 UTM Zone 47N (EPSG:32647)</option>
+                    <option value="EPSG:32648">WGS84 UTM Zone 48N (EPSG:32648)</option>
+                </select>
+            </div>
+
+            <div class="section">
+                <div class="section-title">2. นำเข้าไฟล์ Shapefile (ZIP)</div>
+                <div class="file-input-group">
+                    <label>📁 ไฟล์อาคาร (.zip)</label>
+                    <input type="file" id="buildingFiles" accept=".zip">
+                </div>
+                <div class="file-input-group">
+                    <label>📁 ไฟล์แปลงที่ดิน (.zip)</label>
+                    <input type="file" id="parcelFiles" accept=".zip">
+                </div>
+                <div style="font-size: 12px; color: #555; margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border-left: 3px solid #3498db;">
+                    💡 <strong>รองรับภาษาไทย:</strong> ระบบจะอ่าน encoding อัตโนมัติจาก .cpg หรือ DBF header<br>
+                    📌 รองรับ: UTF-8, TIS-620, CP874, windows-874<br>
+                    ✅ สามารถแสดงผลภาษาไทยได้ถูกต้องในทุกส่วนของเว็บ
+                </div>
+                <button id="loadFiles">โหลดไฟล์</button>
+                <div class="loading" id="loading">กำลังโหลดไฟล์...</div>
+                <div id="loadStatus"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">3. เลือก Field</div>
+                <label>Field ประเภทการใช้ที่ดิน:</label>
+                <select id="landUseField" disabled>
+                    <option value="">-- เลือก Field --</option>
+                </select>
+                <label>Field พื้นที่เมือง:</label>
+                <select id="urbanField" disabled>
+                    <option value="">-- เลือก Field --</option>
+                </select>
+            </div>
+
+            <div class="section" id="urbanConfigSection" style="display: none;">
+                <div class="section-title">4. กำหนดค่าพื้นที่เมือง</div>
+                <div class="urban-config">
+                    <label style="color: #2c3e50; font-weight: bold;">เลือกค่าที่เป็น "เมือง":</label>
+                    <div class="value-list" id="urbanValueList"></div>
+                    <div class="summary" id="urbanSummary">
+                        <div style="font-weight: bold; margin-bottom: 8px; color: #2c3e50;">สรุป:</div>
+                        <div class="summary-item">
+                            <span>✅ เมือง:</span>
+                            <span id="urbanCount" style="color: #27ae60; font-weight: bold;">0 ค่า</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>🏡 ชนบท:</span>
+                            <span id="ruralCount" style="color: #e67e22; font-weight: bold;">0 ค่า</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">5. ตั้งค่าการประมวลผล</div>
+                
+                <label>เปอร์เซ็นต์ขั้นต่ำสำหรับใช้แปลงทั้งแปลง (%):</label>
+                <input type="number" id="coverageThreshold" min="0" max="100" value="20" step="1" 
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px;">
+                <div style="font-size: 12px; color: #555; margin-bottom: 15px;">
+                    💡 ถ้า<strong>ร้อยละอาคารปกคลุมดิน</strong> ≥ ค่าที่ตั้ง → ใช้แปลงทั้งแปลง<br>
+                    💡 ถ้า<strong>ร้อยละอาคารปกคลุมดิน</strong> < ค่าที่ตั้ง → Buffer แต่ละอาคาร<br>
+                    <span style="color: #27ae60;">⚡ ระบบปรับให้ทำงานคล่องแม้มี RAM 8GB</span>
+                </div>
+                
+                <button id="processBtn" disabled>🚀 ประมวลผลและวาดรูป</button>
+                <div class="loading" id="processing">กำลังประมวลผล...</div>
+                <div id="processingProgress" style="display: none; margin-top: 10px; padding: 10px; background: #e8f4f8; border-radius: 5px; font-size: 12px;"></div>
+                <div id="processStatus"></div>
+            </div>
+
+            <div class="section" id="exportSection" style="display: none;">
+                <div class="section-title">6. ส่งออกข้อมูล Shapefile (.zip)</div>
+                <button id="exportResidential" style="background: #f39c12;">💾 ส่งออกที่อยู่อาศัย</button>
+                <button id="exportCommercial" style="background: #e74c3c; margin-top: 8px;">💾 ส่งออกพาณิชยกรรม</button>
+                <button id="exportIndustrial" style="background: #9b59b6; margin-top: 8px;">💾 ส่งออกอุตสาหกรรม</button>
+                <button id="exportAll" style="background: #27ae60; margin-top: 8px;">💾 ส่งออกทั้งหมด</button>
+                <div style="margin-top: 10px; padding: 8px; background: #fff3cd; border-radius: 5px; font-size: 12px; color: #856404;">
+                    📌 ระบบพิกัด: <span id="exportEPSG" style="font-weight: bold;"></span><br>
+                    📌 เกณฑ์ร้อยละอาคารปกคลุมดิน: <span id="exportThreshold" style="font-weight: bold;"></span>
+                </div>
+            </div>
+
+            <div class="legend" id="legend" style="display: none;">
+                <div style="font-weight: bold; margin-bottom: 10px;">สัญลักษณ์:</div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFFF00; border-color: #8B4513; border-width: 2px;"></div>
+                    <span>ที่อยู่อาศัย (แปลงเมือง ≥ เกณฑ์)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFFF00; border-color: #FFA500;"></div>
+                    <span>ที่อยู่อาศัย (Buffer เมือง < เกณฑ์ / ชนบท)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF0000; border-color: #8B4513; border-width: 2px;"></div>
+                    <span>พาณิชยกรรม (แปลงเมือง ≥ เกณฑ์)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF0000; border-color: #8B0000;"></div>
+                    <span>พาณิชยกรรม (Buffer เมือง < เกณฑ์ / ชนบท)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #9370DB; border-color: #8B4513; border-width: 2px;"></div>
+                    <span>อุตสาหกรรม (แปลงเมือง ≥ เกณฑ์)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #9370DB; border-color: #4B0082;"></div>
+                    <span>อุตสาหกรรม (Buffer เมือง < เกณฑ์ / ชนบท)</span>
+                </div>
+                
+                <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+                    <div style="font-weight: bold; margin-bottom: 5px; color: #856404;">💡 คำอธิบาย:</div>
+                    <div style="font-size: 12px; color: #856404; line-height: 1.6;">
+                        <strong>≥ เกณฑ์:</strong> ร้อยละอาคารปกคลุมดิน ≥ เกณฑ์% → ใช้แปลงทั้งแปลง (ขอบน้ำตาล)<br>
+                        <strong>< เกณฑ์:</strong> ร้อยละอาคารปกคลุมดิน < เกณฑ์% → Buffer แต่ละอาคาร (ขอบสีตามประเภท)<br>
+                        <strong>ชนบท:</strong> Buffer ทุกอาคาร
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layer Control -->
+            <div class="legend" id="layerControl" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px;">
+                    <div style="font-weight: bold;">🗂️ จัดการชั้นข้อมูล</div>
+                    <div style="display: flex; gap: 5px;">
+                        <button id="showAllLayers" style="padding: 4px 8px; font-size: 11px; background: #27ae60;">เปิดทั้งหมด</button>
+                        <button id="hideAllLayers" style="padding: 4px 8px; font-size: 11px; background: #e74c3c;">ปิดทั้งหมด</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <div style="font-weight: bold; margin-bottom: 8px; color: #555; font-size: 14px;">📁 ข้อมูลต้นฉบับ</div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="toggleBuildings" checked>
+                        <label for="toggleBuildings" style="margin: 0; cursor: pointer;">
+                            <span style="color: #FF69B4; font-weight: bold;">■</span> อาคาร
+                        </label>
+                    </div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="toggleParcels" checked>
+                        <label for="toggleParcels" style="margin: 0; cursor: pointer;">
+                            <span style="color: #8B4513; font-weight: bold;">■</span> แปลงที่ดิน
+                        </label>
+                    </div>
+                </div>
+
+                <div id="resultLayersSection" style="display: none;">
+                    <div style="font-weight: bold; margin-bottom: 8px; color: #555; font-size: 14px;">📊 ผลลัพธ์</div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="toggleResidential" checked>
+                        <label for="toggleResidential" style="margin: 0; cursor: pointer;">
+                            <span style="color: #FFFF00; background: #333; padding: 2px 4px; border-radius: 2px;">■</span> ที่อยู่อาศัย
+                        </label>
+                    </div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="toggleCommercial" checked>
+                        <label for="toggleCommercial" style="margin: 0; cursor: pointer;">
+                            <span style="color: #FF0000; font-weight: bold;">■</span> พาณิชยกรรม
+                        </label>
+                    </div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="toggleIndustrial" checked>
+                        <label for="toggleIndustrial" style="margin: 0; cursor: pointer;">
+                            <span style="color: #9370DB; font-weight: bold;">■</span> อุตสาหกรรม
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/shpjs@5.0.1/dist/shp.min.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        proj4.defs("EPSG:32647", "+proj=utm +zone=47 +datum=WGS84 +units=m +no_defs");
+        proj4.defs("EPSG:32648", "+proj=utm +zone=48 +datum=WGS84 +units=m +no_defs");
+
+        let map, buildingData = null, parcelData = null, buildingLayer = null, parcelLayer = null;
+        let residentialLayer = null, commercialLayer = null, industrialLayer = null;
+        let urbanConfig = { urban: [], rural: [] };
+
+        function initMap() {
+            map = L.map('map').setView([13.7563, 100.5018], 6);
+            L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                attribution: '© Google',
+                maxZoom: 20
+            }).addTo(map);
+        }
+
+        function transformCoordinates(coords, sourceProj) {
+            if (!sourceProj || sourceProj === 'EPSG:4326') return coords;
+            const transform = (coord) => {
+                if (Array.isArray(coord[0])) return coord.map(c => transform(c));
+                const [lon, lat] = proj4(sourceProj, 'EPSG:4326', coord);
+                return [lon, lat];
+            };
+            return transform(coords);
+        }
+
+        function transformBackToUTM(coords, targetEPSG) {
+            if (!targetEPSG || targetEPSG === 'EPSG:4326') return coords;
+            const transform = (coord) => {
+                if (Array.isArray(coord[0])) return coord.map(c => transform(c));
+                const [x, y] = proj4('EPSG:4326', targetEPSG, coord);
+                return [x, y];
+            };
+            return transform(coords);
+        }
+
+        async function loadShapefile(zipFile, selectedEPSG) {
+            const zip = await JSZip.loadAsync(zipFile);
+            let shpBuffer, dbfBuffer, cpgEncoding = null;
+            
+            // อ่านไฟล์ทั้งหมดใน ZIP
+            for (let filename in zip.files) {
+                const file = zip.files[filename];
+                const lowerName = filename.toLowerCase();
+                if (lowerName.endsWith('.shp')) {
+                    shpBuffer = await file.async('arraybuffer');
+                } else if (lowerName.endsWith('.dbf')) {
+                    dbfBuffer = await file.async('arraybuffer');
+                } else if (lowerName.endsWith('.cpg')) {
+                    // อ่าน encoding จาก .cpg file
+                    const cpgText = await file.async('string');
+                    cpgEncoding = cpgText.trim();
+                }
+            }
+            
+            if (!shpBuffer || !dbfBuffer) throw new Error('ไฟล์ zip ต้องมี .shp และ .dbf');
+            
+            // ถ้าไม่มี .cpg ให้ตรวจสอบ encoding จาก DBF header
+            if (!cpgEncoding) {
+                const dbfView = new DataView(dbfBuffer);
+                const languageDriver = dbfView.getUint8(29);
+                
+                // Language driver byte (offset 29) บอก encoding
+                if (languageDriver === 0x03 || languageDriver === 0x57) {
+                    cpgEncoding = 'UTF-8';
+                } else if (languageDriver === 0x7C) {
+                    cpgEncoding = 'windows-874'; // Thai
+                } else {
+                    // Default ให้ลอง UTF-8 ก่อน
+                    cpgEncoding = 'UTF-8';
+                }
+            }
+            
+            console.log(`📖 อ่านไฟล์ Shapefile ด้วย encoding: ${cpgEncoding}`);
+            
+            // Parse shapefile โดยใช้ encoding ที่กำหนด
+            const geojson = await parseShapefileWithEncoding(shpBuffer, dbfBuffer, cpgEncoding);
+
+            // Transform coordinates ถ้าจำเป็น
+            if (selectedEPSG !== 'EPSG:4326') {
+                geojson.features.forEach(feature => {
+                    if (feature.geometry.type === 'Polygon') {
+                        feature.geometry.coordinates = transformCoordinates(feature.geometry.coordinates, selectedEPSG);
+                    } else if (feature.geometry.type === 'MultiPolygon') {
+                        feature.geometry.coordinates = feature.geometry.coordinates.map(p => transformCoordinates(p, selectedEPSG));
+                    }
+                });
+            }
+            
+            // เพิ่มข้อมูล encoding ที่ใช้
+            geojson.encoding = cpgEncoding;
+            
+            return geojson;
+        }
+
+        async function parseShapefileWithEncoding(shpBuffer, dbfBuffer, encoding) {
+            // Parse geometry จาก SHP
+            const geometries = shp.parseShp(shpBuffer);
+            
+            // Parse attributes จาก DBF ด้วย custom parser ที่รองรับ encoding
+            const attributes = parseDbfWithEncoding(dbfBuffer, encoding);
+            
+            // Combine geometry และ attributes เป็น GeoJSON
+            const features = [];
+            for (let i = 0; i < Math.min(geometries.length, attributes.length); i++) {
+                features.push({
+                    type: 'Feature',
+                    geometry: geometries[i],
+                    properties: attributes[i]
+                });
+            }
+            
+            return {
+                type: 'FeatureCollection',
+                features: features
+            };
+        }
+
+        function parseDbfWithEncoding(buffer, encoding) {
+            const view = new DataView(buffer);
+            
+            // อ่าน DBF header
+            const recordCount = view.getUint32(4, true);
+            const headerLength = view.getUint16(8, true);
+            const recordLength = view.getUint16(10, true);
+            
+            // อ่าน field descriptors
+            const fields = [];
+            let offset = 32;
+            while (offset < headerLength - 1) {
+                const fieldName = getStringFromBuffer(buffer, offset, 11, 'ASCII').replace(/\0/g, '');
+                const fieldType = String.fromCharCode(view.getUint8(offset + 11));
+                const fieldLength = view.getUint8(offset + 16);
+                const decimalCount = view.getUint8(offset + 17);
+                
+                fields.push({
+                    name: fieldName,
+                    type: fieldType,
+                    length: fieldLength,
+                    decimal: decimalCount
+                });
+                offset += 32;
+            }
+            
+            // อ่าน records
+            const records = [];
+            offset = headerLength;
+            
+            // แปลง encoding สำหรับภาษาไทย
+            const actualEncoding = getActualEncoding(encoding);
+            
+            for (let i = 0; i < recordCount; i++) {
+                const record = {};
+                let fieldOffset = offset + 1; // Skip deletion flag
+                
+                for (const field of fields) {
+                    const rawValue = buffer.slice(fieldOffset, fieldOffset + field.length);
+                    let value;
+                    
+                    if (field.type === 'C') {
+                        // Character field - ใช้ encoding ที่กำหนด
+                        value = getStringFromBuffer(rawValue, 0, field.length, actualEncoding).trim();
+                    } else if (field.type === 'N' || field.type === 'F') {
+                        // Numeric field
+                        const str = getStringFromBuffer(rawValue, 0, field.length, 'ASCII').trim();
+                        value = str === '' ? null : parseFloat(str);
+                    } else if (field.type === 'L') {
+                        // Logical field
+                        const char = String.fromCharCode(view.getUint8(fieldOffset));
+                        value = char === 'T' || char === 't' || char === 'Y' || char === 'y';
+                    } else if (field.type === 'D') {
+                        // Date field
+                        value = getStringFromBuffer(rawValue, 0, field.length, 'ASCII').trim();
+                    } else {
+                        // Other types
+                        value = getStringFromBuffer(rawValue, 0, field.length, actualEncoding).trim();
+                    }
+                    
+                    record[field.name] = value;
+                    fieldOffset += field.length;
+                }
+                
+                records.push(record);
+                offset += recordLength;
+            }
+            
+            return records;
+        }
+
+        function getActualEncoding(encoding) {
+            // แปลง encoding name ให้เป็นรูปแบบที่ TextDecoder รองรับ
+            const encodingMap = {
+                'UTF-8': 'utf-8',
+                'UTF8': 'utf-8',
+                'TIS-620': 'windows-874',  // TIS-620 = CP874 = windows-874
+                'TIS620': 'windows-874',
+                'CP874': 'windows-874',
+                'WINDOWS-874': 'windows-874',
+                'ISO-8859-11': 'windows-874',
+                'THAI': 'windows-874'
+            };
+            
+            const upper = encoding.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            return encodingMap[upper] || 'utf-8';
+        }
+
+        function getStringFromBuffer(buffer, start, length, encoding) {
+            const bytes = new Uint8Array(buffer, start, length);
+            
+            try {
+                const decoder = new TextDecoder(encoding);
+                return decoder.decode(bytes);
+            } catch (e) {
+                // Fallback to UTF-8 if encoding not supported
+                console.warn(`Encoding ${encoding} not supported, using UTF-8`);
+                const decoder = new TextDecoder('utf-8');
+                return decoder.decode(bytes);
+            }
+        }
+
+        function updateBuildingColors(landUseField) {
+            if (!buildingLayer || !buildingData) return;
+            map.removeLayer(buildingLayer);
+            
+            buildingLayer = L.geoJSON(buildingData, {
+                style: (feature) => {
+                    const landUse = String(feature.properties[landUseField] || '');
+                    let color = '#FF69B4';
+                    if (landUse === '10' || landUse === '10.0') color = '#FFD700';
+                    else if (landUse === '20' || landUse === '20.0' || landUse === '41' || landUse === '41.0') color = '#FF0000';
+                    else if (landUse === '30' || landUse === '30.0' || landUse === '33' || landUse === '33.0') color = '#9370DB';
+                    return { color: color, weight: 2, fillOpacity: 0 };
+                },
+                onEachFeature: (feature, layer) => {
+                    const props = feature.properties;
+                    let popup = `<strong>อาคาร</strong><br>`;
+                    for (let key in props) popup += `${key}: ${props[key]}<br>`;
+                    layer.bindPopup(popup);
+                }
+            }).addTo(map);
+            buildingLayer.bringToFront();
+        }
+
+        function updateParcelColors(urbanField) {
+            if (!parcelLayer || !parcelData) return;
+            map.removeLayer(parcelLayer);
+            
+            parcelLayer = L.geoJSON(parcelData, {
+                style: (feature) => {
+                    const urbanValue = String(feature.properties[urbanField] || '');
+                    const isUrban = urbanConfig.urban.includes(urbanValue);
+                    return { color: isUrban ? '#8B4513' : '#000000', weight: isUrban ? 2 : 1, fillOpacity: 0 };
+                },
+                onEachFeature: (feature, layer) => {
+                    const props = feature.properties;
+                    let popup = `<strong>แปลงที่ดิน</strong><br>`;
+                    for (let key in props) popup += `${key}: ${props[key]}<br>`;
+                    layer.bindPopup(popup);
+                }
+            }).addTo(map);
+            parcelLayer.bringToBack();
+        }
+
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            element.className = `status ${type}`;
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        function updateUrbanSummary() {
+            document.getElementById('urbanCount').textContent = `${urbanConfig.urban.length} ค่า`;
+            document.getElementById('ruralCount').textContent = `${urbanConfig.rural.length} ค่า`;
+        }
+
+        function updateProgress(message) {
+            const progressDiv = document.getElementById('processingProgress');
+            progressDiv.style.display = 'block';
+            progressDiv.textContent = message;
+            console.log(message);
+        }
+
+        async function processAllLandUse() {
+            const landUseField = document.getElementById('landUseField').value;
+            const urbanField = document.getElementById('urbanField').value;
+
+            if (!buildingData || !parcelData || !landUseField || !urbanField) {
+                showStatus('processStatus', 'error', 'กรุณาเลือก Field ให้ครบถ้วน');
+                return;
+            }
+
+            // ล้าง status และ progress เก่า
+            document.getElementById('processStatus').style.display = 'none';
+            document.getElementById('processingProgress').style.display = 'none';
+            
+            document.getElementById('processing').classList.add('active');
+            document.getElementById('processBtn').disabled = true;
+
+            setTimeout(async () => {
+                try {
+                    const coverageThreshold = parseFloat(document.getElementById('coverageThreshold').value) || 20;
+                    updateProgress(`🚀 เริ่มการประมวลผล... (เกณฑ์ ${coverageThreshold}%)`);
+                    const startTime = performance.now();
+
+                    const results = {
+                        residential: { type: 'FeatureCollection', features: [] },
+                        commercial: { type: 'FeatureCollection', features: [] },
+                        industrial: { type: 'FeatureCollection', features: [] }
+                    };
+
+                    updateProgress('🏘️ ประมวลผลที่อยู่อาศัย...');
+                    await processLandUse(['10'], landUseField, urbanField, 3, results.residential);
+
+                    updateProgress('🏪 ประมวลผลพาณิชยกรรม...');
+                    await processLandUse(['20', '41'], landUseField, urbanField, 3, results.commercial);
+
+                    updateProgress('🏭 ประมวลผลอุตสาหกรรม...');
+                    await processIndustrial(landUseField, urbanField, results.industrial);
+
+                    updateProgress('🔧 แก้ไขพื้นที่ทับซ้อน...');
+                    await resolveOverlaps(results);
+
+                    updateProgress('🗺️ กำลังแสดงผลบนแผนที่...');
+                    
+                    window.residentialResult = results.residential;
+                    window.commercialResult = results.commercial;
+                    window.industrialResult = results.industrial;
+
+                    await displayResults(results.residential, results.commercial, results.industrial);
+
+                    // ซ่อน progress และแสดง success เมื่อเสร็จสมบูรณ์
+                    document.getElementById('processingProgress').style.display = 'none';
+                    
+                    const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+                    showStatus('processStatus', 'success', 
+                        `✅ สำเร็จ! ที่อยู่อาศัย: ${results.residential.features.length} | พาณิชย์: ${results.commercial.features.length} | อุตสาหกรรม: ${results.industrial.features.length} (ใช้เวลา ${duration} วินาที)`);
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.getElementById('processingProgress').style.display = 'none';
+                    showStatus('processStatus', 'error', `❌ ข้อผิดพลาด: ${error.message}`);
+                } finally {
+                    document.getElementById('processing').classList.remove('active');
+                    document.getElementById('processBtn').disabled = false;
+                }
+            }, 100);
+        }
+
+        async function processLandUse(landUseCodes, landUseField, urbanField, bufferDist, resultData) {
+            const coverageThreshold = parseFloat(document.getElementById('coverageThreshold').value) || 20;
+            const BATCH_SIZE = 100; // ประมวลผลทีละ 100 อาคาร
+            
+            const allCodes = [];
+            landUseCodes.forEach(code => {
+                allCodes.push(code);
+                allCodes.push(code + '.0');
+            });
+
+            const filtered = buildingData.features.filter(f => {
+                const landUse = String(f.properties[landUseField] || '');
+                return allCodes.includes(landUse);
+            });
+
+            const urbanBldg = filtered.filter(f => urbanConfig.urban.includes(String(f.properties[urbanField])));
+            const ruralBldg = filtered.filter(f => urbanConfig.rural.includes(String(f.properties[urbanField])));
+
+            const parcelMap = new Map();
+
+            // ประมวลผลอาคารเมืองแบบ batch
+            for (let i = 0; i < urbanBldg.length; i += BATCH_SIZE) {
+                const batch = urbanBldg.slice(i, i + BATCH_SIZE);
+                
+                for (const building of batch) {
+                    try {
+                        const centroid = turf.centroid(building);
+                        for (const parcel of parcelData.features) {
+                            try {
+                                const parcelPoly = turf.polygon(parcel.geometry.coordinates);
+                                if (turf.booleanPointInPolygon(centroid, parcelPoly)) {
+                                    const key = JSON.stringify(parcel.geometry.coordinates);
+                                    if (!parcelMap.has(key)) {
+                                        parcelMap.set(key, {
+                                            parcel: parcel,
+                                            buildings: [],
+                                            totalBL: 0,
+                                            area: turf.area(parcelPoly)
+                                        });
+                                    }
+                                    const data = parcelMap.get(key);
+                                    data.buildings.push(building);
+                                    data.totalBL += parseFloat(building.properties.BL_AREA || 0);
+                                    break;
+                                }
+                            } catch (e) {}
+                        }
+                    } catch (e) {}
+                }
+                
+                // ให้ browser หายใจ
+                if (i % (BATCH_SIZE * 3) === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+            }
+
+            // สร้าง features จาก parcel map
+            for (const [key, data] of parcelMap) {
+                const percent = (data.totalBL / data.area) * 100;
+                
+                if (percent >= coverageThreshold) {
+                    resultData.features.push({
+                        type: 'Feature',
+                        geometry: data.parcel.geometry,
+                        properties: {
+                            land_use: getLandUseType(allCodes[0]),
+                            area_type: 'urban',
+                            source: 'parcel_overlay',
+                            parcel_area: parseFloat(data.area.toFixed(2)),
+                            bl_area_total: parseFloat(data.totalBL.toFixed(2)),
+                            coverage_percent: parseFloat(percent.toFixed(2))
+                        }
+                    });
+                } else {
+                    for (const bldg of data.buildings) {
+                        try {
+                            const buffered = turf.buffer(bldg, bufferDist, { units: 'meters' });
+                            if (buffered) {
+                                resultData.features.push({
+                                    type: 'Feature',
+                                    geometry: buffered.geometry,
+                                    properties: {
+                                        land_use: getLandUseType(allCodes[0]),
+                                        area_type: 'urban_low_coverage',
+                                        source: 'building_buffer',
+                                        parcel_area: parseFloat(data.area.toFixed(2)),
+                                        bl_area_total: parseFloat(data.totalBL.toFixed(2)),
+                                        coverage_percent: parseFloat(percent.toFixed(2)),
+                                        bl_area: parseFloat(bldg.properties.BL_AREA || 0),
+                                        buffer_distance: bufferDist
+                                    }
+                                });
+                            }
+                        } catch (e) {}
+                    }
+                }
+            }
+
+            // ประมวลผลอาคารชนบทแบบ batch
+            for (let i = 0; i < ruralBldg.length; i += BATCH_SIZE) {
+                const batch = ruralBldg.slice(i, i + BATCH_SIZE);
+                
+                for (const building of batch) {
+                    try {
+                        const buffered = turf.buffer(building, bufferDist, { units: 'meters' });
+                        if (buffered) {
+                            resultData.features.push({
+                                type: 'Feature',
+                                geometry: buffered.geometry,
+                                properties: {
+                                    land_use: getLandUseType(allCodes[0]),
+                                    area_type: 'rural',
+                                    source: 'building_buffer',
+                                    bl_area: parseFloat(building.properties.BL_AREA || 0),
+                                    buffer_distance: bufferDist
+                                }
+                            });
+                        }
+                    } catch (e) {}
+                }
+                
+                // ให้ browser หายใจ
+                if (i % (BATCH_SIZE * 3) === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+            }
+        }
+
+        async function processIndustrial(landUseField, urbanField, resultData) {
+            const coverageThreshold = parseFloat(document.getElementById('coverageThreshold').value) || 20;
+            const BATCH_SIZE = 100;
+            const codes = ['30', '30.0', '33', '33.0'];
+            const filtered = buildingData.features.filter(f => codes.includes(String(f.properties[landUseField] || '')));
+            const urbanBldg = filtered.filter(f => urbanConfig.urban.includes(String(f.properties[urbanField])));
+            const ruralBldg = filtered.filter(f => urbanConfig.rural.includes(String(f.properties[urbanField])));
+
+            const parcelMap = new Map();
+            
+            // ประมวลผลอาคารเมืองแบบ batch
+            for (let i = 0; i < urbanBldg.length; i += BATCH_SIZE) {
+                const batch = urbanBldg.slice(i, i + BATCH_SIZE);
+                
+                for (const building of batch) {
+                    try {
+                        const centroid = turf.centroid(building);
+                        for (const parcel of parcelData.features) {
+                            try {
+                                const parcelPoly = turf.polygon(parcel.geometry.coordinates);
+                                if (turf.booleanPointInPolygon(centroid, parcelPoly)) {
+                                    const key = JSON.stringify(parcel.geometry.coordinates);
+                                    if (!parcelMap.has(key)) {
+                                        parcelMap.set(key, {
+                                            parcel: parcel,
+                                            buildings: [],
+                                            totalBL: 0,
+                                            area: turf.area(parcelPoly)
+                                        });
+                                    }
+                                    const data = parcelMap.get(key);
+                                    data.buildings.push(building);
+                                    data.totalBL += parseFloat(building.properties.BL_AREA || 0);
+                                    break;
+                                }
+                            } catch (e) {}
+                        }
+                    } catch (e) {}
+                }
+                
+                // ให้ browser หายใจ
+                if (i % (BATCH_SIZE * 3) === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+            }
+
+            for (const [key, data] of parcelMap) {
+                const percent = (data.totalBL / data.area) * 100;
+                
+                if (percent >= coverageThreshold) {
+                    resultData.features.push({
+                        type: 'Feature',
+                        geometry: data.parcel.geometry,
+                        properties: {
+                            land_use: 'industrial',
+                            area_type: 'urban',
+                            source: 'parcel_overlay',
+                            parcel_area: parseFloat(data.area.toFixed(2)),
+                            bl_area_total: parseFloat(data.totalBL.toFixed(2)),
+                            coverage_percent: parseFloat(percent.toFixed(2))
+                        }
+                    });
+                } else {
+                    for (const bldg of data.buildings) {
+                        try {
+                            const blArea = parseFloat(bldg.properties.BL_AREA || 0);
+                            let bufferDist = 3;
+                            if (blArea >= 200 && blArea <= 1000) bufferDist = 6;
+                            else if (blArea > 1000) bufferDist = 10;
+                            
+                            const buffered = turf.buffer(bldg, bufferDist, { units: 'meters' });
+                            if (buffered) {
+                                resultData.features.push({
+                                    type: 'Feature',
+                                    geometry: buffered.geometry,
+                                    properties: {
+                                        land_use: 'industrial',
+                                        area_type: 'urban_low_coverage',
+                                        source: 'building_buffer',
+                                        parcel_area: parseFloat(data.area.toFixed(2)),
+                                        bl_area_total: parseFloat(data.totalBL.toFixed(2)),
+                                        coverage_percent: parseFloat(percent.toFixed(2)),
+                                        bl_area: blArea,
+                                        buffer_distance: bufferDist
+                                    }
+                                });
+                            }
+                        } catch (e) {}
+                    }
+                }
+            }
+
+            // ประมวลผลอาคารชนบทแบบ batch
+            for (let i = 0; i < ruralBldg.length; i += BATCH_SIZE) {
+                const batch = ruralBldg.slice(i, i + BATCH_SIZE);
+                
+                for (const building of batch) {
+                    try {
+                        const blArea = parseFloat(building.properties.BL_AREA || 0);
+                        let bufferDist = 3;
+                        if (blArea >= 200 && blArea <= 1000) bufferDist = 6;
+                        else if (blArea > 1000) bufferDist = 10;
+                        
+                        const buffered = turf.buffer(building, bufferDist, { units: 'meters' });
+                        if (buffered) {
+                            resultData.features.push({
+                                type: 'Feature',
+                                geometry: buffered.geometry,
+                                properties: {
+                                    land_use: 'industrial',
+                                    area_type: 'rural',
+                                    source: 'building_buffer',
+                                    bl_area: blArea,
+                                    buffer_distance: bufferDist
+                                }
+                            });
+                        }
+                    } catch (e) {}
+                }
+                
+                // ให้ browser หายใจ
+                if (i % (BATCH_SIZE * 3) === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+            }
+        }
+
+        async function resolveOverlaps(results) {
+            const BATCH_SIZE = 50;
+            
+            // พาณิชยกรรม แทนที่ ที่อยู่อาศัย
+            const residentialToKeep = [];
+            for (let i = 0; i < results.residential.features.length; i += BATCH_SIZE) {
+                const batch = results.residential.features.slice(i, i + BATCH_SIZE);
+                
+                for (const res of batch) {
+                    let shouldKeep = true;
+                    for (const com of results.commercial.features) {
+                        try {
+                            if (turf.booleanIntersects(res, com)) {
+                                shouldKeep = false;
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                    if (shouldKeep) {
+                        residentialToKeep.push(res);
+                    }
+                }
+                
+                // ให้ browser หายใจ
+                if (i % (BATCH_SIZE * 5) === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                    updateProgress(`🔧 กำลังแก้ไขทับซ้อน... (ที่อยู่อาศัย ${Math.min(i + BATCH_SIZE, results.residential.features.length)}/${results.residential.features.length})`);
+                }
+            }
+            results.residential.features = residentialToKeep;
+
+            // อุตสาหกรรม แทนที่ ที่อยู่อาศัย
+            const residentialToKeep2 = [];
+            for (let i = 0; i < results.residential.features.length; i += BATCH_SIZE) {
+                const batch = results.residential.features.slice(i, i + BATCH_SIZE);
+                
+                for (const res of batch) {
+                    let shouldKeep = true;
+                    for (const ind of results.industrial.features) {
+                        try {
+                            if (turf.booleanIntersects(res, ind)) {
+                                shouldKeep = false;
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                    if (shouldKeep) {
+                        residentialToKeep2.push(res);
+                    }
+                }
+                
+                if (i % (BATCH_SIZE * 5) === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+            }
+            results.residential.features = residentialToKeep2;
+
+            // อุตสาหกรรม แทนที่ พาณิชยกรรม
+            const commercialToKeep = [];
+            for (let i = 0; i < results.commercial.features.length; i += BATCH_SIZE) {
+                const batch = results.commercial.features.slice(i, i + BATCH_SIZE);
+                
+                for (const com of batch) {
+                    let shouldKeep = true;
+                    for (const ind of results.industrial.features) {
+                        try {
+                            if (turf.booleanIntersects(com, ind)) {
+                                shouldKeep = false;
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                    if (shouldKeep) {
+                        commercialToKeep.push(com);
+                    }
+                }
+                
+                if (i % (BATCH_SIZE * 5) === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                    updateProgress(`🔧 กำลังแก้ไขทับซ้อน... (พาณิชยกรรม ${Math.min(i + BATCH_SIZE, results.commercial.features.length)}/${results.commercial.features.length})`);
+                }
+            }
+            results.commercial.features = commercialToKeep;
+        }
+
+        function getLandUseType(code) {
+            if (code === '10' || code === '10.0') return 'residential';
+            if (code === '20' || code === '20.0' || code === '41' || code === '41.0') return 'commercial';
+            if (code === '30' || code === '30.0' || code === '33' || code === '33.0') return 'industrial';
+            return 'unknown';
+        }
+
+        async function displayResults(residential, commercial, industrial) {
+            // ลบ result layers เก่า
+            if (residentialLayer) map.removeLayer(residentialLayer);
+            if (commercialLayer) map.removeLayer(commercialLayer);
+            if (industrialLayer) map.removeLayer(industrialLayer);
+
+            let allBounds = null;
+
+            function createPopup(feature, type, color) {
+                const props = feature.properties;
+                let popup = `<div style="font-family: 'Sarabun', sans-serif; min-width: 250px;">`;
+                popup += `<h3 style="margin: 0 0 10px 0; padding: 8px; background: ${color}; color: white; border-radius: 4px; text-align: center;">${type}</h3>`;
+                popup += `<table style="width: 100%; border-collapse: collapse;">`;
+                
+                if (props.source === 'parcel_overlay') {
+                    popup += `<tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">ประเภทพื้นที่:</td><td style="padding: 8px;">เมือง</td></tr>`;
+                    popup += `<tr><td style="padding: 8px; font-weight: bold;">พื้นที่แปลง:</td><td style="padding: 8px;">${props.parcel_area.toLocaleString('th-TH')} ตร.ม.</td></tr>`;
+                    popup += `<tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">พื้นที่อาคารรวม:</td><td style="padding: 8px;">${props.bl_area_total.toLocaleString('th-TH')} ตร.ม.</td></tr>`;
+                    const percentColor = props.coverage_percent >= 20 ? '#27ae60' : '#e67e22';
+                    popup += `<tr><td style="padding: 8px; font-weight: bold;">ร้อยละอาคารปกคลุมดิน:</td><td style="padding: 8px; color: ${percentColor}; font-weight: bold;">${props.coverage_percent}%</td></tr>`;
+                } else if (props.area_type === 'urban_low_coverage') {
+                    popup += `<tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">ประเภทพื้นที่:</td><td style="padding: 8px;">เมือง (< เกณฑ์)</td></tr>`;
+                    popup += `<tr><td style="padding: 8px; font-weight: bold;">พื้นที่แปลง:</td><td style="padding: 8px;">${props.parcel_area.toLocaleString('th-TH')} ตร.ม.</td></tr>`;
+                    popup += `<tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">พื้นที่อาคารรวม:</td><td style="padding: 8px;">${props.bl_area_total.toLocaleString('th-TH')} ตร.ม.</td></tr>`;
+                    popup += `<tr><td style="padding: 8px; font-weight: bold;">ร้อยละอาคารปกคลุมดิน:</td><td style="padding: 8px; color: #e67e22; font-weight: bold;">${props.coverage_percent}%</td></tr>`;
+                    popup += `<tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">พื้นที่อาคารนี้:</td><td style="padding: 8px;">${props.bl_area.toLocaleString('th-TH')} ตร.ม.</td></tr>`;
+                    popup += `<tr><td style="padding: 8px; font-weight: bold;">ระยะ Buffer:</td><td style="padding: 8px;">${props.buffer_distance} เมตร</td></tr>`;
+                } else {
+                    popup += `<tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">ประเภทพื้นที่:</td><td style="padding: 8px;">ชนบท</td></tr>`;
+                    if (props.bl_area) {
+                        popup += `<tr><td style="padding: 8px; font-weight: bold;">พื้นที่อาคาร:</td><td style="padding: 8px;">${props.bl_area.toLocaleString('th-TH')} ตร.ม.</td></tr>`;
+                    }
+                    if (props.buffer_distance) {
+                        popup += `<tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold;">ระยะ Buffer:</td><td style="padding: 8px;">${props.buffer_distance} เมตร</td></tr>`;
+                    }
+                }
+                
+                popup += `</table></div>`;
+                return popup;
+            }
+
+            function getStyle(feature, fillColor, borderColor) {
+                if (feature.properties.source === 'parcel_overlay' && feature.properties.area_type === 'urban') {
+                    return { color: '#8B4513', weight: 2, fillColor: fillColor, fillOpacity: 0.6 };
+                }
+                return { color: borderColor, weight: 1, fillColor: fillColor, fillOpacity: 0.6 };
+            }
+
+            // สร้าง layers ทีละอัน เพื่อให้ UI responsive
+            if (residential.features.length > 0) {
+                updateProgress('🏘️ กำลังแสดงผลที่อยู่อาศัย...');
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                residentialLayer = L.geoJSON(residential, {
+                    style: (f) => getStyle(f, '#FFFF00', '#FFA500'),
+                    onEachFeature: (f, l) => l.bindPopup(createPopup(f, 'ที่อยู่อาศัย', '#f39c12'))
+                }).addTo(map);
+                allBounds = residentialLayer.getBounds();
+            }
+
+            if (commercial.features.length > 0) {
+                updateProgress('🏪 กำลังแสดงผลพาณิชยกรรม...');
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                commercialLayer = L.geoJSON(commercial, {
+                    style: (f) => getStyle(f, '#FF0000', '#8B0000'),
+                    onEachFeature: (f, l) => l.bindPopup(createPopup(f, 'พาณิชยกรรม', '#e74c3c'))
+                }).addTo(map);
+                if (allBounds) allBounds.extend(commercialLayer.getBounds());
+                else allBounds = commercialLayer.getBounds();
+            }
+
+            if (industrial.features.length > 0) {
+                updateProgress('🏭 กำลังแสดงผลอุตสาหกรรม...');
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                industrialLayer = L.geoJSON(industrial, {
+                    style: (f) => getStyle(f, '#9370DB', '#4B0082'),
+                    onEachFeature: (f, l) => l.bindPopup(createPopup(f, 'อุตสาหกรรม', '#9b59b6'))
+                }).addTo(map);
+                if (allBounds) allBounds.extend(industrialLayer.getBounds());
+                else allBounds = industrialLayer.getBounds();
+            }
+
+            if (parcelLayer) parcelLayer.bringToBack();
+            if (buildingLayer) buildingLayer.bringToFront();
+            if (allBounds && allBounds.isValid()) map.fitBounds(allBounds);
+            
+            const selectedEPSG = document.getElementById('epsgSelect').value;
+            const coverageThreshold = parseFloat(document.getElementById('coverageThreshold').value) || 20;
+            document.getElementById('exportEPSG').textContent = selectedEPSG;
+            document.getElementById('exportThreshold').textContent = `${coverageThreshold}%`;
+            
+            // Reset checkboxes เป็น checked
+            document.getElementById('toggleResidential').checked = true;
+            document.getElementById('toggleCommercial').checked = true;
+            document.getElementById('toggleIndustrial').checked = true;
+            
+            document.getElementById('legend').style.display = 'block';
+            document.getElementById('layerControl').style.display = 'block';
+            document.getElementById('resultLayersSection').style.display = 'block';
+            document.getElementById('exportSection').style.display = 'block';
+            
+            // เปิดใช้งาน layer toggles
+            setupLayerToggles();
+        }
+
+        // ตั้งค่า layer toggle controls สำหรับ base layers (อาคารและแปลง)
+        function setupBaseLayerToggles() {
+            const buildingToggle = document.getElementById('toggleBuildings');
+            const parcelToggle = document.getElementById('toggleParcels');
+            
+            // ลบ event listeners เก่า (ถ้ามี)
+            const newBuildingToggle = buildingToggle.cloneNode(true);
+            buildingToggle.parentNode.replaceChild(newBuildingToggle, buildingToggle);
+            
+            const newParcelToggle = parcelToggle.cloneNode(true);
+            parcelToggle.parentNode.replaceChild(newParcelToggle, parcelToggle);
+            
+            // เพิ่ม event listeners ใหม่
+            document.getElementById('toggleBuildings').addEventListener('change', function(e) {
+                if (buildingLayer) {
+                    if (e.target.checked) {
+                        map.addLayer(buildingLayer);
+                        buildingLayer.bringToFront();
+                    } else {
+                        map.removeLayer(buildingLayer);
+                    }
+                }
+            });
+
+            document.getElementById('toggleParcels').addEventListener('change', function(e) {
+                if (parcelLayer) {
+                    if (e.target.checked) {
+                        map.addLayer(parcelLayer);
+                        parcelLayer.bringToBack();
+                    } else {
+                        map.removeLayer(parcelLayer);
+                    }
+                }
+            });
+        }
+
+        // ตั้งค่า layer toggle controls สำหรับ result layers
+        function setupLayerToggles() {
+            const residentialToggle = document.getElementById('toggleResidential');
+            const commercialToggle = document.getElementById('toggleCommercial');
+            const industrialToggle = document.getElementById('toggleIndustrial');
+            
+            // ลบ event listeners เก่า โดยการ clone และ replace
+            const newResToggle = residentialToggle.cloneNode(true);
+            residentialToggle.parentNode.replaceChild(newResToggle, residentialToggle);
+            
+            const newComToggle = commercialToggle.cloneNode(true);
+            commercialToggle.parentNode.replaceChild(newComToggle, commercialToggle);
+            
+            const newIndToggle = industrialToggle.cloneNode(true);
+            industrialToggle.parentNode.replaceChild(newIndToggle, industrialToggle);
+
+            // เพิ่ม event listeners ใหม่
+            document.getElementById('toggleResidential').addEventListener('change', function(e) {
+                if (residentialLayer) {
+                    if (e.target.checked) {
+                        map.addLayer(residentialLayer);
+                    } else {
+                        map.removeLayer(residentialLayer);
+                    }
+                }
+            });
+
+            document.getElementById('toggleCommercial').addEventListener('change', function(e) {
+                if (commercialLayer) {
+                    if (e.target.checked) {
+                        map.addLayer(commercialLayer);
+                    } else {
+                        map.removeLayer(commercialLayer);
+                    }
+                }
+            });
+
+            document.getElementById('toggleIndustrial').addEventListener('change', function(e) {
+                if (industrialLayer) {
+                    if (e.target.checked) {
+                        map.addLayer(industrialLayer);
+                    } else {
+                        map.removeLayer(industrialLayer);
+                    }
+                }
+            });
+        }
+
+        // ========== Shapefile Export Functions ==========
+        
+        async function exportShapefile(data, filename) {
+            if (!data || data.features.length === 0) {
+                alert('ไม่มีข้อมูลให้ส่งออก');
+                return;
+            }
+
+            try {
+                const selectedEPSG = document.getElementById('epsgSelect').value;
+                showStatus('processStatus', 'info', 'กำลังสร้างไฟล์ Shapefile...');
+                
+                // แปลงพิกัดกลับเป็น UTM
+                const utmData = {
+                    type: 'FeatureCollection',
+                    features: data.features.map(feature => {
+                        let coords = feature.geometry.coordinates;
+                        if (feature.geometry.type === 'Polygon') {
+                            coords = transformBackToUTM(coords, selectedEPSG);
+                        } else if (feature.geometry.type === 'MultiPolygon') {
+                            coords = coords.map(p => transformBackToUTM(p, selectedEPSG));
+                        }
+                        return {
+                            type: 'Feature',
+                            geometry: { type: feature.geometry.type, coordinates: coords },
+                            properties: feature.properties
+                        };
+                    })
+                };
+
+                // สร้าง Shapefile
+                const zip = new JSZip();
+                const baseName = filename.replace(/\.(geojson|zip)$/i, '');
+                
+                // Get PRJ content
+                const prjContent = getPRJContent(selectedEPSG);
+                
+                // Create shapefile files
+                const shpFile = createSHPFile(utmData.features);
+                const shxFile = createSHXFile(utmData.features);
+                const dbfFile = createDBFFile(utmData.features);
+                
+                // Add files to ZIP
+                zip.file(`${baseName}.shp`, shpFile);
+                zip.file(`${baseName}.shx`, shxFile);
+                zip.file(`${baseName}.dbf`, dbfFile);
+                zip.file(`${baseName}.prj`, prjContent);
+                zip.file(`${baseName}.cpg`, 'UTF-8');
+                
+                // Add original GeoJSON
+                zip.file(`${baseName}.geojson`, JSON.stringify(utmData, null, 2));
+                
+                // Add Field Mapping
+                const fieldMapping = `╔═══════════════════════════════════════════════════════════════╗
+║  Field Name Mapping (DBF ↔ Original)                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+DBF files have limitations on field names:
+- Maximum 10 characters
+- ASCII characters only
+
+This file maps the shortened field names in the .dbf file
+to the original field names.
+
+Format: DBF_FIELD_NAME = Original Field Name
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LAND_USE     = land_use           (ประเภทการใช้ที่ดิน)
+AREA_TYPE    = area_type          (ประเภทพื้นที่: urban/rural)
+SOURCE       = source             (แหล่งที่มา: parcel_overlay/building_buffer)
+PARCEL_A     = parcel_area        (พื้นที่แปลง ตร.ม.)
+BL_AREA_TO   = bl_area_total      (พื้นที่อาคารรวมในแปลง ตร.ม.)
+COVERAGE_P   = coverage_percent   (เปอร์เซ็นต์ร้อยละอาคารปกคลุมดิน)
+BL_AREA      = bl_area            (พื้นที่อาคารแต่ละตัว ตร.ม.)
+BUFFER_DIS   = buffer_distance    (ระยะ Buffer เมตร)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Field Descriptions:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LAND_USE (land_use):
+  - residential  = ที่อยู่อาศัย
+  - commercial   = พาณิชยกรรม
+  - industrial   = อุตสาหกรรม
+
+AREA_TYPE (area_type):
+  - urban                = เมือง (ร้อยละอาคารปกคลุมดิน >= เกณฑ์)
+  - urban_low_coverage   = เมือง (ร้อยละอาคารปกคลุมดิน < เกณฑ์)
+  - rural                = ชนบท
+
+SOURCE (source):
+  - parcel_overlay  = ใช้แปลงทั้งแปลง (ร้อยละอาคารปกคลุมดิน >= เกณฑ์)
+  - building_buffer = Buffer จากอาคาร (ร้อยละอาคารปกคลุมดิน < เกณฑ์)
+
+PARCEL_A (parcel_area):
+  - พื้นที่แปลงที่ดินในตารางเมตร
+  - มีค่าสำหรับ urban และ urban_low_coverage
+
+BL_AREA_TO (bl_area_total):
+  - พื้นที่อาคารรวมทั้งหมดในแปลงในตารางเมตร
+  - มีค่าสำหรับ urban และ urban_low_coverage
+
+COVERAGE_P (coverage_percent):
+  - เปอร์เซ็นต์ร้อยละอาคารปกคลุมดิน = (BL_AREA_TO / PARCEL_A) × 100
+  - มีค่าสำหรับ urban และ urban_low_coverage
+
+BL_AREA (bl_area):
+  - พื้นที่อาคารแต่ละตัวในตารางเมตร
+  - มีค่าสำหรับ building_buffer เท่านั้น
+
+BUFFER_DIS (buffer_distance):
+  - ระยะ Buffer รอบอาคารในหน่วยเมตร
+  - มีค่าสำหรับ building_buffer เท่านั้น
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Encoding: UTF-8
+Compatible with: ArcGIS, QGIS, MapInfo
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+                zip.file(`${baseName}_fields.txt`, fieldMapping);
+                
+                // Add README
+                const coverageThreshold = parseFloat(document.getElementById('coverageThreshold').value) || 20;
+                const readme = `╔═══════════════════════════════════════════════════════════════╗
+║  Shapefile Export - ระบบวาดรูปการใช้ที่ดินอัตโนมัติ          ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📋 ข้อมูลทั่วไป
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ชื่อไฟล์:      ${baseName}
+ระบบพิกัด:     ${selectedEPSG}
+วันที่สร้าง:   ${new Date().toLocaleString('th-TH')}
+จำนวน Features: ${utmData.features.length}
+เกณฑ์ร้อยละอาคารปกคลุมดิน: ${coverageThreshold}%
+
+📁 รายการไฟล์ในแต่ละ Shapefile
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ .shp          = ไฟล์เรขาคณิต (geometry data)
+✓ .shx          = ไฟล์ดัชนี (spatial index)
+✓ .dbf          = ไฟล์ตารางข้อมูล (attribute table)
+✓ .prj          = ไฟล์ระบบพิกัด (coordinate system)
+✓ .cpg          = ไฟล์กำหนด encoding (UTF-8)
+✓ .geojson      = ไฟล์ GeoJSON ต้นฉบับสำหรับอ้างอิง
+✓ _fields.txt   = ไฟล์อธิบาย field names (คำแปลภาษาไทย)
+
+🔍 โครงสร้างข้อมูล (Attribute Fields)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ฟิลด์หลัก:
+  LAND_USE     = ประเภทการใช้ที่ดิน (residential/commercial/industrial)
+  AREA_TYPE    = ประเภทพื้นที่ (urban/urban_low_coverage/rural)
+  SOURCE       = แหล่งที่มา (parcel_overlay/building_buffer)
+
+ฟิลด์สำหรับแปลง (parcel_overlay & urban_low_coverage):
+  PARCEL_A     = พื้นที่แปลง (ตร.ม.)
+  BL_AREA_TO   = พื้นที่อาคารรวม (ตร.ม.)
+  COVERAGE_P   = ร้อยละอาคารปกคลุมดิน (%)
+
+ฟิลด์สำหรับ Buffer (building_buffer):
+  BL_AREA      = พื้นที่อาคาร (ตร.ม.)
+  BUFFER_DIS   = ระยะ Buffer (เมตร)
+
+📊 กฎการประมวลผล
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+สำหรับพื้นที่เมือง (urban):
+  ✓ ถ้า COVERAGE_P >= ${coverageThreshold}% → ใช้แปลงทั้งแปลง (SOURCE = parcel_overlay)
+  ✓ ถ้า COVERAGE_P < ${coverageThreshold}% → Buffer แต่ละอาคาร (SOURCE = building_buffer)
+    - AREA_TYPE = urban_low_coverage
+    - ยังคงมีข้อมูล PARCEL_A, BL_AREA_TO, COVERAGE_P
+
+สำหรับพื้นที่ชนบท (rural):
+  ✓ Buffer ทุกอาคาร
+  ✓ ที่อยู่อาศัย/พาณิชย์: 3 เมตร
+  ✓ อุตสาหกรรม: 3/6/10 เมตร (ตามขนาด BL_AREA)
+
+🌏 การใช้งาน
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ใน QGIS:
+  1. แตกไฟล์ .zip
+  2. Drag & Drop ไฟล์ .shp เข้า QGIS
+  3. ระบบพิกัดจะถูกตั้งค่าอัตโนมัติ (${selectedEPSG})
+  4. เปิด Attribute Table เพื่อดูข้อมูลครบถ้วน
+  5. ดูคำอธิบาย field names ใน *_fields.txt
+
+ใน ArcGIS:
+  1. Add Data → เลือกไฟล์ .shp
+  2. ระบบพิกัดจะถูกอ่านจาก .prj อัตโนมัติ
+  3. Open Attribute Table เพื่อดูข้อมูล
+
+💡 หมายเหตุ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- ชื่อ field ใน .dbf ถูกย่อเหลือ 10 ตัวอักษร (ข้อจำกัดของ DBF)
+- ดูคำแปลและคำอธิบายครบถ้วนได้ที่ไฟล์ *_fields.txt
+- หน่วยพื้นที่: ตารางเมตร (sqm)
+- หน่วยระยะ Buffer: เมตร (m)
+- Encoding: UTF-8 (รองรับภาษาไทย)
+- ระบบประมวลผลแบบ batch เพื่อรองรับคอมพิวเตอร์ RAM 8GB
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+สร้างโดย: ระบบวาดรูปการใช้ที่ดินอัตโนมัติ (Optimized)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+                zip.file('README.txt', readme);
+                
+                // Generate and download
+                const blob = await zip.generateAsync({ type: 'blob' });
+                saveAs(blob, `${baseName}_shapefile.zip`);
+                
+                showStatus('processStatus', 'success', `ส่งออก ${baseName}_shapefile.zip สำเร็จ!`);
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                showStatus('processStatus', 'error', `เกิดข้อผิดพลาด: ${error.message}`);
+            }
+        }
+
+        function getPRJContent(epsg) {
+            if (epsg === 'EPSG:32647') {
+                return 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
+            } else if (epsg === 'EPSG:32648') {
+                return 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",105],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]';
+            }
+            return 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]';
+        }
+
+        function createSHPFile(features) {
+            const shapeType = 5; // Polygon
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            
+            // Calculate bounds
+            features.forEach(f => {
+                const coords = f.geometry.type === 'Polygon' ? f.geometry.coordinates : f.geometry.coordinates[0];
+                coords[0].forEach(([x, y]) => {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                });
+            });
+
+            const records = [];
+            let fileLength = 100; // Header size
+
+            features.forEach((feature, index) => {
+                const recordHeader = new ArrayBuffer(8);
+                const headerView = new DataView(recordHeader);
+                headerView.setInt32(0, index + 1, false); // Record number (big-endian)
+                
+                const recordContent = createPolygonRecord(feature);
+                if (recordContent) {
+                    headerView.setInt32(4, recordContent.byteLength / 2, false);
+                    records.push(recordHeader);
+                    records.push(recordContent);
+                    fileLength += 8 + recordContent.byteLength;
+                }
+            });
+
+            // Create header
+            const header = new ArrayBuffer(100);
+            const headerView = new DataView(header);
+            headerView.setInt32(0, 9994, false); // File code
+            headerView.setInt32(24, fileLength / 2, false); // File length (words)
+            headerView.setInt32(28, 1000, true); // Version
+            headerView.setInt32(32, shapeType, true); // Shape type
+            headerView.setFloat64(36, minX, true);
+            headerView.setFloat64(44, minY, true);
+            headerView.setFloat64(52, maxX, true);
+            headerView.setFloat64(60, maxY, true);
+
+            // Combine
+            const result = new Uint8Array(fileLength);
+            let offset = 0;
+            result.set(new Uint8Array(header), offset);
+            offset += 100;
+            records.forEach(record => {
+                result.set(new Uint8Array(record), offset);
+                offset += record.byteLength;
+            });
+
+            return result;
+        }
+
+        function createPolygonRecord(feature) {
+            const coords = feature.geometry.type === 'Polygon' 
+                ? feature.geometry.coordinates 
+                : feature.geometry.coordinates[0];
+            
+            const numParts = coords.length;
+            const numPoints = coords.reduce((sum, ring) => sum + ring.length, 0);
+            const contentLength = 44 + (4 * numParts) + (16 * numPoints);
+            
+            const buffer = new ArrayBuffer(contentLength);
+            const view = new DataView(buffer);
+            
+            view.setInt32(0, 5, true); // Polygon type
+            
+            // Bounding box
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            coords.forEach(ring => {
+                ring.forEach(([x, y]) => {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                });
+            });
+            
+            view.setFloat64(4, minX, true);
+            view.setFloat64(12, minY, true);
+            view.setFloat64(20, maxX, true);
+            view.setFloat64(28, maxY, true);
+            view.setInt32(36, numParts, true);
+            view.setInt32(40, numPoints, true);
+            
+            // Parts
+            let offset = 44;
+            let partStart = 0;
+            coords.forEach((ring, i) => {
+                view.setInt32(offset, partStart, true);
+                offset += 4;
+                partStart += ring.length;
+            });
+            
+            // Points
+            coords.forEach(ring => {
+                ring.forEach(([x, y]) => {
+                    view.setFloat64(offset, x, true);
+                    view.setFloat64(offset + 8, y, true);
+                    offset += 16;
+                });
+            });
+            
+            return buffer;
+        }
+
+        function createSHXFile(features) {
+            const numRecords = features.length;
+            const fileLength = 100 + (numRecords * 8);
+            const buffer = new ArrayBuffer(fileLength);
+            const view = new DataView(buffer);
+            
+            // Header (same as SHP)
+            view.setInt32(0, 9994, false);
+            view.setInt32(24, fileLength / 2, false);
+            view.setInt32(28, 1000, true);
+            view.setInt32(32, 5, true); // Polygon
+            
+            // Index records
+            let offset = 50; // in words
+            for (let i = 0; i < numRecords; i++) {
+                const feature = features[i];
+                const coords = feature.geometry.type === 'Polygon' 
+                    ? feature.geometry.coordinates 
+                    : feature.geometry.coordinates[0];
+                const numParts = coords.length;
+                const numPoints = coords.reduce((sum, ring) => sum + ring.length, 0);
+                const recordLength = 22 + (2 * numParts) + (8 * numPoints);
+                
+                view.setInt32(100 + i * 8, offset, false);
+                view.setInt32(104 + i * 8, recordLength, false);
+                offset += recordLength + 4;
+            }
+            
+            return new Uint8Array(buffer);
+        }
+
+        function createDBFFile(features) {
+            // Get fields with proper naming
+            const fieldMapping = {
+                'land_use': { name: 'LAND_USE', type: 'C', length: 20, decimal: 0 },
+                'area_type': { name: 'AREA_TYPE', type: 'C', length: 20, decimal: 0 },
+                'source': { name: 'SOURCE', type: 'C', length: 20, decimal: 0 },
+                'parcel_area': { name: 'PARCEL_A', type: 'F', length: 19, decimal: 2 },
+                'bl_area_total': { name: 'BL_AREA_TO', type: 'F', length: 19, decimal: 2 },
+                'coverage_percent': { name: 'COVERAGE_P', type: 'F', length: 19, decimal: 2 },
+                'bl_area': { name: 'BL_AREA', type: 'F', length: 19, decimal: 2 },
+                'buffer_distance': { name: 'BUFFER_DIS', type: 'F', length: 19, decimal: 2 }
+            };
+
+            const fields = [];
+            const fieldKeys = new Set();
+            
+            // รวบรวม fields ที่มีในข้อมูล
+            features.forEach(f => {
+                if (f.properties) {
+                    Object.keys(f.properties).forEach(key => {
+                        if (fieldMapping[key] && !fieldKeys.has(key)) {
+                            fieldKeys.add(key);
+                            fields.push({
+                                ...fieldMapping[key],
+                                originalName: key
+                            });
+                        }
+                    });
+                }
+            });
+            
+            const headerLength = 32 + (fields.length * 32) + 1;
+            const recordLength = fields.reduce((sum, f) => sum + f.length, 0) + 1;
+            const fileLength = headerLength + (features.length * recordLength) + 1;
+            
+            const bytes = new Uint8Array(fileLength);
+            const view = new DataView(bytes.buffer);
+            
+            // Header
+            bytes[0] = 0x03; // dBASE III
+            const now = new Date();
+            bytes[1] = now.getFullYear() - 1900;
+            bytes[2] = now.getMonth() + 1;
+            bytes[3] = now.getDate();
+            view.setUint32(4, features.length, true);
+            view.setUint16(8, headerLength, true);
+            view.setUint16(10, recordLength, true);
+            bytes[29] = 0x03; // UTF-8 encoding flag
+            
+            // Field descriptors
+            let offset = 32;
+            fields.forEach(field => {
+                for (let i = 0; i < 11; i++) {
+                    bytes[offset + i] = i < field.name.length ? field.name.charCodeAt(i) : 0;
+                }
+                bytes[offset + 11] = field.type.charCodeAt(0);
+                bytes[offset + 16] = field.length;
+                bytes[offset + 17] = field.decimal;
+                offset += 32;
+            });
+            bytes[offset++] = 0x0D; // Field descriptor terminator
+            
+            // Records
+            features.forEach((feature, idx) => {
+                bytes[offset++] = 0x20; // Not deleted
+                fields.forEach(field => {
+                    const value = feature.properties?.[field.originalName];
+                    let str = '';
+                    if (value !== null && value !== undefined) {
+                        if (field.type === 'N' || field.type === 'F') {
+                            str = String(value).padStart(field.length, ' ');
+                        } else {
+                            str = String(value).substring(0, field.length).padEnd(field.length, ' ');
+                        }
+                    } else {
+                        str = ''.padEnd(field.length, ' ');
+                    }
+                    for (let i = 0; i < field.length; i++) {
+                        bytes[offset++] = i < str.length ? str.charCodeAt(i) : 0x20;
+                    }
+                });
+            });
+            bytes[offset] = 0x1A; // EOF
+            
+            return bytes;
+        }
+
+        // ========== End of Shapefile Functions ==========
+
+        document.getElementById('loadFiles').addEventListener('click', async () => {
+            const buildingFiles = document.getElementById('buildingFiles').files;
+            const parcelFiles = document.getElementById('parcelFiles').files;
+            const selectedEPSG = document.getElementById('epsgSelect').value;
+
+            if (buildingFiles.length === 0 || parcelFiles.length === 0) {
+                showStatus('loadStatus', 'error', 'กรุณาเลือกไฟล์ทั้งสองชุด');
+                return;
+            }
+
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('loadFiles').disabled = true;
+
+            try {
+                buildingData = await loadShapefile(buildingFiles[0], selectedEPSG);
+                const buildingEncoding = buildingData.encoding || 'UTF-8';
+                
+                if (buildingLayer) map.removeLayer(buildingLayer);
+                buildingLayer = L.geoJSON(buildingData, {
+                    style: { color: '#FF69B4', weight: 2, fillOpacity: 0 },
+                    onEachFeature: (f, l) => {
+                        let popup = '<strong>อาคาร</strong><br>';
+                        for (let k in f.properties) popup += `${k}: ${f.properties[k]}<br>`;
+                        l.bindPopup(popup);
+                    }
+                }).addTo(map);
+
+                parcelData = await loadShapefile(parcelFiles[0], selectedEPSG);
+                const parcelEncoding = parcelData.encoding || 'UTF-8';
+                
+                if (parcelLayer) map.removeLayer(parcelLayer);
+                parcelLayer = L.geoJSON(parcelData, {
+                    style: { color: '#000000', weight: 1, fillOpacity: 0 },
+                    onEachFeature: (f, l) => {
+                        let popup = '<strong>แปลง</strong><br>';
+                        for (let k in f.properties) popup += `${k}: ${f.properties[k]}<br>`;
+                        l.bindPopup(popup);
+                    }
+                }).addTo(map);
+
+                map.fitBounds(buildingLayer.getBounds().extend(parcelLayer.getBounds()));
+
+                const fields = Object.keys(buildingData.features[0].properties);
+                const landUseSelect = document.getElementById('landUseField');
+                const urbanSelect = document.getElementById('urbanField');
+
+                landUseSelect.innerHTML = '<option value="">-- เลือก Field --</option>';
+                urbanSelect.innerHTML = '<option value="">-- เลือก Field --</option>';
+
+                let classFound = false;
+                fields.forEach(field => {
+                    landUseSelect.add(new Option(field, field));
+                    urbanSelect.add(new Option(field, field));
+                    if (field.toLowerCase() === 'class' && !classFound) {
+                        landUseSelect.value = field;
+                        classFound = true;
+                        updateBuildingColors(field);
+                    }
+                });
+
+                landUseSelect.disabled = false;
+                urbanSelect.disabled = false;
+
+                showStatus('loadStatus', 'success', 
+                    `✅ โหลดสำเร็จ! อาคาร: ${buildingData.features.length}, แปลง: ${parcelData.features.length} | Encoding: ${buildingEncoding}`);
+                document.getElementById('legend').style.display = 'block';
+                document.getElementById('layerControl').style.display = 'block';
+                
+                // Setup base layer toggles (เรียกครั้งเดียว)
+                setupBaseLayerToggles();
+
+            } catch (error) {
+                showStatus('loadStatus', 'error', `ข้อผิดพลาด: ${error.message}`);
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('loadFiles').disabled = false;
+            }
+        });
+
+        document.getElementById('landUseField').addEventListener('change', (e) => {
+            if (e.target.value && buildingData) updateBuildingColors(e.target.value);
+        });
+
+        document.getElementById('urbanField').addEventListener('change', (e) => {
+            const field = e.target.value;
+            if (!field || !buildingData) return;
+
+            const values = new Set();
+            buildingData.features.forEach(f => {
+                const v = f.properties[field];
+                if (v !== null && v !== undefined && v !== '') values.add(String(v));
+            });
+
+            const allValues = Array.from(values).sort();
+            const valueList = document.getElementById('urbanValueList');
+            valueList.innerHTML = '';
+            urbanConfig.urban = [];
+            urbanConfig.rural = [];
+
+            allValues.forEach(value => {
+                const div = document.createElement('div');
+                div.className = 'value-item';
+                div.innerHTML = `<input type="checkbox" id="val_${value}" value="${value}"><label for="val_${value}" style="margin: 0; cursor: pointer; flex: 1;">${value}</label>`;
+                valueList.appendChild(div);
+                div.querySelector('input').addEventListener('change', () => {
+                    urbanConfig.urban = [];
+                    urbanConfig.rural = [];
+                    document.querySelectorAll('#urbanValueList input:checked').forEach(cb => urbanConfig.urban.push(cb.value));
+                    allValues.forEach(v => { if (!urbanConfig.urban.includes(v)) urbanConfig.rural.push(v); });
+                    updateUrbanSummary();
+                    if (parcelData) updateParcelColors(field);
+                    document.getElementById('processBtn').disabled = !(urbanConfig.urban.length > 0 || urbanConfig.rural.length > 0);
+                });
+            });
+
+            document.getElementById('urbanConfigSection').style.display = 'block';
+            updateUrbanSummary();
+        });
+
+        document.getElementById('processBtn').addEventListener('click', processAllLandUse);
+        
+        // ปุ่มควบคุม Layer ทั้งหมด
+        document.getElementById('showAllLayers').addEventListener('click', () => {
+            document.getElementById('toggleBuildings').checked = true;
+            document.getElementById('toggleParcels').checked = true;
+            document.getElementById('toggleResidential').checked = true;
+            document.getElementById('toggleCommercial').checked = true;
+            document.getElementById('toggleIndustrial').checked = true;
+            
+            // Trigger change events
+            document.getElementById('toggleBuildings').dispatchEvent(new Event('change'));
+            document.getElementById('toggleParcels').dispatchEvent(new Event('change'));
+            document.getElementById('toggleResidential').dispatchEvent(new Event('change'));
+            document.getElementById('toggleCommercial').dispatchEvent(new Event('change'));
+            document.getElementById('toggleIndustrial').dispatchEvent(new Event('change'));
+        });
+        
+        document.getElementById('hideAllLayers').addEventListener('click', () => {
+            document.getElementById('toggleBuildings').checked = false;
+            document.getElementById('toggleParcels').checked = false;
+            document.getElementById('toggleResidential').checked = false;
+            document.getElementById('toggleCommercial').checked = false;
+            document.getElementById('toggleIndustrial').checked = false;
+            
+            // Trigger change events
+            document.getElementById('toggleBuildings').dispatchEvent(new Event('change'));
+            document.getElementById('toggleParcels').dispatchEvent(new Event('change'));
+            document.getElementById('toggleResidential').dispatchEvent(new Event('change'));
+            document.getElementById('toggleCommercial').dispatchEvent(new Event('change'));
+            document.getElementById('toggleIndustrial').dispatchEvent(new Event('change'));
+        });
+        
+        document.getElementById('exportResidential').addEventListener('click', () => exportShapefile(window.residentialResult, 'residential'));
+        document.getElementById('exportCommercial').addEventListener('click', () => exportShapefile(window.commercialResult, 'commercial'));
+        document.getElementById('exportIndustrial').addEventListener('click', () => exportShapefile(window.industrialResult, 'industrial'));
+        document.getElementById('exportAll').addEventListener('click', () => {
+            const combined = {
+                type: 'FeatureCollection',
+                features: [
+                    ...(window.residentialResult?.features || []),
+                    ...(window.commercialResult?.features || []),
+                    ...(window.industrialResult?.features || [])
+                ]
+            };
+            exportShapefile(combined, 'land_use_all');
+        });
+
+        initMap();
+    </script>
+<script data-goatcounter="https://mponline.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script> 
+</body>
+</html>
