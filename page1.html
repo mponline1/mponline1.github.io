@@ -558,6 +558,40 @@
             </div>
         </div>
 
+        <!-- NEW FEATURE SELECTION TOOLS SECTION -->
+        <div class="border-top pt-2 mt-2 mb-2">
+            <h6 class="fw-bold small"><i class="fas fa-mouse-pointer"></i> Feature Selection</h6>
+            <p class="small text-muted mb-2">Select features from Feature Layers</p>
+            
+            <div class="d-flex gap-2 mb-2">
+                <button id="btnSelectRectangle" class="btn btn-outline-primary btn-sm w-50" title="Select by Rectangle">
+                    <i class="fas fa-vector-square"></i> Rectangle
+                </button>
+                <button id="btnSelectLasso" class="btn btn-outline-primary btn-sm w-50" title="Select by Lasso">
+                    <i class="fas fa-circle"></i> Lasso
+                </button>
+            </div>
+            
+            <div class="mb-2">
+                <div class="small text-muted mb-1">
+                    <i class="fas fa-info-circle"></i> Selected: <span id="selectedFeatureCount" class="fw-bold text-primary">0</span> features
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button id="btnCopySelected" class="btn btn-success btn-sm w-50" title="Copy selected features to active draw layer">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+                <button id="btnClearSelection" class="btn btn-secondary btn-sm w-50" title="Clear selection">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+            
+            <div id="selectionHint" class="small text-info fst-italic mt-2" style="display:none;">
+                * Draw to select features
+            </div>
+        </div>
+
         <div class="buffer-section">
             <h6 class="fw-bold small"><i class="fas fa-bullseye"></i> Buffer Tool</h6>
             <div class="mb-2">
@@ -723,6 +757,8 @@
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatKml" value="kml" checked><label class="form-check-label" for="formatKml">KML (Google Earth - WGS84)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson47" value="geojson_47"><label class="form-check-label" for="formatGeojson47">GeoJSON (UTM Zone 47N)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson48" value="geojson_48"><label class="form-check-label" for="formatGeojson48">GeoJSON (UTM Zone 48N)</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatShapefile47" value="shapefile_47"><label class="form-check-label" for="formatShapefile47" style="color: #dc3545; font-weight: 500;">Shapefile (UTM Zone 47N)</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatShapefile48" value="shapefile_48"><label class="form-check-label" for="formatShapefile48" style="color: #dc3545; font-weight: 500;">Shapefile (UTM Zone 48N)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatExcel" value="excel"><label class="form-check-label" for="formatExcel" style="color: #198754; font-weight: 500;">Excel (.xlsx)</label></div>
             </div>
         </div>
@@ -962,6 +998,25 @@
             map.add(searchGraphicsLayer);
             var tempGraphicsLayer = new GraphicsLayer({ listMode: "hide" }); // For 3-point tools
             map.add(tempGraphicsLayer);
+            
+            // Create separate highlight layer for feature selection - always on top
+            var highlightLayer = new GraphicsLayer({ 
+                id: "feature_highlight_layer", 
+                title: "Selection Highlights",
+                listMode: "hide" 
+            });
+            map.add(highlightLayer);
+            
+            // Function to ensure highlight layer is always on top
+            function ensureHighlightLayerOnTop() {
+                var allLayers = map.layers.toArray();
+                var currentIndex = allLayers.indexOf(highlightLayer);
+                var topIndex = allLayers.length - 1;
+                
+                if (currentIndex !== topIndex) {
+                    map.reorder(highlightLayer, topIndex);
+                }
+            }
 
             var markerSymbol = new SimpleMarkerSymbol({ color: [0, 0, 255, 0.8], size: "24px", outline: { color: [255, 255, 255], width: 2 } });
 
@@ -1163,64 +1218,60 @@
                                 textSymbolConfig.verticalAlignment = "bottom"; // จัดให้ด้านล่างของ label อยู่เหนือจุด
                             } 
                             else if (g.geometry.type === "polyline") {
-                                // เส้น: แสดง Label หลายตัวตามแต่ละส่วนของเส้น
+                                // เส้น: แสดง Label ที่จุดกึ่งกลางของเส้น วางเหนือเส้น และหมุนตามทิศทาง
                                 var paths = g.geometry.paths[0]; // ใช้ path แรก
                                 
                                 if (paths && paths.length >= 2) {
-                                    // คำนวณจำนวน label ที่เหมาะสม (ประมาณทุก 30% ของความยาวเส้น)
-                                    var numLabels = Math.min(Math.max(1, Math.floor(paths.length / 3)), 5); // สูงสุด 5 labels
-                                    var segmentSize = Math.floor(paths.length / (numLabels + 1));
+                                    // หาจุดกึ่งกลางของเส้น
+                                    var midIndex = Math.floor(paths.length / 2);
+                                    var midPoint = paths[midIndex];
                                     
-                                    // วาง label ในแต่ละส่วนของเส้น
-                                    for (var labelIdx = 1; labelIdx <= numLabels; labelIdx++) {
-                                        var pointIndex = labelIdx * segmentSize;
-                                        
-                                        // หาจุดก่อนหน้าและถัดไปเพื่อคำนวณมุม
-                                        var prevIndex = Math.max(0, pointIndex - 1);
-                                        var nextIndex = Math.min(paths.length - 1, pointIndex + 1);
-                                        
-                                        var currentPoint = paths[pointIndex];
-                                        var prevPoint = paths[prevIndex];
-                                        var nextPoint = paths[nextIndex];
-                                        
-                                        // คำนวณมุม (angle) ในหน่วยดีกรี
-                                        var dx = nextPoint[0] - prevPoint[0];
-                                        var dy = nextPoint[1] - prevPoint[1];
-                                        var angleRadians = Math.atan2(dy, dx);
-                                        var angleDegrees = angleRadians * (180 / Math.PI);
-                                        
-                                        // ปรับมุมให้ label อ่านได้ง่าย (ไม่กลับหัว)
-                                        if (angleDegrees > 90) angleDegrees -= 180;
-                                        if (angleDegrees < -90) angleDegrees += 180;
-                                        
-                                        // สร้าง Point สำหรับ label ตัวนี้
-                                        var labelPoint = new Point({
-                                            x: currentPoint[0],
-                                            y: currentPoint[1],
-                                            spatialReference: g.geometry.spatialReference
-                                        });
-                                        
-                                        // สร้าง TextSymbol สำหรับ label ตัวนี้
-                                        var labelTextSym = new TextSymbol({
-                                            text: text.toString(),
-                                            color: settings.color,
-                                            font: { 
-                                                size: settings.size, 
-                                                family: ESRI_SAFE_FONT,
-                                                weight: "bold" 
-                                            },
-                                            haloColor: "white",
-                                            haloSize: 1,
-                                            angle: angleDegrees,
-                                            yoffset: 8
-                                        });
-                                        
-                                        // เพิ่ม label ลงใน layer
-                                        labelLayer.add(new Graphic({
-                                            geometry: labelPoint,
-                                            symbol: labelTextSym
-                                        }));
-                                    }
+                                    // หาจุดก่อนหน้าและถัดไปเพื่อคำนวณทิศทาง (ใช้ช่วง 3-5 จุดเพื่อความแม่นยำ)
+                                    var rangeSize = Math.min(3, Math.floor(paths.length / 4)); // ใช้ช่วง 3 จุดหรือ 1/4 ของเส้น
+                                    var prevIndex = Math.max(0, midIndex - rangeSize);
+                                    var nextIndex = Math.min(paths.length - 1, midIndex + rangeSize);
+                                    
+                                    var prevPoint = paths[prevIndex];
+                                    var nextPoint = paths[nextIndex];
+                                    
+                                    // คำนวณมุม (angle) จากทิศทางของเส้นที่จุดกึ่งกลาง
+                                    var dx = nextPoint[0] - prevPoint[0];
+                                    var dy = nextPoint[1] - prevPoint[1];
+                                    var angleRadians = Math.atan2(dy, dx);
+                                    var angleDegrees = angleRadians * (180 / Math.PI);
+                                    
+                                    // ปรับมุมให้ label อ่านได้ง่าย (ไม่กลับหัว)
+                                    if (angleDegrees > 90) angleDegrees -= 180;
+                                    if (angleDegrees < -90) angleDegrees += 180;
+                                    
+                                    // สร้าง Point สำหรับ label ที่จุดกึ่งกลาง
+                                    var labelPoint = new Point({
+                                        x: midPoint[0],
+                                        y: midPoint[1],
+                                        spatialReference: g.geometry.spatialReference
+                                    });
+                                    
+                                    // สร้าง TextSymbol พร้อมมุมหมุนและวางเหนือเส้น
+                                    var labelTextSym = new TextSymbol({
+                                        text: text.toString(),
+                                        color: settings.color,
+                                        font: { 
+                                            size: settings.size, 
+                                            family: ESRI_SAFE_FONT,
+                                            weight: "bold" 
+                                        },
+                                        haloColor: "white",
+                                        haloSize: 1,
+                                        angle: angleDegrees,
+                                        yoffset: settings.size * 0.8, // วางเหนือเส้นตามขนาดตัวอักษร
+                                        verticalAlignment: "bottom" // ให้ด้านล่างของ label อยู่เหนือเส้น
+                                    });
+                                    
+                                    // เพิ่ม label ลงใน layer
+                                    labelLayer.add(new Graphic({
+                                        geometry: labelPoint,
+                                        symbol: labelTextSym
+                                    }));
                                     
                                     // Skip การสร้าง label ปกติด้านล่าง
                                     return;
@@ -1410,13 +1461,13 @@
                                 title: title,
                                 outFields: ["*"], // Ensure all attributes are fetched
                                 popupTemplate: {
-                                    // Basic Template that shows all fields + Copy Action
+                                    // Basic Template that shows all fields + Actions
                                     title: "{title}", 
                                     content: [{
                                         type: "fields",
                                         fieldInfos: [] // Auto-detect
                                     }],
-                                    actions: [copyToDrawAction] // Add the Copy Action
+                                    actions: [editAttributeAction, copyToDrawAction] // Add Edit and Copy Actions
                                 }
                             });
                             break;
@@ -1441,6 +1492,8 @@
                         map.add(layer);
                         // For async layers like FeatureLayer, wait for load to update UI properly
                         layer.load().then(function() {
+                            // Ensure highlight layer stays on top after adding new layers
+                            ensureHighlightLayerOnTop();
                             updateLayerList();
                             alert("Layer added successfully!");
                             closePanel("addServicePanel");
@@ -2208,6 +2261,408 @@
                 customDraw.executeSplit();
             });
 
+            // ==================== FEATURE SELECTION SYSTEM ====================
+            var featureSelection = {
+                active: false,
+                mode: null, // 'rectangle' or 'lasso'
+                selectedFeatures: [],
+                listeners: [],
+                startPoint: null,
+                currentPoints: [],
+                selectionGraphic: null,
+                highlightGraphics: [],
+
+                disable: function() {
+                    this.active = false;
+                    this.mode = null;
+                    this.startPoint = null;
+                    this.currentPoints = [];
+                    
+                    // Remove listeners
+                    this.listeners.forEach(l => l.remove());
+                    this.listeners = [];
+                    
+                    // Remove selection graphics
+                    if (this.selectionGraphic) {
+                        tempGraphicsLayer.remove(this.selectionGraphic);
+                        this.selectionGraphic = null;
+                    }
+                    
+                    view.container.style.cursor = "default";
+                    
+                    // Deactivate buttons
+                    document.getElementById("btnSelectRectangle").classList.remove("active", "btn-primary", "text-white");
+                    document.getElementById("btnSelectRectangle").classList.add("btn-outline-primary");
+                    document.getElementById("btnSelectLasso").classList.remove("active", "btn-primary", "text-white");
+                    document.getElementById("btnSelectLasso").classList.add("btn-outline-primary");
+                    document.getElementById("selectionHint").style.display = "none";
+                    
+                    // Restore sketch if disabled
+                    if (sketch && activeDrawingLayer) {
+                        sketch.layer = activeDrawingLayer;
+                    }
+                },
+
+                enableRectangle: function() {
+                    this.disable();
+                    customDraw.disable(); // Disable other custom tools
+                    
+                    if(sketch) {
+                        sketch.cancel();
+                        sketch.layer = null;
+                    }
+                    
+                    this.active = true;
+                    this.mode = 'rectangle';
+                    view.container.style.cursor = "crosshair";
+                    
+                    // Ensure highlight layer is on top
+                    ensureHighlightLayerOnTop();
+                    
+                    document.getElementById("btnSelectRectangle").classList.add("active", "btn-primary", "text-white");
+                    document.getElementById("btnSelectRectangle").classList.remove("btn-outline-primary");
+                    document.getElementById("selectionHint").style.display = "block";
+                    document.getElementById("selectionHint").textContent = "* Click and drag to select by rectangle";
+                    
+                    this.listeners.push(view.on("drag", (e) => this.handleRectangleDrag(e)));
+                },
+
+                enableLasso: function() {
+                    this.disable();
+                    customDraw.disable(); // Disable other custom tools
+                    
+                    if(sketch) {
+                        sketch.cancel();
+                        sketch.layer = null;
+                    }
+                    
+                    this.active = true;
+                    this.mode = 'lasso';
+                    view.container.style.cursor = "crosshair";
+                    
+                    // Ensure highlight layer is on top
+                    ensureHighlightLayerOnTop();
+                    
+                    document.getElementById("btnSelectLasso").classList.add("active", "btn-primary", "text-white");
+                    document.getElementById("btnSelectLasso").classList.remove("btn-outline-primary");
+                    document.getElementById("selectionHint").style.display = "block";
+                    document.getElementById("selectionHint").textContent = "* Click and drag to select by lasso";
+                    
+                    this.listeners.push(view.on("drag", (e) => this.handleLassoDrag(e)));
+                },
+
+                handleRectangleDrag: function(event) {
+                    event.stopPropagation();
+                    
+                    if (event.action === "start") {
+                        this.startPoint = view.toMap(event);
+                        if (this.selectionGraphic) {
+                            tempGraphicsLayer.remove(this.selectionGraphic);
+                        }
+                    } else if (event.action === "update" && this.startPoint) {
+                        var currentPoint = view.toMap(event);
+                        
+                        // Create rectangle
+                        var xmin = Math.min(this.startPoint.x, currentPoint.x);
+                        var xmax = Math.max(this.startPoint.x, currentPoint.x);
+                        var ymin = Math.min(this.startPoint.y, currentPoint.y);
+                        var ymax = Math.max(this.startPoint.y, currentPoint.y);
+                        
+                        var rectangle = new Polygon({
+                            rings: [[[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax], [xmin, ymin]]],
+                            spatialReference: view.spatialReference
+                        });
+                        
+                        if (this.selectionGraphic) {
+                            tempGraphicsLayer.remove(this.selectionGraphic);
+                        }
+                        
+                        this.selectionGraphic = new Graphic({
+                            geometry: rectangle,
+                            symbol: new SimpleFillSymbol({
+                                color: [0, 255, 255, 0.1],
+                                outline: { color: [0, 255, 255, 1], width: 2, style: "dash" }
+                            })
+                        });
+                        tempGraphicsLayer.add(this.selectionGraphic);
+                    } else if (event.action === "end" && this.startPoint) {
+                        var currentPoint = view.toMap(event);
+                        
+                        // Create final rectangle
+                        var xmin = Math.min(this.startPoint.x, currentPoint.x);
+                        var xmax = Math.max(this.startPoint.x, currentPoint.x);
+                        var ymin = Math.min(this.startPoint.y, currentPoint.y);
+                        var ymax = Math.max(this.startPoint.y, currentPoint.y);
+                        
+                        var rectangle = new Polygon({
+                            rings: [[[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax], [xmin, ymin]]],
+                            spatialReference: view.spatialReference
+                        });
+                        
+                        this.selectFeaturesInGeometry(rectangle);
+                        
+                        // Clear selection graphic
+                        if (this.selectionGraphic) {
+                            tempGraphicsLayer.remove(this.selectionGraphic);
+                            this.selectionGraphic = null;
+                        }
+                        this.startPoint = null;
+                    }
+                },
+
+                handleLassoDrag: function(event) {
+                    event.stopPropagation();
+                    
+                    if (event.action === "start") {
+                        this.currentPoints = [];
+                        var startPoint = view.toMap(event);
+                        if (startPoint) {
+                            this.currentPoints.push([startPoint.x, startPoint.y]);
+                        }
+                        if (this.selectionGraphic) {
+                            tempGraphicsLayer.remove(this.selectionGraphic);
+                        }
+                    } else if (event.action === "update") {
+                        var currentPoint = view.toMap(event);
+                        if (currentPoint && this.currentPoints.length > 0) {
+                            this.currentPoints.push([currentPoint.x, currentPoint.y]);
+                            
+                            // Draw lasso path
+                            if (this.currentPoints.length >= 2) {
+                                var polyline = new Polyline({
+                                    paths: [this.currentPoints],
+                                    spatialReference: view.spatialReference
+                                });
+                                
+                                if (this.selectionGraphic) {
+                                    tempGraphicsLayer.remove(this.selectionGraphic);
+                                }
+                                
+                                this.selectionGraphic = new Graphic({
+                                    geometry: polyline,
+                                    symbol: new SimpleLineSymbol({
+                                        color: [0, 255, 255, 1],
+                                        width: 2,
+                                        style: "dash"
+                                    })
+                                });
+                                tempGraphicsLayer.add(this.selectionGraphic);
+                            }
+                        }
+                    } else if (event.action === "end") {
+                        if (this.currentPoints.length >= 3) {
+                            // Close the polygon
+                            this.currentPoints.push(this.currentPoints[0]);
+                            
+                            var polygon = new Polygon({
+                                rings: [this.currentPoints],
+                                spatialReference: view.spatialReference
+                            });
+                            
+                            this.selectFeaturesInGeometry(polygon);
+                        }
+                        
+                        // Clear selection graphic
+                        if (this.selectionGraphic) {
+                            tempGraphicsLayer.remove(this.selectionGraphic);
+                            this.selectionGraphic = null;
+                        }
+                        this.currentPoints = [];
+                    }
+                },
+
+                selectFeaturesInGeometry: function(geometry) {
+                    // Clear previous highlights
+                    this.clearHighlights();
+                    this.selectedFeatures = [];
+                    
+                    // Ensure highlight layer is on top
+                    ensureHighlightLayerOnTop();
+                    
+                    // Get all feature layers
+                    var featureLayers = map.layers.filter(layer => layer.type === "feature");
+                    
+                    if (featureLayers.length === 0) {
+                        alert("No Feature Layers found in map.");
+                        this.updateSelectionCount();
+                        return;
+                    }
+                    
+                    var totalSelected = 0;
+                    var promises = [];
+                    
+                    featureLayers.forEach(layer => {
+                        if (!layer.visible) return; // Skip invisible layers
+                        
+                        // Query features within geometry
+                        var query = layer.createQuery();
+                        query.geometry = geometry;
+                        query.spatialRelationship = "intersects";
+                        query.returnGeometry = true;
+                        query.outFields = ["*"];
+                        
+                        var promise = layer.queryFeatures(query).then(result => {
+                            if (result.features.length > 0) {
+                                result.features.forEach(feature => {
+                                    this.selectedFeatures.push({
+                                        feature: feature,
+                                        layer: layer
+                                    });
+                                    
+                                    // Add highlight graphic to highlightLayer (on top)
+                                    var highlightSymbol;
+                                    if (feature.geometry.type === "point") {
+                                        highlightSymbol = new SimpleMarkerSymbol({
+                                            color: [0, 255, 255, 0.5],
+                                            size: 12,
+                                            outline: { color: [0, 255, 255, 1], width: 2 }
+                                        });
+                                    } else if (feature.geometry.type === "polyline") {
+                                        highlightSymbol = new SimpleLineSymbol({
+                                            color: [0, 255, 255, 1],
+                                            width: 3
+                                        });
+                                    } else if (feature.geometry.type === "polygon") {
+                                        highlightSymbol = new SimpleFillSymbol({
+                                            color: [0, 255, 255, 0.2],
+                                            outline: { color: [0, 255, 255, 1], width: 2 }
+                                        });
+                                    }
+                                    
+                                    var highlightGraphic = new Graphic({
+                                        geometry: feature.geometry,
+                                        symbol: highlightSymbol
+                                    });
+                                    
+                                    this.highlightGraphics.push(highlightGraphic);
+                                    highlightLayer.add(highlightGraphic); // Use highlightLayer instead of tempGraphicsLayer
+                                });
+                                totalSelected += result.features.length;
+                            }
+                        }).catch(err => {
+                            console.error("Query error:", err);
+                        });
+                        
+                        promises.push(promise);
+                    });
+                    
+                    Promise.all(promises).then(() => {
+                        this.updateSelectionCount();
+                        if (totalSelected > 0) {
+                            console.log(`Selected ${totalSelected} features from ${featureLayers.length} layers`);
+                        } else {
+                            alert("No features found in selection area.");
+                        }
+                    });
+                },
+
+                clearHighlights: function() {
+                    this.highlightGraphics.forEach(g => highlightLayer.remove(g)); // Use highlightLayer instead of tempGraphicsLayer
+                    this.highlightGraphics = [];
+                },
+
+                clearSelection: function() {
+                    this.selectedFeatures = [];
+                    this.clearHighlights();
+                    this.updateSelectionCount();
+                    if (this.selectionGraphic) {
+                        tempGraphicsLayer.remove(this.selectionGraphic);
+                        this.selectionGraphic = null;
+                    }
+                },
+
+                updateSelectionCount: function() {
+                    document.getElementById("selectedFeatureCount").textContent = this.selectedFeatures.length;
+                },
+
+                copySelectedToDrawLayer: function() {
+                    if (this.selectedFeatures.length === 0) {
+                        alert("No features selected. Use Rectangle or Lasso to select features first.");
+                        return;
+                    }
+                    
+                    if (!activeDrawingLayer) {
+                        alert("No active drawing layer. Please create or select a drawing layer first.");
+                        return;
+                    }
+                    
+                    var copied = 0;
+                    
+                    this.selectedFeatures.forEach(item => {
+                        var feature = item.feature;
+                        var clonedGeometry = feature.geometry.clone();
+                        
+                        var sym = null;
+                        if (clonedGeometry.type === "point") {
+                            sym = new SimpleMarkerSymbol({ color: activeColor, size: "8px", outline: { color: "white", width: 1 } });
+                        } else if (clonedGeometry.type === "polyline") {
+                            sym = new SimpleLineSymbol({ color: activeColor, width: 2 });
+                        } else if (clonedGeometry.type === "polygon") {
+                            sym = new SimpleFillSymbol({ color: hexToRgba(activeColor, 0.3), outline: { color: activeColor, width: 2 } });
+                        }
+                        
+                        var newAttributes = Object.assign({}, feature.attributes);
+                        // Remove system fields
+                        delete newAttributes.latitude;
+                        delete newAttributes.longitude;
+                        delete newAttributes.mgrs;
+                        delete newAttributes.utmz47;
+                        delete newAttributes.utmz48;
+                        delete newAttributes.OBJECTID;
+                        delete newAttributes.FID;
+                        delete newAttributes.objectid;
+                        delete newAttributes.fid;
+                        
+                        var newGraphic = new Graphic({ 
+                            geometry: clonedGeometry, 
+                            symbol: sym, 
+                            attributes: newAttributes 
+                        });
+                        newGraphic.attributes.color = activeColor;
+                        newGraphic.attributes.SourceLayer = item.layer.title;
+                        
+                        handleGraphicCreation(newGraphic, false);
+                        activeDrawingLayer.add(newGraphic);
+                        copied++;
+                    });
+                    
+                    updateLabels(activeDrawingLayer.id);
+                    updateLayerList();
+                    
+                    alert(`Copied ${copied} features to: ${activeDrawingLayer.title}`);
+                    
+                    // Clear selection after copy
+                    this.clearSelection();
+                }
+            };
+
+            // Feature Selection Event Listeners
+            document.getElementById("btnSelectRectangle").addEventListener("click", () => {
+                if (featureSelection.mode === 'rectangle') {
+                    featureSelection.disable();
+                } else {
+                    featureSelection.enableRectangle();
+                }
+            });
+
+            document.getElementById("btnSelectLasso").addEventListener("click", () => {
+                if (featureSelection.mode === 'lasso') {
+                    featureSelection.disable();
+                } else {
+                    featureSelection.enableLasso();
+                }
+            });
+
+            document.getElementById("btnCopySelected").addEventListener("click", () => {
+                featureSelection.copySelectedToDrawLayer();
+            });
+
+            document.getElementById("btnClearSelection").addEventListener("click", () => {
+                featureSelection.clearSelection();
+            });
+            // ==================== END FEATURE SELECTION SYSTEM ====================
+
+
             document.getElementById("executeBufferBtn").addEventListener("click", function() {
                 var targetLayerId = document.getElementById("bufferTargetLayer").value;
                 var dist = parseFloat(document.getElementById("manualBufferDist").value);
@@ -2666,6 +3121,8 @@
                 if (exportType === "kml") exportSelectedLayersToKML(layerIds);
                 else if (exportType === "geojson_47") exportSelectedLayersToGeoJSON(layerIds, 32647);
                 else if (exportType === "geojson_48") exportSelectedLayersToGeoJSON(layerIds, 32648);
+                else if (exportType === "shapefile_47") exportSelectedLayersToShapefile(layerIds, 32647);
+                else if (exportType === "shapefile_48") exportSelectedLayersToShapefile(layerIds, 32648);
                 else if (exportType === "excel") exportSelectedLayersToExcel(layerIds);
             });
 
@@ -2793,6 +3250,710 @@
                 document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
                 closePanel('exportPanel');
             }
+
+            // ===================== SHAPEFILE EXPORT FUNCTIONS =====================
+            async function exportSelectedLayersToShapefile(layerIds, wkid) {
+                try {
+                    // First convert to GeoJSON
+                    var sr = new SpatialReference({ wkid: wkid });
+                    var crsObj = { 
+                        type: "name", 
+                        properties: { name: "urn:ogc:def:crs:EPSG::" + wkid }
+                    };
+                    
+                    var features = [];
+                    layerIds.forEach(function(id) {
+                        var layer = map.findLayerById(id);
+                        if (layer && layer.graphics && layer.graphics.length > 0) {
+                            layer.graphics.forEach(function(graphic) {
+                                var attrs = graphic.attributes || {};
+                                var properties = Object.assign({}, attrs);
+                                
+                                var projectedGeom = (wkid === 4326) 
+                                    ? webMercatorUtils.webMercatorToGeographic(graphic.geometry) 
+                                    : projection.project(graphic.geometry, sr);
+                                
+                                var geoJsonGeom = null;
+                                if (projectedGeom) {
+                                    if (projectedGeom.type === "point") geoJsonGeom = { type: "Point", coordinates: [projectedGeom.x, projectedGeom.y] };
+                                    else if (projectedGeom.type === "polyline") geoJsonGeom = { type: "LineString", coordinates: projectedGeom.paths[0] };
+                                    else if (projectedGeom.type === "polygon") geoJsonGeom = { type: "Polygon", coordinates: projectedGeom.rings };
+                                }
+                                if (geoJsonGeom) features.push({ type: "Feature", properties: properties, geometry: geoJsonGeom });
+                            });
+                        }
+                    });
+                    
+                    if (features.length === 0) {
+                        alert("No data found to export.");
+                        return;
+                    }
+                    
+                    var geoJsonObj = { type: "FeatureCollection", crs: crsObj, features: features };
+                    
+                    // Convert GeoJSON to Shapefile
+                    var fileName = (wkid === 32647) ? "map_export_utm47n" : "map_export_utm48n";
+                    var shapefileZip = await convertGeoJSONToShapefile(geoJsonObj, fileName, wkid);
+                    
+                    if (shapefileZip) {
+                        var zipFileName = fileName + ".zip";
+                        var blob = shapefileZip;
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement("a");
+                        a.href = url;
+                        a.download = zipFileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        closePanel('exportPanel');
+                    }
+                } catch (error) {
+                    console.error("Shapefile export error:", error);
+                    alert("Error creating shapefile: " + error.message);
+                }
+            }
+
+            async function convertGeoJSONToShapefile(geoJSON, fileName, wkid) {
+                try {
+                    // Separate features by geometry type
+                    var pointFeatures = [];
+                    var lineFeatures = [];
+                    var polygonFeatures = [];
+                    
+                    geoJSON.features.forEach(f => {
+                        if (!f.geometry) return;
+                        var geomType = f.geometry.type;
+                        if (geomType === 'Point' || geomType === 'MultiPoint') {
+                            pointFeatures.push(f);
+                        } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
+                            lineFeatures.push(f);
+                        } else if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
+                            polygonFeatures.push(f);
+                        }
+                    });
+                    
+                    // Create PRJ content based on WKID
+                    var prjContent = getPRJContent(wkid);
+                    
+                    // Create ZIP
+                    var zip = new JSZip();
+                    var hasFiles = false;
+                    
+                    // Create shapefiles for each geometry type
+                    if (pointFeatures.length > 0) {
+                        await createShapefileForFeatureType({...geoJSON, features: pointFeatures}, 'point', zip, prjContent, fileName);
+                        hasFiles = true;
+                    }
+                    
+                    if (lineFeatures.length > 0) {
+                        await createShapefileForFeatureType({...geoJSON, features: lineFeatures}, 'line', zip, prjContent, fileName);
+                        hasFiles = true;
+                    }
+                    
+                    if (polygonFeatures.length > 0) {
+                        await createShapefileForFeatureType({...geoJSON, features: polygonFeatures}, 'poly', zip, prjContent, fileName);
+                        hasFiles = true;
+                    }
+                    
+                    if (!hasFiles) {
+                        throw new Error("No valid features to export");
+                    }
+                    
+                    // Add README
+                    zip.file("README.txt", `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MAPRAW SHAPEFILE EXPORT - UTM Zone ${wkid === 32647 ? '47N' : '48N'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+สร้างโดย: MAPRAW NoteMap
+เว็บไซต์: https://mponline1.github.io/
+รองรับ: ArcGIS, QGIS, MapInfo, Global Mapper และ GIS software อื่นๆ
+
+╔═══════════════════════════════════════════════════════════════╗
+║  ภาษาไทยได้รับการปรับให้ใช้ CP874 (Windows-874)            ║
+║  เพื่อความเข้ากันได้สูงสุดกับ ArcGIS/ArcMap                ║
+╚═══════════════════════════════════════════════════════════════╝
+`);
+                    
+                    // Add original GeoJSON
+                    zip.file(`${fileName}_original.geojson`, JSON.stringify(geoJSON, null, 2));
+                    
+                    // Generate ZIP
+                    return await zip.generateAsync({type: 'blob'});
+                    
+                } catch (error) {
+                    console.error('Error creating shapefile:', error);
+                    throw new Error(`เกิดข้อผิดพลาดในการสร้างไฟล์ Shapefile: ${error.message}`);
+                }
+            }
+
+            function getPRJContent(wkid) {
+                if (wkid === 32647) {
+                    return 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",99.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
+                } else if (wkid === 32648) {
+                    return 'PROJCS["WGS_1984_UTM_Zone_48N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",105.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
+                } else {
+                    return 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+                }
+            }
+
+            async function createShapefileForFeatureType(geoJSON, type, zip, prjContent, baseFileName) {
+                try {
+                    const typeSuffix = type === 'point' ? 'point' : (type === 'line' ? 'line' : 'poly');
+                    const baseName = `${baseFileName}_${typeSuffix}`;
+                    
+                    const features = geoJSON.features;
+                    if (!features || features.length === 0) return false;
+                    
+                    // Calculate bounding box
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    features.forEach(feature => {
+                        if (!feature.geometry || !feature.geometry.coordinates) return;
+                        const coords = getAllCoordinates(feature.geometry.coordinates);
+                        coords.forEach(([x, y]) => {
+                            minX = Math.min(minX, x);
+                            minY = Math.min(minY, y);
+                            maxX = Math.max(maxX, x);
+                            maxY = Math.max(maxY, y);
+                        });
+                    });
+                    
+                    // Determine shape type
+                    let shapeType;
+                    const firstFeature = features[0];
+                    const geomType = firstFeature.geometry.type;
+                    
+                    if (type === 'point') {
+                        shapeType = (geomType === 'MultiPoint') ? 8 : 1;
+                    } else if (type === 'line') {
+                        shapeType = 3;
+                    } else {
+                        shapeType = 5;
+                    }
+                    
+                    // Create files
+                    const shpData = createShpFile(features, shapeType, minX, minY, maxX, maxY);
+                    zip.file(`${baseName}.shp`, shpData);
+                    
+                    const shxData = createShxFile(features, shapeType, minX, minY, maxX, maxY);
+                    zip.file(`${baseName}.shx`, shxData);
+                    
+                    const dbfData = createDbfFile(features);
+                    zip.file(`${baseName}.dbf`, dbfData);
+                    
+                    zip.file(`${baseName}.prj`, prjContent);
+                    zip.file(`${baseName}.cpg`, 'CP874');
+                    
+                    if (features.length > 0 && features[0].properties) {
+                        const fieldMapping = createFieldMappingFile(features);
+                        zip.file(`${baseName}_fields.txt`, fieldMapping);
+                    }
+                    
+                    zip.file(`${baseName}.geojson`, JSON.stringify(geoJSON, null, 2));
+                    
+                    return true;
+                } catch (error) {
+                    console.error(`Error creating ${type} shapefile:`, error);
+                    return false;
+                }
+            }
+
+            function getAllCoordinates(coords) {
+                const result = [];
+                function extract(c) {
+                    if (typeof c[0] === 'number') {
+                        result.push(c);
+                    } else {
+                        c.forEach(extract);
+                    }
+                }
+                extract(coords);
+                return result;
+            }
+
+            function createShpFile(features, shapeType, minX, minY, maxX, maxY) {
+                const records = [];
+                let fileLength = 100;
+                
+                features.forEach((feature, index) => {
+                    if (!feature.geometry || !feature.geometry.coordinates) return;
+                    
+                    const recordHeader = new ArrayBuffer(8);
+                    const recordHeaderView = new DataView(recordHeader);
+                    recordHeaderView.setInt32(0, index + 1, false);
+                    
+                    let recordContent;
+                    const coords = feature.geometry.coordinates;
+                    const geomType = feature.geometry.type;
+                    
+                    if (shapeType === 1) {
+                        recordContent = new ArrayBuffer(20);
+                        const view = new DataView(recordContent);
+                        view.setInt32(0, 1, true);
+                        view.setFloat64(4, coords[0], true);
+                        view.setFloat64(12, coords[1], true);
+                    } else if (shapeType === 3) {
+                        let allParts = [];
+                        let allPoints = [];
+                        
+                        if (geomType === 'LineString') {
+                            allParts.push(0);
+                            allPoints = coords;
+                        } else {
+                            let pointCount = 0;
+                            coords.forEach(line => {
+                                allParts.push(pointCount);
+                                allPoints = allPoints.concat(line);
+                                pointCount += line.length;
+                            });
+                        }
+                        
+                        const numParts = allParts.length;
+                        const numPoints = allPoints.length;
+                        
+                        let pMinX = Infinity, pMinY = Infinity, pMaxX = -Infinity, pMaxY = -Infinity;
+                        allPoints.forEach(([x, y]) => {
+                            pMinX = Math.min(pMinX, x);
+                            pMinY = Math.min(pMinY, y);
+                            pMaxX = Math.max(pMaxX, x);
+                            pMaxY = Math.max(pMaxY, y);
+                        });
+                        
+                        recordContent = new ArrayBuffer(44 + 4 * numParts + 16 * numPoints);
+                        const view = new DataView(recordContent);
+                        
+                        let offset = 0;
+                        view.setInt32(offset, 3, true); offset += 4;
+                        view.setFloat64(offset, pMinX, true); offset += 8;
+                        view.setFloat64(offset, pMinY, true); offset += 8;
+                        view.setFloat64(offset, pMaxX, true); offset += 8;
+                        view.setFloat64(offset, pMaxY, true); offset += 8;
+                        view.setInt32(offset, numParts, true); offset += 4;
+                        view.setInt32(offset, numPoints, true); offset += 4;
+                        
+                        allParts.forEach(partIndex => {
+                            view.setInt32(offset, partIndex, true);
+                            offset += 4;
+                        });
+                        
+                        allPoints.forEach(([x, y]) => {
+                            view.setFloat64(offset, x, true); offset += 8;
+                            view.setFloat64(offset, y, true); offset += 8;
+                        });
+                    } else if (shapeType === 5) {
+                        let allParts = [];
+                        let allPoints = [];
+                        
+                        if (geomType === 'Polygon') {
+                            let pointCount = 0;
+                            coords.forEach(ring => {
+                                allParts.push(pointCount);
+                                allPoints = allPoints.concat(ring);
+                                pointCount += ring.length;
+                            });
+                        } else {
+                            let pointCount = 0;
+                            coords.forEach(polygon => {
+                                polygon.forEach(ring => {
+                                    allParts.push(pointCount);
+                                    allPoints = allPoints.concat(ring);
+                                    pointCount += ring.length;
+                                });
+                            });
+                        }
+                        
+                        const numParts = allParts.length;
+                        const numPoints = allPoints.length;
+                        
+                        let pMinX = Infinity, pMinY = Infinity, pMaxX = -Infinity, pMaxY = -Infinity;
+                        allPoints.forEach(([x, y]) => {
+                            pMinX = Math.min(pMinX, x);
+                            pMinY = Math.min(pMinY, y);
+                            pMaxX = Math.max(pMaxX, x);
+                            pMaxY = Math.max(pMaxY, y);
+                        });
+                        
+                        recordContent = new ArrayBuffer(44 + 4 * numParts + 16 * numPoints);
+                        const view = new DataView(recordContent);
+                        
+                        let offset = 0;
+                        view.setInt32(offset, 5, true); offset += 4;
+                        view.setFloat64(offset, pMinX, true); offset += 8;
+                        view.setFloat64(offset, pMinY, true); offset += 8;
+                        view.setFloat64(offset, pMaxX, true); offset += 8;
+                        view.setFloat64(offset, pMaxY, true); offset += 8;
+                        view.setInt32(offset, numParts, true); offset += 4;
+                        view.setInt32(offset, numPoints, true); offset += 4;
+                        
+                        allParts.forEach(partIndex => {
+                            view.setInt32(offset, partIndex, true);
+                            offset += 4;
+                        });
+                        
+                        allPoints.forEach(([x, y]) => {
+                            view.setFloat64(offset, x, true); offset += 8;
+                            view.setFloat64(offset, y, true); offset += 8;
+                        });
+                    }
+                    
+                    if (!recordContent) return;
+                    
+                    recordHeaderView.setInt32(4, recordContent.byteLength / 2, false);
+                    records.push(recordHeader);
+                    records.push(recordContent);
+                    fileLength += 8 + recordContent.byteLength;
+                });
+                
+                const header = new ArrayBuffer(100);
+                const headerView = new DataView(header);
+                
+                headerView.setInt32(0, 9994, false);
+                headerView.setInt32(24, fileLength / 2, false);
+                headerView.setInt32(28, 1000, true);
+                headerView.setInt32(32, shapeType, true);
+                headerView.setFloat64(36, minX, true);
+                headerView.setFloat64(44, minY, true);
+                headerView.setFloat64(52, maxX, true);
+                headerView.setFloat64(60, maxY, true);
+                
+                const result = new Uint8Array(fileLength);
+                let offset = 0;
+                
+                result.set(new Uint8Array(header), offset);
+                offset += 100;
+                
+                records.forEach(record => {
+                    result.set(new Uint8Array(record), offset);
+                    offset += record.byteLength;
+                });
+                
+                return result;
+            }
+
+            function createShxFile(features, shapeType, minX, minY, maxX, maxY) {
+                const numRecords = features.length;
+                const fileLength = 100 + (numRecords * 8);
+                const buffer = new ArrayBuffer(fileLength);
+                const view = new DataView(buffer);
+                
+                view.setInt32(0, 9994, false);
+                view.setInt32(24, fileLength / 2, false);
+                view.setInt32(28, 1000, true);
+                view.setInt32(32, shapeType, true);
+                view.setFloat64(36, minX, true);
+                view.setFloat64(44, minY, true);
+                view.setFloat64(52, maxX, true);
+                view.setFloat64(60, maxY, true);
+                
+                let offset = 50;
+                
+                for (let i = 0; i < numRecords; i++) {
+                    const feature = features[i];
+                    let recordLength;
+                    
+                    if (shapeType === 1) {
+                        recordLength = 10;
+                    } else if (shapeType === 3) {
+                        const geomType = feature.geometry.type;
+                        let numPoints, numParts;
+                        
+                        if (geomType === 'LineString') {
+                            numParts = 1;
+                            numPoints = feature.geometry.coordinates.length;
+                        } else {
+                            numParts = feature.geometry.coordinates.length;
+                            numPoints = feature.geometry.coordinates.reduce((sum, line) => sum + line.length, 0);
+                        }
+                        recordLength = 22 + 2 * numParts + 8 * numPoints;
+                    } else if (shapeType === 5) {
+                        const geomType = feature.geometry.type;
+                        let numPoints, numParts;
+                        
+                        if (geomType === 'Polygon') {
+                            numParts = feature.geometry.coordinates.length;
+                            numPoints = feature.geometry.coordinates.reduce((sum, ring) => sum + ring.length, 0);
+                        } else {
+                            numParts = 0;
+                            numPoints = 0;
+                            feature.geometry.coordinates.forEach(polygon => {
+                                numParts += polygon.length;
+                                polygon.forEach(ring => {
+                                    numPoints += ring.length;
+                                });
+                            });
+                        }
+                        recordLength = 22 + 2 * numParts + 8 * numPoints;
+                    }
+                    
+                    view.setInt32(100 + i * 8, offset, false);
+                    view.setInt32(104 + i * 8, recordLength, false);
+                    offset += recordLength + 4;
+                }
+                
+                return new Uint8Array(buffer);
+            }
+
+            function createDbfFile(features) {
+                const fieldInfo = new Map();
+                
+                features.forEach(f => {
+                    if (f.properties) {
+                        Object.entries(f.properties).forEach(([key, value]) => {
+                            if (!fieldInfo.has(key)) {
+                                let fieldType = 'C';
+                                let fieldLength = 254;
+                                let decimal = 0;
+                                
+                                if (typeof value === 'number') {
+                                    if (Number.isInteger(value)) {
+                                        fieldType = 'N';
+                                        const maxVal = Math.max(...features.map(f => Math.abs(f.properties?.[key] || 0)));
+                                        fieldLength = Math.min(18, Math.max(10, String(Math.floor(maxVal)).length + 1));
+                                        decimal = 0;
+                                    } else {
+                                        fieldType = 'F';
+                                        fieldLength = 19;
+                                        decimal = 11;
+                                    }
+                                } else if (typeof value === 'boolean') {
+                                    fieldType = 'L';
+                                    fieldLength = 1;
+                                    decimal = 0;
+                                } else if (typeof value === 'string') {
+                                    const maxLength = Math.max(...features.map(f => {
+                                        const val = f.properties?.[key];
+                                        if (val === null || val === undefined) return 0;
+                                        const str = String(val);
+                                        let byteCount = 0;
+                                        for (let i = 0; i < str.length; i++) {
+                                            const code = str.charCodeAt(i);
+                                            if (code >= 0x0E00 && code <= 0x0E7F) {
+                                                byteCount += 3;
+                                            } else if (code > 127) {
+                                                byteCount += 2;
+                                            } else {
+                                                byteCount += 1;
+                                            }
+                                        }
+                                        return byteCount;
+                                    }));
+                                    fieldLength = Math.min(254, Math.max(50, maxLength + 10));
+                                }
+                                
+                                fieldInfo.set(key, { 
+                                    type: fieldType, 
+                                    length: fieldLength, 
+                                    decimal: decimal,
+                                    originalKey: key
+                                });
+                            }
+                        });
+                    }
+                });
+                
+                const allFields = Array.from(fieldInfo.entries());
+                
+                const fields = allFields.map(([name, info]) => {
+                    let fieldName = name;
+                    let safeName = fieldName;
+                    const hasThaiOrSpecial = /[^\x00-\x7F]/.test(fieldName) || /[^A-Za-z0-9_]/.test(fieldName);
+                    
+                    if (hasThaiOrSpecial) {
+                        safeName = 'FIELD_' + (allFields.indexOf([name, info]) + 1);
+                    }
+                    
+                    safeName = safeName.substring(0, 10).toUpperCase();
+                    
+                    return {
+                        name: safeName,
+                        originalName: fieldName,
+                        type: info.type,
+                        length: info.length,
+                        decimal: info.decimal
+                    };
+                });
+                
+                if (fields.length === 0) {
+                    fields.push({ 
+                        name: 'FID', 
+                        originalName: 'FID',
+                        type: 'N', 
+                        length: 10,
+                        decimal: 0
+                    });
+                }
+                
+                const numRecords = features.length;
+                const numFields = fields.length;
+                const headerLength = 32 + (numFields * 32) + 1;
+                const recordLength = fields.reduce((sum, f) => sum + f.length, 1);
+                
+                const fileLength = headerLength + (numRecords * recordLength) + 1;
+                const buffer = new ArrayBuffer(fileLength);
+                const view = new DataView(buffer);
+                const bytes = new Uint8Array(buffer);
+                
+                const now = new Date();
+                view.setUint8(0, 0x03);
+                view.setUint8(1, now.getFullYear() - 1900);
+                view.setUint8(2, now.getMonth() + 1);
+                view.setUint8(3, now.getDate());
+                view.setUint32(4, numRecords, true);
+                view.setUint16(8, headerLength, true);
+                view.setUint16(10, recordLength, true);
+                view.setUint8(29, 0x7C);
+                
+                let offset = 32;
+                
+                fields.forEach((field, idx) => {
+                    const fieldNameBytes = new TextEncoder().encode(field.name);
+                    for (let i = 0; i < Math.min(fieldNameBytes.length, 10); i++) {
+                        bytes[offset + i] = fieldNameBytes[i];
+                    }
+                    for (let i = fieldNameBytes.length; i < 11; i++) {
+                        bytes[offset + i] = 0x00;
+                    }
+                    
+                    bytes[offset + 11] = field.type.charCodeAt(0);
+                    view.setUint32(offset + 12, 0, true);
+                    bytes[offset + 16] = field.length;
+                    bytes[offset + 17] = field.decimal;
+                    
+                    offset += 32;
+                });
+                
+                bytes[offset] = 0x0D;
+                offset++;
+                
+                features.forEach((feature, idx) => {
+                    bytes[offset] = 0x20;
+                    offset++;
+                    
+                    fields.forEach((field, fieldIdx) => {
+                        var propValue = feature.properties?.[field.originalName];
+                        var value = '';
+                        
+                        if (propValue !== null && propValue !== undefined) {
+                            if (field.type === 'N' || field.type === 'F') {
+                                value = String(parseFloat(propValue) || 0).substring(0, field.length);
+                                value = value.padStart(field.length, ' ');
+                            } else if (field.type === 'L') {
+                                value = propValue ? 'T' : 'F';
+                            } else {
+                                value = encodeToCP874(String(propValue), field.length);
+                            }
+                        }
+                        
+                        if (value.length > field.length) {
+                            value = value.substring(0, field.length);
+                        } else if (value.length < field.length) {
+                            value = value.padEnd(field.length, ' ');
+                        }
+                        
+                        const valueBytes = encodeStringToBytes(value);
+                        for (let i = 0; i < field.length; i++) {
+                            bytes[offset + i] = i < valueBytes.length ? valueBytes[i] : 0x20;
+                        }
+                        offset += field.length;
+                    });
+                });
+                
+                bytes[offset] = 0x1A;
+                
+                return bytes;
+            }
+
+            function encodeToCP874(str, maxLength) {
+                const bytes = [];
+                
+                for (let i = 0; i < str.length && bytes.length < maxLength; i++) {
+                    const char = str[i];
+                    const code = str.charCodeAt(i);
+                    
+                    if (code >= 0x0E00 && code <= 0x0E7F) {
+                        const cp874Code = code - 0x0E00 + 0xA0;
+                        bytes.push(cp874Code);
+                    } else if (code <= 0x7F) {
+                        bytes.push(code);
+                    } else if (code === 0x20AC) { bytes.push(0x80); }
+                    else if (code === 0x2026) { bytes.push(0x85); }
+                    else if (code === 0x2018) { bytes.push(0x91); }
+                    else if (code === 0x2019) { bytes.push(0x92); }
+                    else if (code === 0x201C) { bytes.push(0x93); }
+                    else if (code === 0x201D) { bytes.push(0x94); }
+                    else if (code === 0x2022) { bytes.push(0x95); }
+                    else if (code === 0x2013) { bytes.push(0x96); }
+                    else if (code === 0x2014) { bytes.push(0x97); }
+                    else {
+                        bytes.push(0x3F);
+                    }
+                }
+                
+                let result = '';
+                for (let i = 0; i < bytes.length; i++) {
+                    result += String.fromCharCode(bytes[i]);
+                }
+                
+                return result;
+            }
+
+            function encodeStringToBytes(str) {
+                const bytes = [];
+                for (let i = 0; i < str.length; i++) {
+                    bytes.push(str.charCodeAt(i) & 0xFF);
+                }
+                return bytes;
+            }
+
+            function createFieldMappingFile(features) {
+                const fieldInfo = new Map();
+                
+                features.forEach(f => {
+                    if (f.properties) {
+                        Object.keys(f.properties).forEach(key => {
+                            if (!fieldInfo.has(key)) {
+                                fieldInfo.set(key, true);
+                            }
+                        });
+                    }
+                });
+                
+                const allFields = Array.from(fieldInfo.keys());
+                let mapping = '====================================\n';
+                mapping += 'Field Name Mapping (DBF ↔ Original)\n';
+                mapping += '====================================\n\n';
+                mapping += 'DBF files have limitations on field names:\n';
+                mapping += '- Maximum 10 characters\n';
+                mapping += '- ASCII characters only (A-Z, 0-9, _)\n\n';
+                mapping += 'This file maps the shortened field names in the .dbf file\n';
+                mapping += 'to the original field names from your GeoJSON.\n\n';
+                mapping += 'Format: DBF_FIELD_NAME = Original Field Name\n';
+                mapping += '----------------------------------------\n\n';
+                
+                allFields.forEach((originalName, idx) => {
+                    const hasThaiOrSpecial = /[^\x00-\x7F]/.test(originalName) || /[^A-Za-z0-9_]/.test(originalName);
+                    let safeName;
+                    
+                    if (hasThaiOrSpecial) {
+                        safeName = 'FIELD_' + (idx + 1);
+                    } else {
+                        safeName = originalName.substring(0, 10).toUpperCase();
+                    }
+                    
+                    mapping += `${safeName.padEnd(12)} = ${originalName}\n`;
+                });
+                
+                mapping += '\n====================================\n';
+                mapping += `Total Fields: ${allFields.length}\n`;
+                mapping += 'Character Encoding: CP874 (Windows-874)\n';
+                mapping += 'Thai text support: Full\n';
+                mapping += 'Compatible with: ArcGIS, QGIS, MapInfo\n';
+                mapping += '====================================\n';
+                
+                return mapping;
+            }
+            // ===================== END SHAPEFILE EXPORT FUNCTIONS =====================
+
 
             // --- IMPORT VECTOR FILES (KML, KMZ, GeoJSON, Shp Zip) ---
             document.getElementById("importVectorBtn").addEventListener("click", function() {
