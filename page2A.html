@@ -1484,7 +1484,7 @@
                     
                     // คำนวดพื้นที่การใช้ประโยชน์อาคารรวม และใช้ formatDecimal
                     const totalUsableArea = bl_area * bl_nstorey;
-                    row['พื้นที่การใช้ประโยชน์อาคารรวม'] = formatDecimal(totalUsableArea);
+                    row['GFAAREA'] = formatDecimal(totalUsableArea);
 
                     // กำหนดค่า RE_BL_USE
                     row.RE_BL_USE = reuse2Data[row.BL_USE] || '';
@@ -1517,7 +1517,7 @@
                     
                     // คำนวดพื้นที่การใช้ประโยชน์อาคารรวม และใช้ formatDecimal
                     const totalUsableArea = bl_area * bl_nstorey;
-                    row['พื้นที่การใช้ประโยชน์อาคารรวม'] = formatDecimal(totalUsableArea);
+                    row['GFAAREA'] = formatDecimal(totalUsableArea);
 
                     // กำหนดค่า RE_BL_USE
                     row.RE_BL_USE = reuse2Data[row.BL_USE] || '';
@@ -1551,7 +1551,7 @@
         function determineCode(row) {
             const { RE_BL_USE, BL_TYPE, BL_NSTOREY } = row;
             const BL_AREA = parseFloat(row.BL_AREA) || 0;
-            const usableArea = row['พื้นที่การใช้ประโยชน์อาคารรวม'];
+            const usableArea = row['GFAAREA'];
 
             // เงื่อนไขที่ 1-18
             if (usableArea >= 2000) {
