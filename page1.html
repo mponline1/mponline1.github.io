@@ -755,8 +755,10 @@
             <label class="form-label small fw-bold">Select Format:</label>
             <div class="d-flex flex-column gap-2">
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatKml" value="kml" checked><label class="form-check-label" for="formatKml">KML (Google Earth - WGS84)</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojsonWgs84" value="geojson_wgs84"><label class="form-check-label" for="formatGeojsonWgs84">GeoJSON (WGS84)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson47" value="geojson_47"><label class="form-check-label" for="formatGeojson47">GeoJSON (UTM Zone 47N)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatGeojson48" value="geojson_48"><label class="form-check-label" for="formatGeojson48">GeoJSON (UTM Zone 48N)</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatShapefileWgs84" value="shapefile_wgs84"><label class="form-check-label" for="formatShapefileWgs84" style="color: #dc3545; font-weight: 500;">Shapefile (WGS84)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatShapefile47" value="shapefile_47"><label class="form-check-label" for="formatShapefile47" style="color: #dc3545; font-weight: 500;">Shapefile (UTM Zone 47N)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatShapefile48" value="shapefile_48"><label class="form-check-label" for="formatShapefile48" style="color: #dc3545; font-weight: 500;">Shapefile (UTM Zone 48N)</label></div>
                 <div class="form-check"><input class="form-check-input" type="radio" name="exportFormat" id="formatExcel" value="excel"><label class="form-check-label" for="formatExcel" style="color: #198754; font-weight: 500;">Excel (.xlsx)</label></div>
@@ -3099,18 +3101,43 @@
 
             // --- EXPORT SYSTEM ---
             function updateExportLayerList() {
-                var container = document.getElementById("exportLayerList"); container.innerHTML = "";
+                var container = document.getElementById("exportLayerList"); 
+                container.innerHTML = "";
                 var hasLayers = false;
+                
                 map.layers.forEach(function(layer) {
-                    if (layer.isDrawLayer) {
+                    // Export layers ที่มีข้อมูล: Drawing layers, Feature layers with graphics, Search layer
+                    var canExport = false;
+                    var layerCount = 0;
+                    
+                    if (layer.isDrawLayer || layer.id === "system_search_layer") {
+                        // Graphics layers (drawing, search, import)
+                        if (layer.graphics && layer.graphics.length > 0) {
+                            canExport = true;
+                            layerCount = layer.graphics.length;
+                        }
+                    } else if (layer.type === "feature") {
+                        // Feature layers from services - always allow export (will query when exporting)
+                        canExport = true;
+                        layerCount = "?"; // Unknown count until queried
+                    }
+                    
+                    if (canExport) {
                         hasLayers = true;
-                        var div = document.createElement("div"); div.className = "form-check";
-                        div.innerHTML = `<input class="form-check-input export-layer-checkbox" type="checkbox" value="${layer.id}" id="export_${layer.id}" checked><label class="form-check-label" for="export_${layer.id}">${layer.title}</label>`;
+                        var div = document.createElement("div"); 
+                        div.className = "form-check";
+                        var countBadge = layerCount !== "?" ? `<span class="badge bg-secondary ms-2">${layerCount}</span>` : "";
+                        var layerType = layer.type === "feature" ? `<span class="badge bg-info text-white ms-1" style="font-size:0.65em;">Service</span>` : "";
+                        div.innerHTML = `<input class="form-check-input export-layer-checkbox" type="checkbox" value="${layer.id}" id="export_${layer.id}" checked>
+                                        <label class="form-check-label" for="export_${layer.id}">${layer.title}${layerType}${countBadge}</label>`;
                         container.appendChild(div);
                     }
                 });
+                
                 document.getElementById("confirmExportBtn").disabled = !hasLayers;
-                if (!hasLayers) container.innerHTML = "<p class='text-center text-muted'>No drawing layers found.</p>";
+                if (!hasLayers) {
+                    container.innerHTML = "<p class='text-center text-muted'>No exportable layers found.<br><small>Add data using Draw Tools, Import Data, or Add Service Layer.</small></p>";
+                }
             }
 
             document.getElementById("confirmExportBtn").addEventListener("click", function() {
@@ -3119,19 +3146,73 @@
                 if (layerIds.length === 0) { alert("Please select at least one layer."); return; }
                 var exportType = document.querySelector('input[name="exportFormat"]:checked').value;
                 if (exportType === "kml") exportSelectedLayersToKML(layerIds);
+                else if (exportType === "geojson_wgs84") exportSelectedLayersToGeoJSON(layerIds, 4326);
                 else if (exportType === "geojson_47") exportSelectedLayersToGeoJSON(layerIds, 32647);
                 else if (exportType === "geojson_48") exportSelectedLayersToGeoJSON(layerIds, 32648);
+                else if (exportType === "shapefile_wgs84") exportSelectedLayersToShapefile(layerIds, 4326);
                 else if (exportType === "shapefile_47") exportSelectedLayersToShapefile(layerIds, 32647);
                 else if (exportType === "shapefile_48") exportSelectedLayersToShapefile(layerIds, 32648);
                 else if (exportType === "excel") exportSelectedLayersToExcel(layerIds);
             });
 
-            function exportSelectedLayersToExcel(layerIds) {
+            async function exportSelectedLayersToExcel(layerIds) {
                 var wb = XLSX.utils.book_new();
                 var hasData = false;
+                var promises = [];
+                var allSheets = [];
+                
                 layerIds.forEach(function(id) {
                     var layer = map.findLayerById(id);
-                    if (layer && layer.graphics && layer.graphics.length > 0) {
+                    if (!layer) return;
+                    
+                    if (layer.type === "feature") {
+                        // Feature Layer - query all features
+                        var query = layer.createQuery();
+                        query.where = "1=1";
+                        query.returnGeometry = true;
+                        query.outFields = ["*"];
+                        
+                        var promise = layer.queryFeatures(query).then(result => {
+                            if (result.features.length > 0) {
+                                var rowData = [];
+                                result.features.forEach(function(feature) {
+                                    var attrs = feature.attributes || {};
+                                    var row = Object.assign({}, attrs);
+                                    if (!row.latitude && feature.geometry) {
+                                        var geom = feature.geometry;
+                                        var center = (geom.type === "point") ? geom : geom.extent.center;
+                                        var ll;
+                                        if (center.spatialReference.isWebMercator) {
+                                            ll = webMercatorUtils.webMercatorToGeographic(center);
+                                        } else if (center.spatialReference.wkid === 4326) {
+                                            ll = center;
+                                        } else {
+                                            ll = projection.project(center, new SpatialReference({ wkid: 4326 }));
+                                        }
+                                        row.latitude = ll.latitude.toFixed(6); 
+                                        row.longitude = ll.longitude.toFixed(6);
+                                        try { row.mgrs = coordinateFormatter.toMgrs(ll, "automatic", 5); } catch(e){}
+                                        var utm = getUTMAttributes(ll);
+                                        row.utmz47 = utm.utmz47; 
+                                        row.utmz48 = utm.utmz48;
+                                    }
+                                    row.LayerName = layer.title;
+                                    rowData.push(row);
+                                });
+                                if (rowData.length > 0) {
+                                    allSheets.push({
+                                        title: layer.title,
+                                        data: rowData
+                                    });
+                                }
+                            }
+                        }).catch(err => {
+                            console.error("Query error:", err);
+                        });
+                        
+                        promises.push(promise);
+                    } else if (layer.graphics && layer.graphics.length > 0) {
+                        // Graphics Layer
                         var rowData = [];
                         layer.graphics.forEach(function(graphic) {
                             var attrs = graphic.attributes || {};
@@ -3140,24 +3221,42 @@
                                 var geom = graphic.geometry;
                                 var center = (geom.type === "point") ? geom : geom.extent.center;
                                 var ll = webMercatorUtils.webMercatorToGeographic(center);
-                                row.latitude = ll.latitude.toFixed(6); row.longitude = ll.longitude.toFixed(6);
+                                row.latitude = ll.latitude.toFixed(6); 
+                                row.longitude = ll.longitude.toFixed(6);
                                 try { row.mgrs = coordinateFormatter.toMgrs(ll, "automatic", 5); } catch(e){}
                                 var utm = getUTMAttributes(ll);
-                                row.utmz47 = utm.utmz47; row.utmz48 = utm.utmz48;
+                                row.utmz47 = utm.utmz47; 
+                                row.utmz48 = utm.utmz48;
                             }
                             row.LayerName = layer.title;
                             rowData.push(row);
                         });
                         if (rowData.length > 0) {
-                            hasData = true;
-                            var ws = XLSX.utils.json_to_sheet(rowData);
-                            var sheetName = (layer.title || "Layer").replace(/[\\/?*\[\]]/g, "").substring(0, 30);
-                            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                            allSheets.push({
+                                title: layer.title,
+                                data: rowData
+                            });
                         }
                     }
                 });
-                if (hasData) { XLSX.writeFile(wb, "map_export_wgs84_utm.xlsx"); closePanel('exportPanel'); } 
-                else { alert("No data found to export."); }
+                
+                // Wait for all promises
+                await Promise.all(promises);
+                
+                // Add all sheets to workbook
+                allSheets.forEach(function(sheet) {
+                    hasData = true;
+                    var ws = XLSX.utils.json_to_sheet(sheet.data);
+                    var sheetName = (sheet.title || "Layer").replace(/[\\/?*\[\]]/g, "").substring(0, 30);
+                    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                });
+                
+                if (hasData) { 
+                    XLSX.writeFile(wb, "map_export_wgs84_utm.xlsx"); 
+                    closePanel('exportPanel'); 
+                } else { 
+                    alert("No data found to export."); 
+                }
             }
 
             function toKmlColor(hexColor, alpha) {
@@ -3208,7 +3307,7 @@
                 downloadFile(kml, "map_export.kml", "application/vnd.google-earth.kml+xml");
             }
 
-            function exportSelectedLayersToGeoJSON(layerIds, wkid) {
+            async function exportSelectedLayersToGeoJSON(layerIds, wkid) {
                 var features = [];
                 var crsObj = null;
                 var sr = new SpatialReference({ wkid: wkid });
@@ -3217,9 +3316,54 @@
                 else if (wkid === 32648) crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32648" } };
                 else crsObj = { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }; 
 
+                var promises = [];
+                
                 layerIds.forEach(function(id) {
                     var layer = map.findLayerById(id);
-                    if (layer && layer.graphics && layer.graphics.length > 0) {
+                    if (!layer) return;
+                    
+                    if (layer.type === "feature") {
+                        // Feature Layer - query all features
+                        var query = layer.createQuery();
+                        query.where = "1=1";
+                        query.returnGeometry = true;
+                        query.outFields = ["*"];
+                        
+                        var promise = layer.queryFeatures(query).then(result => {
+                            if (result.features.length > 0) {
+                                result.features.forEach(function(feature) {
+                                    var attrs = feature.attributes || {};
+                                    var properties = Object.assign({}, attrs);
+                                    
+                                    var projectedGeom;
+                                    if (wkid === 4326) {
+                                        if (feature.geometry.spatialReference.isWebMercator) {
+                                            projectedGeom = webMercatorUtils.webMercatorToGeographic(feature.geometry);
+                                        } else if (feature.geometry.spatialReference.wkid === 4326) {
+                                            projectedGeom = feature.geometry;
+                                        } else {
+                                            projectedGeom = projection.project(feature.geometry, sr);
+                                        }
+                                    } else {
+                                        projectedGeom = projection.project(feature.geometry, sr);
+                                    }
+                                    
+                                    var geoJsonGeom = null;
+                                    if (projectedGeom) {
+                                        if (projectedGeom.type === "point") geoJsonGeom = { type: "Point", coordinates: [projectedGeom.x, projectedGeom.y] };
+                                        else if (projectedGeom.type === "polyline") geoJsonGeom = { type: "LineString", coordinates: projectedGeom.paths[0] };
+                                        else if (projectedGeom.type === "polygon") geoJsonGeom = { type: "Polygon", coordinates: projectedGeom.rings };
+                                    }
+                                    if (geoJsonGeom) features.push({ type: "Feature", properties: properties, geometry: geoJsonGeom });
+                                });
+                            }
+                        }).catch(err => {
+                            console.error("Query error:", err);
+                        });
+                        
+                        promises.push(promise);
+                    } else if (layer.graphics && layer.graphics.length > 0) {
+                        // Graphics Layer
                         layer.graphics.forEach(function(graphic) {
                             var attrs = graphic.attributes || {};
                             var properties = Object.assign({}, attrs);
@@ -3238,6 +3382,15 @@
                         });
                     }
                 });
+                
+                // Wait for all promises
+                await Promise.all(promises);
+                
+                if (features.length === 0) {
+                    alert("No data found to export.");
+                    return;
+                }
+                
                 var geoJsonObj = { type: "FeatureCollection", crs: crsObj, features: features };
                 var fileName = (wkid === 32647) ? "map_export_utm47n.geojson" : (wkid === 32648) ? "map_export_utm48n.geojson" : "map_export_wgs84.geojson";
                 downloadFile(JSON.stringify(geoJsonObj, null, 2), fileName, "application/geo+json");
@@ -3254,6 +3407,13 @@
             // ===================== SHAPEFILE EXPORT FUNCTIONS =====================
             async function exportSelectedLayersToShapefile(layerIds, wkid) {
                 try {
+                    // Show loading message
+                    var loadingMsg = "Preparing data for export...";
+                    if (layerIds.some(id => map.findLayerById(id).type === "feature")) {
+                        loadingMsg += "\nQuerying feature layers... Please wait.";
+                    }
+                    console.log(loadingMsg);
+                    
                     // First convert to GeoJSON
                     var sr = new SpatialReference({ wkid: wkid });
                     var crsObj = { 
@@ -3262,27 +3422,92 @@
                     };
                     
                     var features = [];
+                    var promises = [];
+                    
                     layerIds.forEach(function(id) {
                         var layer = map.findLayerById(id);
-                        if (layer && layer.graphics && layer.graphics.length > 0) {
+                        if (!layer) return;
+                        
+                        if (layer.type === "feature") {
+                            // Feature Layer - query all features
+                            var query = layer.createQuery();
+                            query.where = "1=1"; // Get all features
+                            query.returnGeometry = true;
+                            query.outFields = ["*"];
+                            
+                            var promise = layer.queryFeatures(query).then(result => {
+                                if (result.features.length > 0) {
+                                    result.features.forEach(function(feature) {
+                                        var attrs = feature.attributes || {};
+                                        var properties = Object.assign({}, attrs);
+                                        
+                                        var projectedGeom;
+                                        if (wkid === 4326) {
+                                            // Convert to WGS84
+                                            if (feature.geometry.spatialReference.isWebMercator) {
+                                                projectedGeom = webMercatorUtils.webMercatorToGeographic(feature.geometry);
+                                            } else if (feature.geometry.spatialReference.wkid === 4326) {
+                                                projectedGeom = feature.geometry;
+                                            } else {
+                                                projectedGeom = projection.project(feature.geometry, sr);
+                                            }
+                                        } else {
+                                            // Convert to UTM
+                                            projectedGeom = projection.project(feature.geometry, sr);
+                                        }
+                                        
+                                        var geoJsonGeom = null;
+                                        if (projectedGeom) {
+                                            if (projectedGeom.type === "point") {
+                                                geoJsonGeom = { type: "Point", coordinates: [projectedGeom.x, projectedGeom.y] };
+                                            } else if (projectedGeom.type === "polyline") {
+                                                geoJsonGeom = { type: "LineString", coordinates: projectedGeom.paths[0] };
+                                            } else if (projectedGeom.type === "polygon") {
+                                                geoJsonGeom = { type: "Polygon", coordinates: projectedGeom.rings };
+                                            }
+                                        }
+                                        if (geoJsonGeom) {
+                                            features.push({ type: "Feature", properties: properties, geometry: geoJsonGeom });
+                                        }
+                                    });
+                                }
+                            }).catch(err => {
+                                console.error("Query error for layer " + layer.title + ":", err);
+                            });
+                            
+                            promises.push(promise);
+                        } else if (layer.graphics && layer.graphics.length > 0) {
+                            // Graphics Layer
                             layer.graphics.forEach(function(graphic) {
                                 var attrs = graphic.attributes || {};
                                 var properties = Object.assign({}, attrs);
                                 
-                                var projectedGeom = (wkid === 4326) 
-                                    ? webMercatorUtils.webMercatorToGeographic(graphic.geometry) 
-                                    : projection.project(graphic.geometry, sr);
+                                var projectedGeom;
+                                if (wkid === 4326) {
+                                    projectedGeom = webMercatorUtils.webMercatorToGeographic(graphic.geometry);
+                                } else {
+                                    projectedGeom = projection.project(graphic.geometry, sr);
+                                }
                                 
                                 var geoJsonGeom = null;
                                 if (projectedGeom) {
-                                    if (projectedGeom.type === "point") geoJsonGeom = { type: "Point", coordinates: [projectedGeom.x, projectedGeom.y] };
-                                    else if (projectedGeom.type === "polyline") geoJsonGeom = { type: "LineString", coordinates: projectedGeom.paths[0] };
-                                    else if (projectedGeom.type === "polygon") geoJsonGeom = { type: "Polygon", coordinates: projectedGeom.rings };
+                                    if (projectedGeom.type === "point") {
+                                        geoJsonGeom = { type: "Point", coordinates: [projectedGeom.x, projectedGeom.y] };
+                                    } else if (projectedGeom.type === "polyline") {
+                                        geoJsonGeom = { type: "LineString", coordinates: projectedGeom.paths[0] };
+                                    } else if (projectedGeom.type === "polygon") {
+                                        geoJsonGeom = { type: "Polygon", coordinates: projectedGeom.rings };
+                                    }
                                 }
-                                if (geoJsonGeom) features.push({ type: "Feature", properties: properties, geometry: geoJsonGeom });
+                                if (geoJsonGeom) {
+                                    features.push({ type: "Feature", properties: properties, geometry: geoJsonGeom });
+                                }
                             });
                         }
                     });
+                    
+                    // Wait for all feature queries to complete
+                    await Promise.all(promises);
                     
                     if (features.length === 0) {
                         alert("No data found to export.");
@@ -3292,7 +3517,17 @@
                     var geoJsonObj = { type: "FeatureCollection", crs: crsObj, features: features };
                     
                     // Convert GeoJSON to Shapefile
-                    var fileName = (wkid === 32647) ? "map_export_utm47n" : "map_export_utm48n";
+                    var fileName;
+                    if (wkid === 4326) {
+                        fileName = "map_export_wgs84";
+                    } else if (wkid === 32647) {
+                        fileName = "map_export_utm47n";
+                    } else if (wkid === 32648) {
+                        fileName = "map_export_utm48n";
+                    } else {
+                        fileName = "map_export";
+                    }
+                    
                     var shapefileZip = await convertGeoJSONToShapefile(geoJsonObj, fileName, wkid);
                     
                     if (shapefileZip) {
@@ -3316,6 +3551,8 @@
 
             async function convertGeoJSONToShapefile(geoJSON, fileName, wkid) {
                 try {
+                    console.log('Starting shapefile conversion...', fileName, wkid);
+                    
                     // Separate features by geometry type
                     var pointFeatures = [];
                     var lineFeatures = [];
@@ -3333,56 +3570,57 @@
                         }
                     });
                     
+                    console.log(`Features count - Point: ${pointFeatures.length}, Line: ${lineFeatures.length}, Polygon: ${polygonFeatures.length}`);
+                    
                     // Create PRJ content based on WKID
                     var prjContent = getPRJContent(wkid);
+                    console.log('PRJ content length:', prjContent ? prjContent.length : 'NULL');
                     
                     // Create ZIP
                     var zip = new JSZip();
                     var hasFiles = false;
                     
+                    console.log('Creating shapefiles for each geometry type...');
+                    
                     // Create shapefiles for each geometry type
                     if (pointFeatures.length > 0) {
-                        await createShapefileForFeatureType({...geoJSON, features: pointFeatures}, 'point', zip, prjContent, fileName);
-                        hasFiles = true;
+                        console.log('Processing point features...');
+                        var pointResult = await createShapefileForFeatureType({...geoJSON, features: pointFeatures}, 'point', zip, prjContent, fileName);
+                        console.log('Point shapefile result:', pointResult);
+                        hasFiles = hasFiles || pointResult;
                     }
                     
                     if (lineFeatures.length > 0) {
-                        await createShapefileForFeatureType({...geoJSON, features: lineFeatures}, 'line', zip, prjContent, fileName);
-                        hasFiles = true;
+                        console.log('Processing line features...');
+                        var lineResult = await createShapefileForFeatureType({...geoJSON, features: lineFeatures}, 'line', zip, prjContent, fileName);
+                        console.log('Line shapefile result:', lineResult);
+                        hasFiles = hasFiles || lineResult;
                     }
                     
                     if (polygonFeatures.length > 0) {
-                        await createShapefileForFeatureType({...geoJSON, features: polygonFeatures}, 'poly', zip, prjContent, fileName);
-                        hasFiles = true;
+                        console.log('Processing polygon features...');
+                        var polyResult = await createShapefileForFeatureType({...geoJSON, features: polygonFeatures}, 'poly', zip, prjContent, fileName);
+                        console.log('Polygon shapefile result:', polyResult);
+                        hasFiles = hasFiles || polyResult;
                     }
                     
                     if (!hasFiles) {
                         throw new Error("No valid features to export");
                     }
                     
-                    // Add README
-                    zip.file("README.txt", `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MAPRAW SHAPEFILE EXPORT - UTM Zone ${wkid === 32647 ? '47N' : '48N'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-สร้างโดย: MAPRAW NoteMap
-เว็บไซต์: https://mponline1.github.io/
-รองรับ: ArcGIS, QGIS, MapInfo, Global Mapper และ GIS software อื่นๆ
-
-╔═══════════════════════════════════════════════════════════════╗
-║  ภาษาไทยได้รับการปรับให้ใช้ CP874 (Windows-874)            ║
-║  เพื่อความเข้ากันได้สูงสุดกับ ArcGIS/ArcMap                ║
-╚═══════════════════════════════════════════════════════════════╝
-`);
+                    // Check what files are in the ZIP
+                    console.log('Files in ZIP:', Object.keys(zip.files));
                     
-                    // Add original GeoJSON
-                    zip.file(`${fileName}_original.geojson`, JSON.stringify(geoJSON, null, 2));
+                    // Generate ZIP with only the 5 essential files per geometry type
+                    console.log('Generating ZIP blob...');
+                    var blob = await zip.generateAsync({type: 'blob'});
+                    console.log('ZIP blob generated, size:', blob.size);
                     
-                    // Generate ZIP
-                    return await zip.generateAsync({type: 'blob'});
+                    return blob;
                     
                 } catch (error) {
                     console.error('Error creating shapefile:', error);
+                    console.error('Error stack:', error.stack);
                     throw new Error(`เกิดข้อผิดพลาดในการสร้างไฟล์ Shapefile: ${error.message}`);
                 }
             }
@@ -3404,6 +3642,8 @@ MAPRAW SHAPEFILE EXPORT - UTM Zone ${wkid === 32647 ? '47N' : '48N'}
                     
                     const features = geoJSON.features;
                     if (!features || features.length === 0) return false;
+                    
+                    console.log(`Creating shapefile for ${type}, ${features.length} features`);
                     
                     // Calculate bounding box
                     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -3431,29 +3671,53 @@ MAPRAW SHAPEFILE EXPORT - UTM Zone ${wkid === 32647 ? '47N' : '48N'}
                         shapeType = 5;
                     }
                     
-                    // Create files
+                    console.log(`Shape type: ${shapeType}, Base name: ${baseName}`);
+                    
+                    // Create only 5 essential shapefile components
+                    // 1. .shp - Geometry data
                     const shpData = createShpFile(features, shapeType, minX, minY, maxX, maxY);
-                    zip.file(`${baseName}.shp`, shpData);
-                    
-                    const shxData = createShxFile(features, shapeType, minX, minY, maxX, maxY);
-                    zip.file(`${baseName}.shx`, shxData);
-                    
-                    const dbfData = createDbfFile(features);
-                    zip.file(`${baseName}.dbf`, dbfData);
-                    
-                    zip.file(`${baseName}.prj`, prjContent);
-                    zip.file(`${baseName}.cpg`, 'CP874');
-                    
-                    if (features.length > 0 && features[0].properties) {
-                        const fieldMapping = createFieldMappingFile(features);
-                        zip.file(`${baseName}_fields.txt`, fieldMapping);
+                    if (!shpData) {
+                        console.error('Failed to create .shp file');
+                        return false;
                     }
+                    zip.file(`${baseName}.shp`, shpData);
+                    console.log(`Added ${baseName}.shp`);
                     
-                    zip.file(`${baseName}.geojson`, JSON.stringify(geoJSON, null, 2));
+                    // 2. .shx - Spatial index
+                    const shxData = createShxFile(features, shapeType, minX, minY, maxX, maxY);
+                    if (!shxData) {
+                        console.error('Failed to create .shx file');
+                        return false;
+                    }
+                    zip.file(`${baseName}.shx`, shxData);
+                    console.log(`Added ${baseName}.shx`);
                     
+                    // 3. .dbf - Attribute table
+                    const dbfData = createDbfFile(features);
+                    if (!dbfData) {
+                        console.error('Failed to create .dbf file');
+                        return false;
+                    }
+                    zip.file(`${baseName}.dbf`, dbfData);
+                    console.log(`Added ${baseName}.dbf`);
+                    
+                    // 4. .prj - Projection/Coordinate system
+                    if (!prjContent) {
+                        console.error('PRJ content is missing');
+                        return false;
+                    }
+                    zip.file(`${baseName}.prj`, prjContent);
+                    console.log(`Added ${baseName}.prj`);
+                    
+                    // 5. .cpg - Character encoding (CP874 for Thai language support)
+                    zip.file(`${baseName}.cpg`, 'CP874');
+                    console.log(`Added ${baseName}.cpg`);
+                    
+                    console.log(`Successfully created all 5 files for ${type}`);
                     return true;
                 } catch (error) {
                     console.error(`Error creating ${type} shapefile:`, error);
+                    console.error('Error stack:', error.stack);
                     return false;
                 }
             }
@@ -3694,12 +3958,12 @@ MAPRAW SHAPEFILE EXPORT - UTM Zone ${wkid === 32647 ? '47N' : '48N'}
             }
 
             function createDbfFile(features) {
-                const fieldInfo = new Map();
+                const fieldInfo = {}; // Use plain object instead of Map
                 
                 features.forEach(f => {
                     if (f.properties) {
                         Object.entries(f.properties).forEach(([key, value]) => {
-                            if (!fieldInfo.has(key)) {
+                            if (!fieldInfo[key]) { // Use plain object access
                                 let fieldType = 'C';
                                 let fieldLength = 254;
                                 let decimal = 0;
@@ -3740,18 +4004,18 @@ MAPRAW SHAPEFILE EXPORT - UTM Zone ${wkid === 32647 ? '47N' : '48N'}
                                     fieldLength = Math.min(254, Math.max(50, maxLength + 10));
                                 }
                                 
-                                fieldInfo.set(key, { 
+                                fieldInfo[key] = { // Use plain object assignment
                                     type: fieldType, 
                                     length: fieldLength, 
                                     decimal: decimal,
                                     originalKey: key
-                                });
+                                };
                             }
                         });
                     }
                 });
                 
-                const allFields = Array.from(fieldInfo.entries());
+                const allFields = Object.entries(fieldInfo); // Convert to array of entries
                 
                 const fields = allFields.map(([name, info]) => {
                     let fieldName = name;
@@ -3759,7 +4023,7 @@ MAPRAW SHAPEFILE EXPORT - UTM Zone ${wkid === 32647 ? '47N' : '48N'}
                     const hasThaiOrSpecial = /[^\x00-\x7F]/.test(fieldName) || /[^A-Za-z0-9_]/.test(fieldName);
                     
                     if (hasThaiOrSpecial) {
-                        safeName = 'FIELD_' + (allFields.indexOf([name, info]) + 1);
+                        safeName = 'FIELD_' + (allFields.findIndex(([n]) => n === name) + 1);
                     }
                     
                     safeName = safeName.substring(0, 10).toUpperCase();
@@ -3905,53 +4169,6 @@ MAPRAW SHAPEFILE EXPORT - UTM Zone ${wkid === 32647 ? '47N' : '48N'}
                 return bytes;
             }
 
-            function createFieldMappingFile(features) {
-                const fieldInfo = new Map();
-                
-                features.forEach(f => {
-                    if (f.properties) {
-                        Object.keys(f.properties).forEach(key => {
-                            if (!fieldInfo.has(key)) {
-                                fieldInfo.set(key, true);
-                            }
-                        });
-                    }
-                });
-                
-                const allFields = Array.from(fieldInfo.keys());
-                let mapping = '====================================\n';
-                mapping += 'Field Name Mapping (DBF ↔ Original)\n';
-                mapping += '====================================\n\n';
-                mapping += 'DBF files have limitations on field names:\n';
-                mapping += '- Maximum 10 characters\n';
-                mapping += '- ASCII characters only (A-Z, 0-9, _)\n\n';
-                mapping += 'This file maps the shortened field names in the .dbf file\n';
-                mapping += 'to the original field names from your GeoJSON.\n\n';
-                mapping += 'Format: DBF_FIELD_NAME = Original Field Name\n';
-                mapping += '----------------------------------------\n\n';
-                
-                allFields.forEach((originalName, idx) => {
-                    const hasThaiOrSpecial = /[^\x00-\x7F]/.test(originalName) || /[^A-Za-z0-9_]/.test(originalName);
-                    let safeName;
-                    
-                    if (hasThaiOrSpecial) {
-                        safeName = 'FIELD_' + (idx + 1);
-                    } else {
-                        safeName = originalName.substring(0, 10).toUpperCase();
-                    }
-                    
-                    mapping += `${safeName.padEnd(12)} = ${originalName}\n`;
-                });
-                
-                mapping += '\n====================================\n';
-                mapping += `Total Fields: ${allFields.length}\n`;
-                mapping += 'Character Encoding: CP874 (Windows-874)\n';
-                mapping += 'Thai text support: Full\n';
-                mapping += 'Compatible with: ArcGIS, QGIS, MapInfo\n';
-                mapping += '====================================\n';
-                
-                return mapping;
-            }
             // ===================== END SHAPEFILE EXPORT FUNCTIONS =====================
 
 
