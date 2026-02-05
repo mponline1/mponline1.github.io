@@ -3360,7 +3360,7 @@
                         promises.push(promise);
                     } else if (layer && layer.graphics && layer.graphics.length > 0) {
                         // Graphics Layer
-                        var folderKml = `    <Folder><name>${layer.title}</name>`;
+                        var folderKml = `    <Folder><n>${layer.title}</n>`;
                         layer.graphics.forEach(function(graphic, index) {
                             var attrs = graphic.attributes || {};
                             var name = attrs.description || "Untitled"; 
@@ -3371,19 +3371,72 @@
                             folderKml += `<Style id="${styleId}"><LineStyle><color>${kmlColor}</color><width>2</width></LineStyle><PolyStyle><color>${kmlFillColor}</color></PolyStyle><IconStyle><color>${kmlColor}</color><scale>1.0</scale><Icon><href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href></Icon></IconStyle></Style>`;
                             var desc = "";
                             for (var key in attrs) { if (key !== "color" && key !== "timestamp") desc += `<b>${key}:</b> ${attrs[key]}<br>`; }
-                            folderKml += `<Placemark><name>${name}</name><description><![CDATA[${desc}]]></description><styleUrl>#${styleId}</styleUrl>`;
+                            folderKml += `<Placemark><n>${name}</n><description><![CDATA[${desc}]]></description><styleUrl>#${styleId}</styleUrl>`;
+                            
                             var geom = graphic.geometry;
+                            var ll, geoLine, geoPoly;
+                            
                             if (geom.type === "point") {
-                                var ll = attrs.latitude ? {latitude:attrs.latitude, longitude:attrs.longitude} : webMercatorUtils.webMercatorToGeographic(geom);
+                                // Check if already has lat/lng attributes (from search or manual input)
+                                if (attrs.latitude && attrs.longitude) {
+                                    ll = {latitude: attrs.latitude, longitude: attrs.longitude};
+                                } else {
+                                    // Convert to WGS84 based on current spatial reference
+                                    if (geom.spatialReference && geom.spatialReference.wkid === 4326) {
+                                        // Already in WGS84, use as-is
+                                        ll = {latitude: geom.y, longitude: geom.x};
+                                    } else if (!geom.spatialReference || geom.spatialReference.isWebMercator || geom.spatialReference.wkid === 3857 || geom.spatialReference.wkid === 102100) {
+                                        // Web Mercator or no SR info, convert to WGS84
+                                        ll = webMercatorUtils.webMercatorToGeographic(geom);
+                                    } else {
+                                        // Other projection, project to WGS84
+                                        try {
+                                            var projectedPoint = projection.project(geom, new SpatialReference({ wkid: 4326 }));
+                                            ll = {latitude: projectedPoint.y, longitude: projectedPoint.x};
+                                        } catch(e) {
+                                            ll = webMercatorUtils.webMercatorToGeographic(geom);
+                                        }
+                                    }
+                                }
                                 folderKml += `<Point><coordinates>${ll.longitude},${ll.latitude}</coordinates></Point>`;
+                                
                             } else if (geom.type === "polyline") {
+                                // Convert to WGS84 based on current spatial reference
+                                if (geom.spatialReference && geom.spatialReference.wkid === 4326) {
+                                    // Already in WGS84, use as-is
+                                    geoLine = geom;
+                                } else if (!geom.spatialReference || geom.spatialReference.isWebMercator || geom.spatialReference.wkid === 3857 || geom.spatialReference.wkid === 102100) {
+                                    // Web Mercator or no SR info, convert to WGS84
+                                    geoLine = webMercatorUtils.webMercatorToGeographic(geom);
+                                } else {
+                                    // Other projection, project to WGS84
+                                    try {
+                                        geoLine = projection.project(geom, new SpatialReference({ wkid: 4326 }));
+                                    } catch(e) {
+                                        geoLine = webMercatorUtils.webMercatorToGeographic(geom);
+                                    }
+                                }
                                 folderKml += '<LineString><coordinates>';
-                                var geoLine = webMercatorUtils.webMercatorToGeographic(geom);
                                 geoLine.paths[0].forEach(p => { folderKml += `${p[0]},${p[1]} `; });
                                 folderKml += '</coordinates></LineString>';
+                                
                             } else if (geom.type === "polygon") {
+                                // Convert to WGS84 based on current spatial reference
+                                if (geom.spatialReference && geom.spatialReference.wkid === 4326) {
+                                    // Already in WGS84, use as-is
+                                    geoPoly = geom;
+                                } else if (!geom.spatialReference || geom.spatialReference.isWebMercator || geom.spatialReference.wkid === 3857 || geom.spatialReference.wkid === 102100) {
+                                    // Web Mercator or no SR info, convert to WGS84
+                                    geoPoly = webMercatorUtils.webMercatorToGeographic(geom);
+                                } else {
+                                    // Other projection, project to WGS84
+                                    try {
+                                        geoPoly = projection.project(geom, new SpatialReference({ wkid: 4326 }));
+                                    } catch(e) {
+                                        geoPoly = webMercatorUtils.webMercatorToGeographic(geom);
+                                    }
+                                }
                                 folderKml += '<Polygon><outerBoundaryIs><LinearRing><coordinates>';
-                                var geoPoly = webMercatorUtils.webMercatorToGeographic(geom);
                                 geoPoly.rings[0].forEach(p => { folderKml += `${p[0]},${p[1]} `; });
                                 folderKml += '</coordinates></LinearRing></outerBoundaryIs></Polygon>';
                             }
