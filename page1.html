@@ -3266,12 +3266,101 @@
                 return a + hex.substring(4, 6) + hex.substring(2, 4) + hex.substring(0, 2);
             }
 
-            function exportSelectedLayersToKML(layerIds) {
-                var kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Map Export</name>`;
+            async function exportSelectedLayersToKML(layerIds) {
+                // KML Header with explicit EPSG:4326 (WGS84) reference
+                var kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+<Document>
+    <name>Map Export - WGS84 (EPSG:4326)</name>
+    <description>Exported from MAPRAW NoteMap. Coordinate System: WGS84 (EPSG:4326)</description>
+    <ExtendedData>
+        <Data name="CoordinateSystem">
+            <value>WGS84</value>
+        </Data>
+        <Data name="EPSG">
+            <value>4326</value>
+        </Data>
+    </ExtendedData>
+`;
+                
+                var promises = [];
+                var folders = [];
+                
                 layerIds.forEach(function(id) {
                     var layer = map.findLayerById(id);
-                    if (layer && layer.graphics && layer.graphics.length > 0) {
-                        kml += `<Folder><name>${layer.title}</name>`;
+                    
+                    if (layer && layer.type === "feature") {
+                        // Feature Layer - query all features
+                        var query = layer.createQuery();
+                        query.where = "1=1";
+                        query.returnGeometry = true;
+                        query.outFields = ["*"];
+                        
+                        var promise = layer.queryFeatures(query).then(result => {
+                            if (result.features.length > 0) {
+                                var folderKml = `    <Folder><name>${layer.title}</name>`;
+                                result.features.forEach(function(feature, index) {
+                                    var attrs = feature.attributes || {};
+                                    var name = attrs.description || attrs.name || "Feature " + (index + 1); 
+                                    var color = attrs.color || "#0000ff";
+                                    var styleId = "style_" + id + "_" + index;
+                                    var kmlColor = toKmlColor(color, "ff");
+                                    var kmlFillColor = toKmlColor(color, "4D");
+                                    folderKml += `<Style id="${styleId}"><LineStyle><color>${kmlColor}</color><width>2</width></LineStyle><PolyStyle><color>${kmlFillColor}</color></PolyStyle><IconStyle><color>${kmlColor}</color><scale>1.0</scale><Icon><href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href></Icon></IconStyle></Style>`;
+                                    var desc = "";
+                                    for (var key in attrs) { if (key !== "color" && key !== "timestamp") desc += `<b>${key}:</b> ${attrs[key]}<br>`; }
+                                    folderKml += `<Placemark><name>${name}</name><description><![CDATA[${desc}]]></description><styleUrl>#${styleId}</styleUrl>`;
+                                    
+                                    var geom = feature.geometry;
+                                    var ll;
+                                    if (geom.type === "point") {
+                                        // Convert to WGS84 (EPSG:4326)
+                                        if (geom.spatialReference.isWebMercator) {
+                                            ll = webMercatorUtils.webMercatorToGeographic(geom);
+                                        } else if (geom.spatialReference.wkid === 4326) {
+                                            ll = geom;
+                                        } else {
+                                            ll = projection.project(geom, new SpatialReference({ wkid: 4326 }));
+                                        }
+                                        folderKml += `<Point><coordinates>${ll.longitude},${ll.latitude}</coordinates></Point>`;
+                                    } else if (geom.type === "polyline") {
+                                        var geoLine;
+                                        if (geom.spatialReference.isWebMercator) {
+                                            geoLine = webMercatorUtils.webMercatorToGeographic(geom);
+                                        } else if (geom.spatialReference.wkid === 4326) {
+                                            geoLine = geom;
+                                        } else {
+                                            geoLine = projection.project(geom, new SpatialReference({ wkid: 4326 }));
+                                        }
+                                        folderKml += '<LineString><coordinates>';
+                                        geoLine.paths[0].forEach(p => { folderKml += `${p[0]},${p[1]} `; });
+                                        folderKml += '</coordinates></LineString>';
+                                    } else if (geom.type === "polygon") {
+                                        var geoPoly;
+                                        if (geom.spatialReference.isWebMercator) {
+                                            geoPoly = webMercatorUtils.webMercatorToGeographic(geom);
+                                        } else if (geom.spatialReference.wkid === 4326) {
+                                            geoPoly = geom;
+                                        } else {
+                                            geoPoly = projection.project(geom, new SpatialReference({ wkid: 4326 }));
+                                        }
+                                        folderKml += '<Polygon><outerBoundaryIs><LinearRing><coordinates>';
+                                        geoPoly.rings[0].forEach(p => { folderKml += `${p[0]},${p[1]} `; });
+                                        folderKml += '</coordinates></LinearRing></outerBoundaryIs></Polygon>';
+                                    }
+                                    folderKml += `</Placemark>`;
+                                });
+                                folderKml += `</Folder>`;
+                                folders.push(folderKml);
+                            }
+                        }).catch(err => {
+                            console.error("Query error:", err);
+                        });
+                        
+                        promises.push(promise);
+                    } else if (layer && layer.graphics && layer.graphics.length > 0) {
+                        // Graphics Layer
+                        var folderKml = `    <Folder><name>${layer.title}</name>`;
                         layer.graphics.forEach(function(graphic, index) {
                             var attrs = graphic.attributes || {};
                             var name = attrs.description || "Untitled"; 
@@ -3279,32 +3368,42 @@
                             var styleId = "style_" + id + "_" + index;
                             var kmlColor = toKmlColor(color, "ff");
                             var kmlFillColor = toKmlColor(color, "4D");
-                            kml += `<Style id="${styleId}"><LineStyle><color>${kmlColor}</color><width>2</width></LineStyle><PolyStyle><color>${kmlFillColor}</color></PolyStyle><IconStyle><color>${kmlColor}</color><scale>1.0</scale><Icon><href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href></Icon></IconStyle></Style>`;
+                            folderKml += `<Style id="${styleId}"><LineStyle><color>${kmlColor}</color><width>2</width></LineStyle><PolyStyle><color>${kmlFillColor}</color></PolyStyle><IconStyle><color>${kmlColor}</color><scale>1.0</scale><Icon><href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href></Icon></IconStyle></Style>`;
                             var desc = "";
                             for (var key in attrs) { if (key !== "color" && key !== "timestamp") desc += `<b>${key}:</b> ${attrs[key]}<br>`; }
-                            kml += `<Placemark><name>${name}</name><description><![CDATA[${desc}]]></description><styleUrl>#${styleId}</styleUrl>`;
+                            folderKml += `<Placemark><name>${name}</name><description><![CDATA[${desc}]]></description><styleUrl>#${styleId}</styleUrl>`;
                             var geom = graphic.geometry;
                             if (geom.type === "point") {
                                 var ll = attrs.latitude ? {latitude:attrs.latitude, longitude:attrs.longitude} : webMercatorUtils.webMercatorToGeographic(geom);
-                                kml += `<Point><coordinates>${ll.longitude},${ll.latitude}</coordinates></Point>`;
+                                folderKml += `<Point><coordinates>${ll.longitude},${ll.latitude}</coordinates></Point>`;
                             } else if (geom.type === "polyline") {
-                                kml += '<LineString><coordinates>';
+                                folderKml += '<LineString><coordinates>';
                                 var geoLine = webMercatorUtils.webMercatorToGeographic(geom);
-                                geoLine.paths[0].forEach(p => { kml += `${p[0]},${p[1]} `; });
-                                kml += '</coordinates></LineString>';
+                                geoLine.paths[0].forEach(p => { folderKml += `${p[0]},${p[1]} `; });
+                                folderKml += '</coordinates></LineString>';
                             } else if (geom.type === "polygon") {
-                                kml += '<Polygon><outerBoundaryIs><LinearRing><coordinates>';
+                                folderKml += '<Polygon><outerBoundaryIs><LinearRing><coordinates>';
                                 var geoPoly = webMercatorUtils.webMercatorToGeographic(geom);
-                                geoPoly.rings[0].forEach(p => { kml += `${p[0]},${p[1]} `; });
-                                kml += '</coordinates></LinearRing></outerBoundaryIs></Polygon>';
+                                geoPoly.rings[0].forEach(p => { folderKml += `${p[0]},${p[1]} `; });
+                                folderKml += '</coordinates></LinearRing></outerBoundaryIs></Polygon>';
                             }
-                            kml += `</Placemark>`;
+                            folderKml += `</Placemark>`;
                         });
-                        kml += `</Folder>`;
+                        folderKml += `</Folder>`;
+                        folders.push(folderKml);
                     }
                 });
+                
+                // Wait for all Feature Layer queries to complete
+                await Promise.all(promises);
+                
+                // Add all folders to KML
+                folders.forEach(folder => {
+                    kml += folder;
+                });
+                
                 kml += `</Document></kml>`;
-                downloadFile(kml, "map_export.kml", "application/vnd.google-earth.kml+xml");
+                downloadFile(kml, "map_export_wgs84_epsg4326.kml", "application/vnd.google-earth.kml+xml");
             }
 
             async function exportSelectedLayersToGeoJSON(layerIds, wkid) {
