@@ -452,6 +452,161 @@
             width: 20px;
             height: 20px;
         }
+
+        /* URL Shortener Styles */
+        .url-input-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .url-input-wrapper input[type="text"] {
+            flex: 1;
+        }
+
+        .btn-shorten {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            transition: all 0.2s;
+            width: auto;
+            flex-shrink: 0;
+        }
+
+        .btn-shorten:hover {
+            background: linear-gradient(135deg, #6d28d9, #4338ca);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+        }
+
+        .btn-shorten:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-shorten svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .shorturl-result {
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, #ede9fe, #e0e7ff);
+            border: 1px solid #c4b5fd;
+            border-radius: 0.5rem;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .shorturl-result.visible {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .shorturl-result .shorturl-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #7c3aed;
+            white-space: nowrap;
+        }
+
+        .shorturl-result .shorturl-link {
+            flex: 1;
+            font-size: 0.9rem;
+            color: #4338ca;
+            font-weight: 500;
+            word-break: break-all;
+            text-decoration: none;
+            min-width: 0;
+        }
+
+        .shorturl-result .shorturl-link:hover {
+            text-decoration: underline;
+        }
+
+        .shorturl-actions {
+            display: flex;
+            gap: 0.375rem;
+            flex-shrink: 0;
+        }
+
+        .btn-use-short, .btn-copy-short {
+            padding: 0.35rem 0.75rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: auto;
+        }
+
+        .btn-copy-short {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .btn-copy-short:hover {
+            background: #6d28d9;
+        }
+
+        .btn-use-short {
+            background: #059669;
+            color: white;
+        }
+
+        .btn-use-short:hover {
+            background: #047857;
+        }
+
+        .shorturl-error {
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 0.5rem;
+            color: #dc2626;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .shorturl-error.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -471,7 +626,24 @@
                 <div class="tab-content active" data-tab="basic">
                     <div class="input-group">
                         <label for="url">URL หรือข้อความ</label>
-                        <input type="text" id="url" placeholder="https://example.com หรือข้อความที่ต้องการ" value="https://example.com">
+                        <div class="url-input-wrapper">
+                            <input type="text" id="url" placeholder="https://example.com หรือข้อความที่ต้องการ" value="https://example.com">
+                            <button id="shortenBtn" class="btn-shorten" title="ย่อ URL ด้วย is.gd">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                                ย่อ URL
+                            </button>
+                        </div>
+                        <div class="shorturl-result" id="shorturlResult">
+                            <span class="shorturl-label">🔗 URL สั้น:</span>
+                            <a class="shorturl-link" id="shorturlLink" href="#" target="_blank"></a>
+                            <div class="shorturl-actions">
+                                <button class="btn-copy-short" id="copyShortBtn">คัดลอก</button>
+                                <button class="btn-use-short" id="useShortBtn">ใช้ URL นี้</button>
+                            </div>
+                        </div>
+                        <div class="shorturl-error" id="shorturlError"></div>
                     </div>
 
                     <div class="input-group">
@@ -961,6 +1133,105 @@
                 }
             });
             
+            // ===== ฟังก์ชันย่อ URL ด้วย is.gd API =====
+            const shortenBtn = document.getElementById('shortenBtn');
+            const shorturlResult = document.getElementById('shorturlResult');
+            const shorturlLink = document.getElementById('shorturlLink');
+            const shorturlError = document.getElementById('shorturlError');
+            const copyShortBtn = document.getElementById('copyShortBtn');
+            const useShortBtn = document.getElementById('useShortBtn');
+
+            function showShorturlResult(shortUrl) {
+                shorturlResult.classList.add('visible');
+                shorturlError.classList.remove('visible');
+                shorturlLink.href = shortUrl;
+                shorturlLink.textContent = shortUrl;
+            }
+
+            function showShorturlError(message) {
+                shorturlError.classList.add('visible');
+                shorturlError.textContent = message;
+                shorturlResult.classList.remove('visible');
+            }
+
+            function hideShorturlFeedback() {
+                shorturlResult.classList.remove('visible');
+                shorturlError.classList.remove('visible');
+            }
+
+            shortenBtn.addEventListener('click', async function() {
+                const urlInput = document.getElementById('url').value.trim();
+
+                if (!urlInput) {
+                    showShorturlError('⚠️ กรุณาระบุ URL ก่อนย่อลิงก์');
+                    return;
+                }
+
+                if (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) {
+                    showShorturlError('⚠️ URL ต้องเริ่มต้นด้วย http:// หรือ https://');
+                    return;
+                }
+
+                // แสดงสถานะกำลังโหลด
+                shortenBtn.disabled = true;
+                shortenBtn.innerHTML = '<span class="spinner"></span> กำลังย่อ...';
+                hideShorturlFeedback();
+
+                try {
+                    const apiUrl = `https://is.gd/create.php?format=json&url=${encodeURIComponent(urlInput)}`;
+                    const response = await fetch(apiUrl);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.shorturl) {
+                        showShorturlResult(data.shorturl);
+                    } else if (data.errormessage) {
+                        showShorturlError('❌ ' + data.errormessage);
+                    } else {
+                        throw new Error('ไม่ได้รับผลลัพธ์จาก API');
+                    }
+                } catch (err) {
+                    showShorturlError('❌ ไม่สามารถย่อ URL ได้: ' + (err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'));
+                } finally {
+                    shortenBtn.disabled = false;
+                    shortenBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        ย่อ URL`;
+                }
+            });
+
+            // คัดลอก URL สั้น
+            copyShortBtn.addEventListener('click', function() {
+                const shortUrl = shorturlLink.textContent;
+                if (shortUrl) {
+                    navigator.clipboard.writeText(shortUrl).then(() => {
+                        const original = copyShortBtn.textContent;
+                        copyShortBtn.textContent = '✓ คัดลอกแล้ว!';
+                        setTimeout(() => { copyShortBtn.textContent = original; }, 1800);
+                    });
+                }
+            });
+
+            // นำ URL สั้นไปใส่ในช่อง URL แล้วสร้าง QR Code
+            useShortBtn.addEventListener('click', function() {
+                const shortUrl = shorturlLink.href;
+                if (shortUrl && shortUrl !== '#') {
+                    document.getElementById('url').value = shortUrl;
+                    hideShorturlFeedback();
+                    generateQRCode();
+                }
+            });
+
+            // ซ่อน shorturl เมื่อผู้ใช้แก้ไข URL ใหม่
+            document.getElementById('url').addEventListener('input', hideShorturlFeedback);
+            // ===== สิ้นสุดฟังก์ชันย่อ URL =====
+
             // สร้าง QR Code เริ่มต้นเมื่อโหลดหน้า
             generateQRCode();
         });
