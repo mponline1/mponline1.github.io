@@ -359,6 +359,14 @@
             display: none; /* Hidden by default */
         }
         .layer-label-settings.active { display: block; }
+        /* Multi-select field list สำหรับเลือกหลาย label */
+        .label-field-multi {
+            background-image: none !important;
+            padding-right: 0.5rem !important;
+            min-height: 70px;
+            overflow-y: auto;
+        }
+        .label-field-multi option { padding: 2px 4px; }
         
         /* UPDATED MODAL STYLE FOR "NEW WINDOW" LOOK */
         .custom-modal {
@@ -802,7 +810,7 @@
                     </div>
                     <button id="importExcelBtn" class="btn btn-success btn-sm w-100 mt-1" disabled>Import Points</button>
                 </div>
-                <div>
+                <div class="mb-2 border-bottom pb-2">
                     <h6 class="small fw-bold">Excel (MGRS)</h6>
                     <input type="file" id="mgrsExcelFile" class="form-control form-control-sm mb-1" accept=".xlsx, .xls">
                     <div class="row g-1">
@@ -810,6 +818,24 @@
                         <div class="col-6"><select id="mgrsLabelColumn" class="form-select form-select-sm"><option value="">Label</option></select></div>
                     </div>
                     <button id="importMgrsExcelBtn" class="btn btn-success btn-sm w-100 mt-1" disabled>Import MGRS</button>
+                </div>
+                <div>
+                    <h6 class="small fw-bold">Excel (UTM WGS84)</h6>
+                    <input type="file" id="utmExcelFile" class="form-control form-control-sm mb-1" accept=".xlsx, .xls">
+                    <div class="row g-1 mb-1">
+                        <div class="col-12">
+                            <select id="utmZoneSelect" class="form-select form-select-sm" title="UTM Zone">
+                                <option value="32647" selected>UTM WGS84 Zone 47N (EPSG:32647)</option>
+                                <option value="32648">UTM WGS84 Zone 48N (EPSG:32648)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-1">
+                        <div class="col-4"><select id="utmEastingColumn" class="form-select form-select-sm" title="Easting (X)"><option value="">Easting</option></select></div>
+                        <div class="col-4"><select id="utmNorthingColumn" class="form-select form-select-sm" title="Northing (Y)"><option value="">Northing</option></select></div>
+                        <div class="col-4"><select id="utmLabelColumn" class="form-select form-select-sm" title="Label"><option value="">Label</option></select></div>
+                    </div>
+                    <button id="importUtmExcelBtn" class="btn btn-success btn-sm w-100 mt-1" disabled>Import UTM Points</button>
                 </div>
             </div>
         </div>
@@ -1173,7 +1199,28 @@
             // --- LABELING LOGIC ---
             // Fix Font Error: กำหนดฟอนต์มาตรฐานเพื่อเลี่ยง 404 .pbf บน server ของ ArcGIS
             const ESRI_SAFE_FONT = "sans-serif";
-            
+
+            // คืนค่า field ของ label เป็น array เสมอ (รองรับค่าเดิมที่เก็บเป็น field เดี่ยว)
+            function getLabelFields(settings) {
+                if (!settings) return [];
+                if (Array.isArray(settings.fields) && settings.fields.length > 0) return settings.fields;
+                if (settings.field) return [settings.field];
+                return [];
+            }
+
+            // ประกอบข้อความ label จากหลาย field โดยขึ้นบรรทัดใหม่ในแต่ละ field
+            function buildLabelText(graphic, fields) {
+                if (!graphic || !graphic.attributes || !fields || fields.length === 0) return "";
+                var lines = [];
+                fields.forEach(f => {
+                    var v = graphic.attributes[f];
+                    if (v !== undefined && v !== null && v.toString().trim() !== "") {
+                        lines.push(v.toString());
+                    }
+                });
+                return lines.join("\n");
+            }
+
             function updateLabels(layerId) {
                 var settings = layerLabelSettings[layerId];
                 var labelLayerId = layerId + "_labels";
@@ -1194,10 +1241,13 @@
 
                 if (!sourceLayer || !sourceLayer.graphics) return;
 
+                // รองรับหลาย field: แสดง field ถัดไปในบรรทัดใหม่
+                var labelFields = getLabelFields(settings);
+
                 sourceLayer.graphics.forEach(g => {
                     // Fix Error: Uncaught TypeError: Cannot read properties of null (reading 'center')
                     if (g && g.geometry) {
-                        var text = g.attributes ? g.attributes[settings.field] : null;
+                        var text = buildLabelText(g, labelFields);
                         if (text !== undefined && text !== null && text !== "") {
                             var center = null;
                             var textSymbolConfig = {
@@ -1209,7 +1259,8 @@
                                     weight: "bold" 
                                 },
                                 haloColor: "white",
-                                haloSize: 1
+                                haloSize: 1,
+                                lineHeight: 1.1 // ระยะห่างระหว่างบรรทัดกรณีหลาย label
                             };
 
                             // ปรับการแสดง Label ตามประเภท geometry
@@ -1264,6 +1315,7 @@
                                         },
                                         haloColor: "white",
                                         haloSize: 1,
+                                        lineHeight: 1.1, // ระยะห่างระหว่างบรรทัดกรณีหลาย label
                                         angle: angleDegrees,
                                         yoffset: settings.size * 0.8, // วางเหนือเส้นตามขนาดตัวอักษร
                                         verticalAlignment: "bottom" // ให้ด้านล่างของ label อยู่เหนือเส้น
@@ -1311,13 +1363,22 @@
 
             window.applyLabelSettings = function(layerId) {
                 var enabled = document.getElementById("lbl_enable_" + layerId).checked;
-                var field = document.getElementById("lbl_field_" + layerId).value;
+                var fieldSelect = document.getElementById("lbl_field_" + layerId);
+                var fields = Array.prototype.slice.call(fieldSelect.selectedOptions || [])
+                                  .map(o => o.value)
+                                  .filter(v => v !== "");
                 var size = parseInt(document.getElementById("lbl_size_" + layerId).value);
                 var color = document.getElementById("lbl_color_" + layerId).value;
 
+                if (enabled && fields.length === 0) {
+                    alert("กรุณาเลือกอย่างน้อย 1 field สำหรับแสดง Label\n(กด Ctrl หรือ Shift ค้างไว้เพื่อเลือกหลาย field)");
+                    return;
+                }
+
                 layerLabelSettings[layerId] = {
                     enabled: enabled,
-                    field: field,
+                    fields: fields,
+                    field: fields[0] || "", // เก็บไว้เพื่อความเข้ากันได้กับโค้ดเดิม
                     size: size,
                     color: color
                 };
@@ -1357,7 +1418,8 @@
                             fieldOptions = `<option value="description">description</option>`;
                         }
 
-                        var set = layerLabelSettings[l.id] || { enabled: false, field: "description", size: 10, color: "#000000" };
+                        var set = layerLabelSettings[l.id] || { enabled: false, fields: ["description"], size: 10, color: "#000000" };
+                        var setFields = getLabelFields(set);
 
                         var attrTableBtn = "";
                         if (l.isDrawLayer || l.type === "feature") {
@@ -1400,10 +1462,13 @@
                                     <label class="form-check-label small" for="lbl_enable_${l.id}">Show Labels</label>
                                 </div>
                                 <div class="d-flex gap-1 mb-1">
-                                    <select id="lbl_field_${l.id}" class="form-select form-select-sm" style="width: 60%;" title="Field">
+                                    <select id="lbl_field_${l.id}" class="form-select form-select-sm label-field-multi" style="width: 60%;" title="เลือกได้มากกว่า 1 field (Ctrl/Shift + คลิก) แต่ละ field จะแสดงคนละบรรทัด" multiple size="4">
                                         ${fieldOptions}
                                     </select>
-                                    <input type="number" id="lbl_size_${l.id}" class="form-control form-control-sm" value="${set.size}" min="6" max="72" style="width: 40%;" title="Size">
+                                    <input type="number" id="lbl_size_${l.id}" class="form-control form-control-sm align-self-start" value="${set.size}" min="6" max="72" style="width: 40%;" title="Size">
+                                </div>
+                                <div class="text-muted mb-1" style="font-size: 0.7em; line-height: 1.2;">
+                                    <i class="fas fa-info-circle"></i> เลือกหลาย field ได้ (Ctrl/Shift + คลิก) — แต่ละ field จะขึ้นบรรทัดใหม่
                                 </div>
                                 <div class="d-flex gap-1">
                                     <input type="color" id="lbl_color_${l.id}" class="form-control form-control-color form-control-sm w-100" value="${set.color}" title="Color">
@@ -1413,7 +1478,11 @@
                         `;
                         
                         var select = li.querySelector(`#lbl_field_${l.id}`);
-                        if(select && set.field) select.value = set.field;
+                        if(select && setFields.length > 0){
+                            Array.prototype.forEach.call(select.options, function(op){
+                                op.selected = setFields.indexOf(op.value) !== -1;
+                            });
+                        }
 
                         list.appendChild(li);
                     }
@@ -4654,6 +4723,116 @@
                 }
             });
             
+            // --- EXCEL IMPORT (UTM WGS84 ZONE 47N / 48N) ---
+            document.getElementById("utmExcelFile").addEventListener("change", function(e) {
+                var file = e.target.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var data = new Uint8Array(e.target.result);
+                        var wb = XLSX.read(data, { type: 'array' });
+                        var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                        if (json.length > 0) {
+                            var headers = json[0];
+                            ['utmEastingColumn', 'utmNorthingColumn', 'utmLabelColumn'].forEach(id => {
+                                var sel = document.getElementById(id);
+                                sel.innerHTML = '<option value="">Select Column</option>';
+                                headers.forEach((h, i) => {
+                                    var op = document.createElement('option');
+                                    op.value = i;
+                                    op.textContent = h;
+                                    sel.appendChild(op);
+                                });
+                            });
+
+                            // เดาคอลัมน์อัตโนมัติจากชื่อหัวตาราง (E/X/Easting , N/Y/Northing)
+                            var eastGuess = -1, northGuess = -1;
+                            headers.forEach((h, i) => {
+                                var name = (h === undefined || h === null) ? "" : h.toString().trim().toLowerCase();
+                                if (eastGuess < 0 && (name === "e" || name === "x" || name.indexOf("east") !== -1 || name.indexOf("ออก") !== -1)) eastGuess = i;
+                                if (northGuess < 0 && (name === "n" || name === "y" || name.indexOf("north") !== -1 || name.indexOf("เหนือ") !== -1)) northGuess = i;
+                            });
+                            if (eastGuess >= 0) document.getElementById("utmEastingColumn").value = eastGuess;
+                            if (northGuess >= 0) document.getElementById("utmNorthingColumn").value = northGuess;
+
+                            document.getElementById("importUtmExcelBtn").disabled = false;
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+            });
+
+            document.getElementById("importUtmExcelBtn").addEventListener("click", function() {
+                var file = document.getElementById("utmExcelFile").files[0];
+                var eastI = parseInt(document.getElementById("utmEastingColumn").value);
+                var northI = parseInt(document.getElementById("utmNorthingColumn").value);
+                var lblI = parseInt(document.getElementById("utmLabelColumn").value);
+                var zoneWkid = parseInt(document.getElementById("utmZoneSelect").value);
+
+                if (!file || isNaN(eastI) || isNaN(northI)) {
+                    alert("Please select Easting / Northing columns.");
+                    return;
+                }
+
+                var utmSR = new SpatialReference({ wkid: zoneWkid });
+                var wgs84SR = new SpatialReference({ wkid: 4326 });
+                var zoneName = (zoneWkid === 32648) ? "UTM 48N" : "UTM 47N";
+
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var data = new Uint8Array(e.target.result);
+                    var wb = XLSX.read(data, { type: 'array' });
+                    var json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                    var headers = json[0];
+
+                    var layerName = zoneName + ": " + file.name;
+                    createNewDrawingLayer(layerName);
+                    var pts = [];
+                    var skipped = 0;
+
+                    for (var i = 1; i < json.length; i++) {
+                        var row = json[i];
+                        if (!row) continue;
+
+                        // รองรับตัวเลขที่มี comma คั่นหลักพัน เช่น "586,432.15"
+                        var rawE = row[eastI], rawN = row[northI];
+                        var east = parseFloat((rawE === undefined || rawE === null) ? NaN : rawE.toString().replace(/,/g, "").trim());
+                        var north = parseFloat((rawN === undefined || rawN === null) ? NaN : rawN.toString().replace(/,/g, "").trim());
+
+                        if (isNaN(east) || isNaN(north)) { skipped++; continue; }
+
+                        try {
+                            var utmPoint = new Point({ x: east, y: north, spatialReference: utmSR });
+                            var point = projection.project(utmPoint, wgs84SR);
+                            if (!point) { skipped++; continue; }
+
+                            var attributes = {};
+                            headers.forEach((h, idx) => attributes[h] = row[idx]);
+                            attributes.color = "#ff6600";
+                            attributes.LayerName = layerName;
+                            attributes.description = !isNaN(lblI) ? row[lblI] : "Point " + i;
+
+                            var graphic = new Graphic({
+                                geometry: point,
+                                symbol: new SimpleMarkerSymbol({ color: "#ff6600", size: "15px", outline: { color: "white", width: 2 } }),
+                                attributes: attributes
+                            });
+                            handleGraphicCreation(graphic, false);
+                            pts.push(graphic);
+                        } catch (err) {
+                            skipped++;
+                        }
+                    }
+
+                    activeDrawingLayer.addMany(pts);
+                    if (pts.length > 0) view.goTo({ target: pts });
+                    updateLayerList();
+                    closePanel('importDataPanel');
+                    alert("Imported " + pts.length + " points (" + zoneName + ")." + (skipped > 0 ? "\nSkipped " + skipped + " invalid rows." : ""));
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
             view.when(() => { document.querySelectorAll('.panel, .draw-tools, .excel-import-panel').forEach(p => p.style.display = 'none'); });
         });
     </script>
