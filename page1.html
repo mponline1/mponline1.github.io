@@ -784,6 +784,7 @@
         <ul class="nav nav-tabs small mb-2" id="importTabs" role="tablist">
             <li class="nav-item"><button class="nav-link active p-2" id="file-tab" data-bs-toggle="tab" data-bs-target="#fileImport" type="button">Vector Files</button></li>
             <li class="nav-item"><button class="nav-link p-2" id="excel-tab" data-bs-toggle="tab" data-bs-target="#excelImport" type="button">Excel</button></li>
+            <li class="nav-item"><button class="nav-link p-2" id="wkt-tab" data-bs-toggle="tab" data-bs-target="#wktImport" type="button" title="CSV / Excel ที่มีคอลัมน์ WKT">WKT</button></li>
         </ul>
         
         <div class="tab-content" id="importTabContent">
@@ -836,6 +837,53 @@
                         <div class="col-4"><select id="utmLabelColumn" class="form-select form-select-sm" title="Label"><option value="">Label</option></select></div>
                     </div>
                     <button id="importUtmExcelBtn" class="btn btn-success btn-sm w-100 mt-1" disabled>Import UTM Points</button>
+                </div>
+            </div>
+
+            <!-- WKT Import (CSV / Excel) -->
+            <div class="tab-pane fade" id="wktImport" role="tabpanel">
+                <div class="alert alert-info py-2 small mb-2">
+                    CSV / Excel ที่มีคอลัมน์ WKT<br>
+                    <span class="text-muted">POINT, LINESTRING, POLYGON, MULTI*, GEOMETRYCOLLECTION</span>
+                </div>
+                <input type="file" id="wktFile" class="form-control form-control-sm mb-1" accept=".csv,.txt,.xlsx,.xls,.xlsm">
+                <div id="wktConfig" style="display:none;">
+                    <div class="mb-1" id="wktSheetRow" style="display:none;">
+                        <label class="small text-muted mb-0">Sheet</label>
+                        <select id="wktSheetSelect" class="form-select form-select-sm"></select>
+                    </div>
+                    <div class="row g-1 mb-1">
+                        <div class="col-6">
+                            <label class="small text-muted mb-0">ฟิลด์ WKT</label>
+                            <select id="wktGeomColumn" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted mb-0">ฟิลด์ Label</label>
+                            <select id="wktLabelColumn" class="form-select form-select-sm"></select>
+                        </div>
+                    </div>
+                    <div class="row g-1 mb-1">
+                        <div class="col-9">
+                            <label class="small text-muted mb-0">ระบบพิกัดของ WKT</label>
+                            <select id="wktSrSelect" class="form-select form-select-sm">
+                                <option value="auto" selected>Auto (ตรวจจากค่าพิกัด)</option>
+                                <option value="4326">WGS84 Lat/Lon (EPSG:4326)</option>
+                                <option value="32647">UTM WGS84 Zone 47N (EPSG:32647)</option>
+                                <option value="32648">UTM WGS84 Zone 48N (EPSG:32648)</option>
+                                <option value="3857">Web Mercator (EPSG:3857)</option>
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <label class="small text-muted mb-0">สี</label>
+                            <input type="color" id="wktColor" class="form-control form-control-sm form-control-color w-100" value="#0066ff">
+                        </div>
+                    </div>
+                    <div class="form-check small mb-1">
+                        <input class="form-check-input" type="checkbox" id="wktKeepField">
+                        <label class="form-check-label" for="wktKeepField">เก็บข้อความ WKT ไว้ใน attribute ด้วย</label>
+                    </div>
+                    <div id="wktPreview" class="small border rounded bg-light px-2 py-1 mb-1"></div>
+                    <button id="importWktBtn" class="btn btn-success btn-sm w-100" disabled>Import WKT</button>
                 </div>
             </div>
         </div>
@@ -4831,6 +4879,410 @@
                     alert("Imported " + pts.length + " points (" + zoneName + ")." + (skipped > 0 ? "\nSkipped " + skipped + " invalid rows." : ""));
                 };
                 reader.readAsArrayBuffer(file);
+            });
+
+            // =====================================================================
+            // --- WKT IMPORT (CSV / EXCEL) ---
+            // รองรับ POINT, MULTIPOINT, LINESTRING, MULTILINESTRING, POLYGON,
+            // MULTIPOLYGON, GEOMETRYCOLLECTION (+ Z/M, SRID=xxxx;) ทุกแถวเก็บ
+            // attribute ครบ และใช้ร่วมกับ Draw/Buffer/Select/Table/Export/Print ได้
+            // =====================================================================
+            var wktState = { workbook: null, fileName: "", headers: [], rows: [] };
+
+            // ชื่อฟิลด์ระบบที่ handleGraphicCreation เขียนทับ -> เปลี่ยนชื่อฟิลด์จากไฟล์เป็น src_xxx
+            var WKT_RESERVED_FIELDS = ["latitude", "longitude", "mgrs", "utmz47", "utmz48", "type", "color", "isBuffer", "timestamp", "LayerName"];
+
+            function wktReadTextSmart(buffer) {
+                // CSV ภาษาไทย: ลอง UTF-8 ก่อน ถ้าไม่ใช่ใช้ windows-874 (TIS-620)
+                var bytes = new Uint8Array(buffer);
+                try {
+                    return new TextDecoder("utf-8", { fatal: true }).decode(bytes).replace(/^\uFEFF/, "");
+                } catch (e) {
+                    try { return new TextDecoder("windows-874").decode(bytes); }
+                    catch (e2) { return new TextDecoder("utf-8").decode(bytes); }
+                }
+            }
+
+            // ---------- WKT PARSER (recursive descent) ----------
+            function parseWKT(input) {
+                if (input === undefined || input === null) return null;
+                var s = String(input).trim();
+                if (!s) return null;
+                var srid = null;
+                var m = s.match(/^SRID\s*=\s*(\d+)\s*;/i);
+                if (m) { srid = parseInt(m[1], 10); s = s.substring(m[0].length); }
+                var pos = 0;
+
+                function ws() { while (pos < s.length && /\s/.test(s[pos])) pos++; }
+                function peek() { ws(); return s[pos]; }
+                function expect(ch) {
+                    ws();
+                    if (s[pos] !== ch) throw new Error("Expected '" + ch + "' at " + pos);
+                    pos++;
+                }
+                function word() {
+                    ws();
+                    var mm = /^[A-Za-z]+/.exec(s.substring(pos));
+                    if (!mm) return null;
+                    pos += mm[0].length;
+                    return mm[0].toUpperCase();
+                }
+                function coord() {
+                    ws();
+                    var mm = /^[-+0-9.eE]+(\s+[-+0-9.eE]+)+/.exec(s.substring(pos));
+                    if (!mm) throw new Error("Invalid coordinate at " + pos);
+                    pos += mm[0].length;
+                    var nums = mm[0].trim().split(/\s+/).map(Number);
+                    if (nums.length < 2 || isNaN(nums[0]) || isNaN(nums[1])) throw new Error("Invalid coordinate");
+                    return [nums[0], nums[1]]; // ตัด Z/M ออก
+                }
+                function coordList() { // ( x y, x y, ... )
+                    expect("(");
+                    var list = [coord()];
+                    while (peek() === ",") { pos++; list.push(coord()); }
+                    expect(")");
+                    return list;
+                }
+                function listOf(fn) { // ( item, item, ... )
+                    expect("(");
+                    var list = [fn()];
+                    while (peek() === ",") { pos++; list.push(fn()); }
+                    expect(")");
+                    return list;
+                }
+                function pointInMulti() { // MULTIPOINT รองรับทั้ง (1 2, 3 4) และ ((1 2), (3 4))
+                    if (peek() === "(") { expect("("); var c = coord(); expect(")"); return c; }
+                    return coord();
+                }
+                function geometry() {
+                    var type = word();
+                    if (!type) throw new Error("Missing geometry type");
+                    var dim = word(); // Z, M, ZM หรือ EMPTY
+                    if (dim === "EMPTY") return { type: type, empty: true };
+                    if (dim && dim !== "Z" && dim !== "M" && dim !== "ZM") throw new Error("Unexpected '" + dim + "'");
+                    var save = pos, e = word();
+                    if (e === "EMPTY") return { type: type, empty: true };
+                    pos = save;
+
+                    switch (type) {
+                        case "POINT": { expect("("); var c = coord(); expect(")"); return { type: type, coords: c }; }
+                        case "MULTIPOINT": return { type: type, coords: listOf(pointInMulti) };
+                        case "LINESTRING": return { type: type, coords: coordList() };
+                        case "MULTILINESTRING": return { type: type, coords: listOf(coordList) };
+                        case "POLYGON": return { type: type, coords: listOf(coordList) };
+                        case "MULTIPOLYGON": return { type: type, coords: listOf(function() { return listOf(coordList); }) };
+                        case "GEOMETRYCOLLECTION": return { type: type, geometries: listOf(geometry) };
+                        default: throw new Error("Unsupported geometry type: " + type);
+                    }
+                }
+
+                var g = geometry();
+                ws();
+                if (pos < s.length) throw new Error("Unexpected text after geometry");
+                g.srid = srid;
+                return g;
+            }
+
+            function wktLooksLike(val) {
+                return typeof val === "string" &&
+                    /^\s*(SRID\s*=\s*\d+\s*;\s*)?(POINT|MULTIPOINT|LINESTRING|MULTILINESTRING|POLYGON|MULTIPOLYGON|GEOMETRYCOLLECTION)\b/i.test(val);
+            }
+
+            function wktFirstCoord(g) {
+                if (!g || g.empty) return null;
+                if (g.geometries) {
+                    for (var i = 0; i < g.geometries.length; i++) { var c = wktFirstCoord(g.geometries[i]); if (c) return c; }
+                    return null;
+                }
+                var c = g.coords;
+                while (Array.isArray(c) && Array.isArray(c[0])) c = c[0];
+                return (Array.isArray(c) && typeof c[0] === "number") ? c : null;
+            }
+
+            function wktGuessWkid(xy) {
+                if (!xy) return 4326;
+                var x = xy[0], y = xy[1];
+                if (Math.abs(x) <= 180 && Math.abs(y) <= 90) return 4326;
+                if (x >= 100000 && x <= 900000 && y >= 0 && y <= 10000000) {
+                    // ประเทศไทย: Zone 47N เป็นหลัก ให้ผู้ใช้เปลี่ยนเป็น 48N ได้เอง
+                    return 32647;
+                }
+                return 3857;
+            }
+
+            // ปรับทิศทาง ring ให้ถูกตามมาตรฐาน Esri (outer = clockwise, hole = counter-clockwise)
+            function wktSignedArea(ring) {
+                var a = 0;
+                for (var i = 0, n = ring.length; i < n - 1; i++) a += (ring[i + 1][0] - ring[i][0]) * (ring[i + 1][1] + ring[i][1]);
+                return a / 2; // > 0 = clockwise
+            }
+            function wktCloseRing(ring) {
+                var r = ring.slice();
+                var f = r[0], l = r[r.length - 1];
+                if (f[0] !== l[0] || f[1] !== l[1]) r.push([f[0], f[1]]);
+                return r;
+            }
+            function wktOrientPolygon(rings) {
+                return rings.map(function(ring, idx) {
+                    var r = wktCloseRing(ring);
+                    var cw = wktSignedArea(r) > 0;
+                    if ((idx === 0 && !cw) || (idx > 0 && cw)) r = r.slice().reverse();
+                    return r;
+                });
+            }
+
+            // แปลง WKT object -> array ของ Esri geometry
+            function wktToEsriGeometries(g, sr) {
+                var out = [];
+                if (!g || g.empty) return out;
+                switch (g.type) {
+                    case "POINT":
+                        out.push(new Point({ x: g.coords[0], y: g.coords[1], spatialReference: sr })); break;
+                    case "MULTIPOINT":
+                        out.push(new Multipoint({ points: g.coords, spatialReference: sr })); break;
+                    case "LINESTRING":
+                        out.push(new Polyline({ paths: [g.coords], spatialReference: sr })); break;
+                    case "MULTILINESTRING":
+                        out.push(new Polyline({ paths: g.coords, spatialReference: sr })); break;
+                    case "POLYGON":
+                        out.push(new Polygon({ rings: wktOrientPolygon(g.coords), spatialReference: sr })); break;
+                    case "MULTIPOLYGON":
+                        var rings = [];
+                        g.coords.forEach(function(poly) { wktOrientPolygon(poly).forEach(function(r) { rings.push(r); }); });
+                        out.push(new Polygon({ rings: rings, spatialReference: sr })); break;
+                    case "GEOMETRYCOLLECTION":
+                        g.geometries.forEach(function(sub) { out = out.concat(wktToEsriGeometries(sub, sr)); }); break;
+                }
+                return out;
+            }
+
+            // Project ไปยัง SR ของแผนที่ (Web Mercator) เพื่อให้ Draw/Buffer/Export ทำงานเหมือน graphic ที่วาดเอง
+            function wktToViewSR(geom) {
+                var viewSR = view.spatialReference;
+                var srcWkid = geom.spatialReference.wkid;
+                if (srcWkid === viewSR.wkid || (geom.spatialReference.isWebMercator && viewSR.isWebMercator)) return geom;
+                if (srcWkid === 4326 && viewSR.isWebMercator) return webMercatorUtils.geographicToWebMercator(geom);
+                return projection.project(geom, viewSR);
+            }
+
+            function wktSymbolFor(geom, color) {
+                if (geom.type === "point" || geom.type === "multipoint")
+                    return new SimpleMarkerSymbol({ color: color, size: "10px", outline: { color: "white", width: 1.5 } });
+                if (geom.type === "polyline")
+                    return new SimpleLineSymbol({ color: color, width: 2 });
+                return new SimpleFillSymbol({ color: hexToRgba(color, 0.3), outline: { color: color, width: 2 } });
+            }
+
+            function wktCellText(v) {
+                if (v === undefined || v === null) return "";
+                return String(v);
+            }
+
+            function wktLoadSheet(sheetName) {
+                var ws = wktState.workbook.Sheets[sheetName];
+                var json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", blankrows: false });
+                var rawHeaders = json.length > 0 ? json[0] : [];
+                var used = {};
+                wktState.headers = rawHeaders.map(function(h, i) {
+                    var name = wktCellText(h).trim() || ("Field_" + (i + 1));
+                    var base = name, n = 2;
+                    while (used[name]) name = base + "_" + (n++);
+                    used[name] = true;
+                    return name;
+                });
+                wktState.rows = json.slice(1);
+
+                var geomSel = document.getElementById("wktGeomColumn");
+                var lblSel = document.getElementById("wktLabelColumn");
+                geomSel.innerHTML = '<option value="">-- เลือกฟิลด์ --</option>';
+                lblSel.innerHTML = '<option value="">(ไม่ใช้)</option>';
+                wktState.headers.forEach(function(h, i) {
+                    var o1 = document.createElement("option"); o1.value = i; o1.textContent = h; geomSel.appendChild(o1);
+                    var o2 = document.createElement("option"); o2.value = i; o2.textContent = h; lblSel.appendChild(o2);
+                });
+
+                // เดาฟิลด์ WKT: ดูจากค่าในเซลล์ก่อน แล้วค่อยดูจากชื่อฟิลด์
+                var geomGuess = -1, bestHits = 0;
+                var sample = wktState.rows.slice(0, 50);
+                wktState.headers.forEach(function(h, i) {
+                    var hits = sample.filter(function(r) { return wktLooksLike(r[i]); }).length;
+                    if (hits > bestHits) { bestHits = hits; geomGuess = i; }
+                });
+                if (geomGuess < 0) {
+                    wktState.headers.forEach(function(h, i) {
+                        if (geomGuess < 0 && /wkt|geom|shape|the_geom|polygon|รูปแปลง/i.test(h)) geomGuess = i;
+                    });
+                }
+                if (geomGuess >= 0) geomSel.value = geomGuess;
+
+                var lblGuess = -1;
+                wktState.headers.forEach(function(h, i) {
+                    if (lblGuess < 0 && i !== geomGuess && /^(name|label|id|code|parcel|chanode)|ชื่อ|รหัส|โฉนด|เลขที่/i.test(h)) lblGuess = i;
+                });
+                if (lblGuess >= 0) lblSel.value = lblGuess;
+
+                wktUpdatePreview();
+            }
+
+            function wktUpdatePreview() {
+                var prev = document.getElementById("wktPreview");
+                var btn = document.getElementById("importWktBtn");
+                var gi = parseInt(document.getElementById("wktGeomColumn").value);
+                var total = wktState.rows.length;
+                if (isNaN(gi)) {
+                    prev.innerHTML = "แถวข้อมูล: <b>" + total + "</b> | กรุณาเลือกฟิลด์ WKT";
+                    btn.disabled = true;
+                    return;
+                }
+                var valid = 0, invalid = 0, empty = 0, typeCount = {}, firstXY = null;
+                wktState.rows.forEach(function(r) {
+                    var v = wktCellText(r[gi]).trim();
+                    if (!v) { empty++; return; }
+                    try {
+                        var g = parseWKT(v);
+                        valid++;
+                        typeCount[g.type] = (typeCount[g.type] || 0) + 1;
+                        if (!firstXY) firstXY = wktFirstCoord(g);
+                    } catch (e) { invalid++; }
+                });
+                var types = Object.keys(typeCount).map(function(t) { return t + " " + typeCount[t]; }).join(", ");
+                var html = "แถวข้อมูล: <b>" + total + "</b> | WKT ถูกต้อง: <b class='text-success'>" + valid + "</b>";
+                if (invalid) html += " | ผิดรูปแบบ: <b class='text-danger'>" + invalid + "</b>";
+                if (empty) html += " | ว่าง: " + empty;
+                if (types) html += "<br><span class='text-muted'>" + types + "</span>";
+                if (document.getElementById("wktSrSelect").value === "auto" && firstXY) {
+                    var gw = wktGuessWkid(firstXY);
+                    html += "<br><span class='text-muted'>Auto: EPSG:" + gw + "</span>";
+                }
+                prev.innerHTML = html;
+                btn.disabled = valid === 0;
+            }
+
+            document.getElementById("wktFile").addEventListener("change", function(e) {
+                var file = e.target.files[0];
+                document.getElementById("wktConfig").style.display = "none";
+                document.getElementById("importWktBtn").disabled = true;
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        var name = file.name.toLowerCase();
+                        var wb;
+                        if (name.endsWith(".csv") || name.endsWith(".txt")) {
+                            var text = wktReadTextSmart(ev.target.result);
+                            // raw:true -> ไม่แปลงค่าเป็นวันที่/ตัวเลขอัตโนมัติ
+                            wb = XLSX.read(text, { type: "string", raw: true });
+                        } else {
+                            wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
+                        }
+                        wktState.workbook = wb;
+                        wktState.fileName = file.name;
+
+                        var sheetSel = document.getElementById("wktSheetSelect");
+                        sheetSel.innerHTML = "";
+                        wb.SheetNames.forEach(function(sn) {
+                            var o = document.createElement("option"); o.value = sn; o.textContent = sn; sheetSel.appendChild(o);
+                        });
+                        document.getElementById("wktSheetRow").style.display = wb.SheetNames.length > 1 ? "block" : "none";
+                        document.getElementById("wktConfig").style.display = "block";
+                        wktLoadSheet(wb.SheetNames[0]);
+                    } catch (err) {
+                        console.error(err);
+                        alert("อ่านไฟล์ไม่สำเร็จ: " + err.message);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            document.getElementById("wktSheetSelect").addEventListener("change", function(e) { wktLoadSheet(e.target.value); });
+            document.getElementById("wktGeomColumn").addEventListener("change", wktUpdatePreview);
+            document.getElementById("wktSrSelect").addEventListener("change", wktUpdatePreview);
+
+            document.getElementById("importWktBtn").addEventListener("click", function() {
+                var gi = parseInt(document.getElementById("wktGeomColumn").value);
+                var li = parseInt(document.getElementById("wktLabelColumn").value);
+                var srChoice = document.getElementById("wktSrSelect").value;
+                var color = document.getElementById("wktColor").value || "#0066ff";
+                var keepWkt = document.getElementById("wktKeepField").checked;
+                if (!wktState.workbook || isNaN(gi)) { alert("กรุณาเลือกฟิลด์ WKT"); return; }
+
+                var headers = wktState.headers;
+                var fileNoExt = wktState.fileName.split(".").slice(0, -1).join(".") || wktState.fileName;
+                var layerName = "WKT: " + fileNoExt;
+                var graphics = [];
+                var ok = 0, bad = 0, emptyCnt = 0, errMsgs = [];
+
+                // ชื่อฟิลด์สุดท้าย (เปลี่ยนชื่อฟิลด์ที่ชนกับฟิลด์ระบบ)
+                var fieldNames = headers.map(function(h) {
+                    return WKT_RESERVED_FIELDS.indexOf(h) >= 0 ? "src_" + h : h;
+                });
+
+                wktState.rows.forEach(function(row, idx) {
+                    var rowNo = idx + 2; // แถวใน Excel (รวม header)
+                    var wktText = wktCellText(row[gi]).trim();
+                    if (!wktText) { emptyCnt++; return; }
+                    try {
+                        var g = parseWKT(wktText);
+                        var wkid = g.srid || (srChoice === "auto" ? wktGuessWkid(wktFirstCoord(g)) : parseInt(srChoice, 10));
+                        var sr = new SpatialReference({ wkid: wkid });
+                        var geoms = wktToEsriGeometries(g, sr);
+                        if (geoms.length === 0) { emptyCnt++; return; }
+
+                        geoms.forEach(function(geom, gIdx) {
+                            var viewGeom = wktToViewSR(geom);
+                            if (!viewGeom) throw new Error("Projection failed");
+
+                            var attributes = {};
+                            headers.forEach(function(h, hi) {
+                                if (hi === gi && !keepWkt) return;
+                                var v = row[hi];
+                                attributes[fieldNames[hi]] = (v === undefined || v === null) ? "" : v;
+                            });
+                            attributes.color = color;
+                            attributes.LayerName = layerName;
+                            var lbl = !isNaN(li) ? wktCellText(row[li]).trim() : "";
+                            attributes.description = (lbl || ("Feature " + (idx + 1))) + (geoms.length > 1 ? " (" + (gIdx + 1) + ")" : "");
+
+                            var graphic = new Graphic({
+                                geometry: viewGeom,
+                                symbol: wktSymbolFor(viewGeom, color),
+                                attributes: attributes
+                            });
+                            handleGraphicCreation(graphic, false);
+
+                            // เพิ่มฟิลด์จากไฟล์ใน popup (ต่อท้ายฟิลด์พิกัดเดิม)
+                            var extraFields = fieldNames
+                                .filter(function(f, fi) { return !(fi === gi && !keepWkt); })
+                                .map(function(f) { return { fieldName: f, label: f }; });
+                            if (graphic.popupTemplate && graphic.popupTemplate.content && graphic.popupTemplate.content[0]) {
+                                graphic.popupTemplate.content[0].fieldInfos = extraFields.concat(graphic.popupTemplate.content[0].fieldInfos);
+                            }
+                            graphics.push(graphic);
+                        });
+                        ok++;
+                    } catch (err) {
+                        bad++;
+                        if (errMsgs.length < 5) errMsgs.push("แถว " + rowNo + ": " + err.message);
+                    }
+                });
+
+                if (graphics.length === 0) {
+                    alert("ไม่พบ WKT ที่นำเข้าได้" + (errMsgs.length ? "\n\n" + errMsgs.join("\n") : ""));
+                    return;
+                }
+
+                createNewDrawingLayer(layerName);
+                activeDrawingLayer.addMany(graphics);
+                view.goTo({ target: graphics }).catch(function() {});
+                updateLayerList();
+                populateDrawLayerSelect();
+                closePanel('importDataPanel');
+
+                var msg = "Imported " + graphics.length + " features จาก " + ok + " แถว";
+                if (bad) msg += "\nผิดรูปแบบ " + bad + " แถว";
+                if (emptyCnt) msg += "\nค่าว่าง " + emptyCnt + " แถว";
+                if (errMsgs.length) msg += "\n\n" + errMsgs.join("\n");
+                alert(msg);
             });
 
             view.when(() => { document.querySelectorAll('.panel, .draw-tools, .excel-import-panel').forEach(p => p.style.display = 'none'); });
