@@ -316,6 +316,7 @@
             z-index: 10; 
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
+        .table-custom td[data-col="wkt"] { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .table-custom td[contenteditable="true"]:focus { background-color: #fffde7; outline: 2px solid #ffeb3b; }
         
         .table-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
@@ -516,7 +517,16 @@
         <h6 class="fw-bold"><i class="fas fa-pencil-alt"></i> Draw Tools</h6>
         <div class="draw-layer-control">
             <label class="form-label small fw-bold">Active Draw Layer:</label>
-            <select id="drawLayerSelect" class="form-select form-select-sm mb-2"></select>
+            <div class="input-group input-group-sm mb-1">
+                <select id="drawLayerSelect" class="form-select form-select-sm"></select>
+                <button class="btn btn-outline-secondary" id="renameLayerToggleBtn" type="button" title="แก้ไขชื่อ Layer"><i class="fas fa-pen"></i></button>
+            </div>
+            <div id="renameLayerRow" class="input-group input-group-sm mb-2" style="display:none;">
+                <input type="text" id="renameLayerInput" class="form-control" placeholder="ชื่อ Layer ใหม่">
+                <button class="btn btn-success" id="renameLayerSaveBtn" type="button" title="บันทึกชื่อ"><i class="fas fa-check"></i></button>
+                <button class="btn btn-outline-secondary" id="renameLayerCancelBtn" type="button" title="ยกเลิก"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="mb-1"></div>
             <label class="form-label small fw-bold">Create New Layer:</label>
             <div class="input-group input-group-sm mb-2">
                 <input type="text" id="newLayerName" class="form-control" placeholder="Layer Name">
@@ -598,6 +608,35 @@
             <div id="selectionHint" class="small text-info fst-italic mt-2" style="display:none;">
                 * Draw to select features
             </div>
+        </div>
+
+        <!-- MOVE / COPY GRAPHICS BETWEEN DRAW LAYERS -->
+        <div class="border-top pt-2 mt-2 mb-2">
+            <h6 class="fw-bold small"><i class="fas fa-exchange-alt"></i> ย้ายข้อมูลไปอีก Layer</h6>
+            <label class="form-label small mb-1">เลือกข้อมูลจาก Layer:</label>
+            <select id="mlSourceLayer" class="form-select form-select-sm mb-1"></select>
+            <div class="d-flex gap-1 mb-1">
+                <button id="mlSelClick" class="btn btn-outline-primary btn-sm flex-fill" title="คลิกเลือก/ยกเลิกทีละรายการ"><i class="fas fa-hand-pointer"></i> Click</button>
+                <button id="mlSelRect" class="btn btn-outline-primary btn-sm flex-fill" title="ลากกรอบสี่เหลี่ยมเพื่อเลือก"><i class="fas fa-vector-square"></i> Rect</button>
+                <button id="mlSelLasso" class="btn btn-outline-primary btn-sm flex-fill" title="ลากวาดรูปอิสระเพื่อเลือก"><i class="fas fa-draw-polygon"></i> Lasso</button>
+            </div>
+            <div class="d-flex gap-1 mb-1">
+                <button id="mlSelAll" class="btn btn-outline-secondary btn-sm flex-fill" title="เลือกทั้งหมดใน Layer">ทั้งหมด</button>
+                <button id="mlSelFromCurrent" class="btn btn-outline-secondary btn-sm flex-fill" title="ใช้รายการที่เลือกอยู่จาก Draw Tools / Select by Attribute">ที่เลือกอยู่</button>
+                <button id="mlSelClear" class="btn btn-outline-secondary btn-sm flex-fill" title="ล้างการเลือก"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="small text-muted mb-1">
+                เลือกแล้ว: <span id="mlSelCount" class="fw-bold text-primary">0</span> รายการ
+                <span id="mlSelHint" class="text-info fst-italic ms-1" style="display:none;"></span>
+            </div>
+            <label class="form-label small mb-1">ไปยัง Layer:</label>
+            <select id="mlTargetLayer" class="form-select form-select-sm mb-1"></select>
+            <input type="text" id="mlNewLayerName" class="form-control form-control-sm mb-1" placeholder="ชื่อ Layer ใหม่" style="display:none;">
+            <div class="d-flex gap-3 small mb-1">
+                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="mlMode" id="mlModeMove" value="move" checked><label class="form-check-label" for="mlModeMove">ย้าย</label></div>
+                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="mlMode" id="mlModeCopy" value="copy"><label class="form-check-label" for="mlModeCopy">คัดลอก</label></div>
+            </div>
+            <button id="mlExecuteBtn" class="btn btn-primary btn-sm w-100" disabled><i class="fas fa-share-square"></i> ย้ายข้อมูลที่เลือก</button>
         </div>
 
         <div class="buffer-section">
@@ -880,7 +919,7 @@
                     </div>
                     <div class="form-check small mb-1">
                         <input class="form-check-input" type="checkbox" id="wktKeepField">
-                        <label class="form-check-label" for="wktKeepField">เก็บข้อความ WKT ไว้ใน attribute ด้วย</label>
+                        <label class="form-check-label" for="wktKeepField">เก็บ WKT ต้นฉบับไว้ในฟิลด์เดิมด้วย</label>
                     </div>
                     <div id="wktPreview" class="small border rounded bg-light px-2 py-1 mb-1"></div>
                     <button id="importWktBtn" class="btn btn-success btn-sm w-100" disabled>Import WKT</button>
@@ -1184,6 +1223,9 @@
                         renderAttributeTable();
                     }
                     if(event.state === "complete") {
+                        (event.graphics || []).forEach(function(g) {
+                            if (g && g.geometry && g.attributes) g.attributes.wkt = geometryToWKT(g.geometry);
+                        });
                         updateLabels(activeDrawingLayer.id);
                     }
                 });
@@ -2848,6 +2890,78 @@
                 return result;
             }
 
+            // --- WKT GENERATOR: สร้างข้อความ WKT (WGS84 / EPSG:4326) จาก geometry บนแผนที่ ---
+            function wktNum(n) { return String(parseFloat(Number(n).toFixed(9))); }
+            function wktXY(c) { return wktNum(c[0]) + " " + wktNum(c[1]); }
+            function wktRingText(ring) {
+                var r = ring.slice();
+                var f = r[0], l = r[r.length - 1];
+                if (f && l && (f[0] !== l[0] || f[1] !== l[1])) r.push(f);
+                return "(" + r.map(wktXY).join(", ") + ")";
+            }
+            function wktRingIsClockwise(ring) {
+                var a = 0;
+                for (var i = 0; i < ring.length - 1; i++) a += (ring[i + 1][0] - ring[i][0]) * (ring[i + 1][1] + ring[i][1]);
+                return a > 0;
+            }
+            function wktPointInRing(pt, ring) {
+                var inside = false;
+                for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                    var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+                    if (((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi)) inside = !inside;
+                }
+                return inside;
+            }
+            function geometryToWKT(geom) {
+                try {
+                    if (!geom) return "";
+                    var sr = geom.spatialReference;
+                    var g = geom;
+                    if (sr && sr.isWebMercator) g = webMercatorUtils.webMercatorToGeographic(geom);
+                    else if (sr && !(sr.isWGS84 || sr.wkid === 4326)) g = projection.project(geom, new SpatialReference({ wkid: 4326 }));
+                    if (!g) return "";
+
+                    if (g.type === "point") return "POINT (" + wktNum(g.x) + " " + wktNum(g.y) + ")";
+                    if (g.type === "multipoint") {
+                        if (!g.points.length) return "MULTIPOINT EMPTY";
+                        return "MULTIPOINT (" + g.points.map(function(p) { return "(" + wktXY(p) + ")"; }).join(", ") + ")";
+                    }
+                    if (g.type === "polyline") {
+                        var paths = g.paths.filter(function(p) { return p.length > 1; });
+                        if (!paths.length) return "LINESTRING EMPTY";
+                        if (paths.length === 1) return "LINESTRING (" + paths[0].map(wktXY).join(", ") + ")";
+                        return "MULTILINESTRING (" + paths.map(function(p) { return "(" + p.map(wktXY).join(", ") + ")"; }).join(", ") + ")";
+                    }
+                    if (g.type === "extent") g = Polygon.fromExtent(g);
+                    if (g.type === "polygon") {
+                        var rings = g.rings.filter(function(r) { return r.length > 2; });
+                        if (!rings.length) return "POLYGON EMPTY";
+                        // Esri: outer ring = clockwise, hole = counter-clockwise -> จัดกลุ่มเป็น polygon
+                        var outers = [], holes = [];
+                        rings.forEach(function(r) { (wktRingIsClockwise(r) ? outers : holes).push(r); });
+                        if (!outers.length) { outers = holes; holes = []; }
+                        var polys = outers.map(function(o) { return [o]; });
+                        holes.forEach(function(h) {
+                            var target = polys.find(function(p) { return wktPointInRing(h[0], p[0]); }) || polys[0];
+                            target.push(h);
+                        });
+                        // เขียนตามแบบ OGC/GeoJSON: outer ทวนเข็ม, hole ตามเข็ม
+                        var polyText = polys.map(function(p) {
+                            return "(" + p.map(function(r, i) {
+                                var cw = wktRingIsClockwise(r);
+                                var rr = ((i === 0 && cw) || (i > 0 && !cw)) ? r.slice().reverse() : r;
+                                return wktRingText(rr);
+                            }).join(", ") + ")";
+                        });
+                        return polys.length === 1 ? "POLYGON " + polyText[0] : "MULTIPOLYGON (" + polyText.join(", ") + ")";
+                    }
+                    return "";
+                } catch (e) {
+                    console.warn("WKT generation failed:", e);
+                    return "";
+                }
+            }
+
             function handleGraphicCreation(graphic, isBuffer) {
                 graphic.attributes = graphic.attributes || {};
                 graphic.attributes.color = graphic.attributes.color || activeColor;
@@ -2875,6 +2989,7 @@
                 var mgrsStr = "";
                 try { mgrsStr = coordinateFormatter.toMgrs(latLon, "automatic", 5); } catch(e) { mgrsStr = "Error"; }
                 graphic.attributes.mgrs = mgrsStr;
+                graphic.attributes.wkt = geometryToWKT(geom);
 
                 graphic.attributes.type = geom.type;
                 if(!graphic.attributes.timestamp) {
@@ -3334,6 +3449,7 @@
                         layer.graphics.forEach(function(graphic) {
                             var attrs = graphic.attributes || {};
                             var row = Object.assign({}, attrs);
+                            if (typeof row.wkt === "string" && row.wkt.length > 32767) row.wkt = "(WKT ยาวเกินขีดจำกัดเซลล์ Excel 32,767 ตัวอักษร - ใช้ GeoJSON/KML แทน)";
                             if (!row.latitude) {
                                 var geom = graphic.geometry;
                                 var center = (geom.type === "point") ? geom : geom.extent.center;
@@ -3361,15 +3477,19 @@
                 await Promise.all(promises);
                 
                 // Add all sheets to workbook
+                var usedSheetNames = {};
                 allSheets.forEach(function(sheet) {
                     hasData = true;
                     var ws = XLSX.utils.json_to_sheet(sheet.data);
-                    var sheetName = (sheet.title || "Layer").replace(/[\\/?*\[\]]/g, "").substring(0, 30);
+                    var sheetName = (sheet.title || "Layer").replace(/\s*:\s*/g, "_").replace(/[\\/?*\[\]]/g, "").substring(0, 30) || "Layer";
+                    var baseSheet = sheetName, sn = 2;
+                    while (usedSheetNames[sheetName.toLowerCase()]) { sheetName = baseSheet.substring(0, 27) + "_" + (sn++); }
+                    usedSheetNames[sheetName.toLowerCase()] = true;
                     XLSX.utils.book_append_sheet(wb, ws, sheetName);
                 });
                 
                 if (hasData) { 
-                    XLSX.writeFile(wb, "map_export_wgs84_utm.xlsx"); 
+                    XLSX.writeFile(wb, exportFileBaseName(layerIds) + ".xlsx"); 
                     closePanel('exportPanel'); 
                 } else { 
                     alert("No data found to export."); 
@@ -3573,7 +3693,7 @@
                 });
                 
                 kml += `</Document></kml>`;
-                downloadFile(kml, "map_export_wgs84_epsg4326.kml", "application/vnd.google-earth.kml+xml");
+                downloadFile(kml, exportFileBaseName(layerIds) + ".kml", "application/vnd.google-earth.kml+xml");
             }
 
             async function exportSelectedLayersToGeoJSON(layerIds, wkid) {
@@ -3661,8 +3781,24 @@
                 }
                 
                 var geoJsonObj = { type: "FeatureCollection", crs: crsObj, features: features };
-                var fileName = (wkid === 32647) ? "map_export_utm47n.geojson" : (wkid === 32648) ? "map_export_utm48n.geojson" : "map_export_wgs84.geojson";
+                var fileName = exportFileBaseName(layerIds) + ".geojson";
                 downloadFile(JSON.stringify(geoJsonObj, null, 2), fileName, "application/geo+json");
+            }
+
+            // ตั้งชื่อไฟล์ส่งออกตามชื่อ layer (หลาย layer ต่อกันด้วย _)
+            function exportFileBaseName(layerIds) {
+                var titles = [];
+                (layerIds || []).forEach(function(id) {
+                    var lyr = map.findLayerById(id);
+                    if (lyr && lyr.title) titles.push(String(lyr.title));
+                });
+                var name = titles.join("_")
+                    .replace(/\s*[\\\/:*?"<>|\x00-\x1F]+\s*/g, "_")
+                    .replace(/\s+/g, " ")
+                    .replace(/_+/g, "_")
+                    .replace(/^[\s._]+|[\s._]+$/g, "");
+                if (name.length > 120) name = name.substring(0, 120).replace(/[\s._]+$/, "");
+                return name || "map_export";
             }
 
             function downloadFile(content, fileName, mimeType) {
@@ -3750,6 +3886,7 @@
                             layer.graphics.forEach(function(graphic) {
                                 var attrs = graphic.attributes || {};
                                 var properties = Object.assign({}, attrs);
+                                delete properties.wkt; // DBF จำกัด 254 ไบต์ต่อฟิลด์ WKT จะถูกตัดจนใช้ไม่ได้ (geometry อยู่ใน .shp แล้ว)
                                 
                                 var projectedGeom;
                                 if (wkid === 4326) {
@@ -3786,16 +3923,7 @@
                     var geoJsonObj = { type: "FeatureCollection", crs: crsObj, features: features };
                     
                     // Convert GeoJSON to Shapefile
-                    var fileName;
-                    if (wkid === 4326) {
-                        fileName = "map_export_wgs84";
-                    } else if (wkid === 32647) {
-                        fileName = "map_export_utm47n";
-                    } else if (wkid === 32648) {
-                        fileName = "map_export_utm48n";
-                    } else {
-                        fileName = "map_export";
-                    }
+                    var fileName = exportFileBaseName(layerIds);
                     
                     var shapefileZip = await convertGeoJSONToShapefile(geoJsonObj, fileName, wkid);
                     
@@ -4890,7 +5018,9 @@
             var wktState = { workbook: null, fileName: "", headers: [], rows: [] };
 
             // ชื่อฟิลด์ระบบที่ handleGraphicCreation เขียนทับ -> เปลี่ยนชื่อฟิลด์จากไฟล์เป็น src_xxx
-            var WKT_RESERVED_FIELDS = ["latitude", "longitude", "mgrs", "utmz47", "utmz48", "type", "color", "isBuffer", "timestamp", "LayerName"];
+            var WKT_RESERVED_FIELDS = ["latitude", "longitude", "mgrs", "utmz47", "utmz48", "type", "color", "isBuffer", "timestamp", "LayerName", "wkt"];
+            // ไฟล์ที่ export จาก NoteMap เอง: ฟิลด์เหล่านี้ระบบสร้างใหม่ให้อัตโนมัติ จึงไม่นำเข้าซ้ำ
+            var WKT_REGENERATED_FIELDS = ["latitude", "longitude", "mgrs", "utmz47", "utmz48", "type", "isBuffer", "LayerName", "wkt"];
 
             function wktReadTextSmart(buffer) {
                 // CSV ภาษาไทย: ลอง UTF-8 ก่อน ถ้าไม่ใช่ใช้ windows-874 (TIS-620)
@@ -5117,7 +5247,7 @@
 
                 var lblGuess = -1;
                 wktState.headers.forEach(function(h, i) {
-                    if (lblGuess < 0 && i !== geomGuess && /^(name|label|id|code|parcel|chanode)|ชื่อ|รหัส|โฉนด|เลขที่/i.test(h)) lblGuess = i;
+                    if (lblGuess < 0 && i !== geomGuess && /^(description|name|label|id|code|parcel|chanode)|ชื่อ|รหัส|โฉนด|เลขที่/i.test(h)) lblGuess = i;
                 });
                 if (lblGuess >= 0) lblSel.value = lblGuess;
 
@@ -5212,9 +5342,19 @@
                 var graphics = [];
                 var ok = 0, bad = 0, emptyCnt = 0, errMsgs = [];
 
-                // ชื่อฟิลด์สุดท้าย (เปลี่ยนชื่อฟิลด์ที่ชนกับฟิลด์ระบบ)
-                var fieldNames = headers.map(function(h) {
-                    return WKT_RESERVED_FIELDS.indexOf(h) >= 0 ? "src_" + h : h;
+                // ไฟล์จาก NoteMap (Export Excel) -> ข้ามฟิลด์ที่ระบบสร้างใหม่, คง color/description/timestamp เดิม
+                var isNoteMapFile = ["wkt", "latitude", "longitude", "mgrs"].every(function(f) { return headers.indexOf(f) >= 0; });
+
+                // [index คอลัมน์, ชื่อฟิลด์ปลายทาง] ที่จะนำเข้า
+                var importCols = [];
+                headers.forEach(function(h, hi) {
+                    if (hi === gi && !keepWkt) return;
+                    if (isNoteMapFile) {
+                        if (WKT_REGENERATED_FIELDS.indexOf(h) >= 0) return;
+                        importCols.push([hi, h]);
+                    } else {
+                        importCols.push([hi, WKT_RESERVED_FIELDS.indexOf(h) >= 0 ? "src_" + h : h]);
+                    }
                 });
 
                 wktState.rows.forEach(function(row, idx) {
@@ -5233,27 +5373,29 @@
                             if (!viewGeom) throw new Error("Projection failed");
 
                             var attributes = {};
-                            headers.forEach(function(h, hi) {
-                                if (hi === gi && !keepWkt) return;
-                                var v = row[hi];
-                                attributes[fieldNames[hi]] = (v === undefined || v === null) ? "" : v;
+                            importCols.forEach(function(c) {
+                                var v = row[c[0]];
+                                attributes[c[1]] = (v === undefined || v === null) ? "" : v;
                             });
-                            attributes.color = color;
+                            var rowColor = (isNoteMapFile && /^#[0-9a-f]{6}$/i.test(wktCellText(attributes.color).trim()))
+                                ? wktCellText(attributes.color).trim() : color;
+                            attributes.color = rowColor;
+                            if (isNoteMapFile && !wktCellText(attributes.timestamp).trim()) delete attributes.timestamp;
                             attributes.LayerName = layerName;
                             var lbl = !isNaN(li) ? wktCellText(row[li]).trim() : "";
                             attributes.description = (lbl || ("Feature " + (idx + 1))) + (geoms.length > 1 ? " (" + (gIdx + 1) + ")" : "");
 
                             var graphic = new Graphic({
                                 geometry: viewGeom,
-                                symbol: wktSymbolFor(viewGeom, color),
+                                symbol: wktSymbolFor(viewGeom, rowColor),
                                 attributes: attributes
                             });
                             handleGraphicCreation(graphic, false);
 
                             // เพิ่มฟิลด์จากไฟล์ใน popup (ต่อท้ายฟิลด์พิกัดเดิม)
-                            var extraFields = fieldNames
-                                .filter(function(f, fi) { return !(fi === gi && !keepWkt); })
-                                .map(function(f) { return { fieldName: f, label: f }; });
+                            var extraFields = importCols
+                                .filter(function(c) { return c[1] !== "color" && c[1] !== "timestamp"; })
+                                .map(function(c) { return { fieldName: c[1], label: c[1] }; });
                             if (graphic.popupTemplate && graphic.popupTemplate.content && graphic.popupTemplate.content[0]) {
                                 graphic.popupTemplate.content[0].fieldInfos = extraFields.concat(graphic.popupTemplate.content[0].fieldInfos);
                             }
@@ -5284,6 +5426,311 @@
                 if (errMsgs.length) msg += "\n\n" + errMsgs.join("\n");
                 alert(msg);
             });
+
+            // =====================================================================
+            // --- DRAW TOOLS: RENAME LAYER ---
+            // =====================================================================
+            function renameDrawLayer(layer, newName) {
+                var oldName = layer.title;
+                layer.title = newName;
+                // ให้ฟิลด์ LayerName ของข้อมูลใน layer ตรงกับชื่อใหม่
+                layer.graphics.forEach(function(g) {
+                    if (g.attributes && (g.attributes.LayerName === undefined || g.attributes.LayerName === oldName)) {
+                        g.attributes.LayerName = newName;
+                    }
+                });
+                var lbl = map.findLayerById(layer.id + "_labels");
+                if (lbl) lbl.title = "Labels: " + newName;
+                if (currentTableLayerId === layer.id) {
+                    var t = document.getElementById("tableLayerName");
+                    if (t) t.textContent = "Table: " + newName;
+                }
+                updateLayerList();
+                populateDrawLayerSelect();
+                updateExportLayerList();
+                mlRefreshLayerSelects();
+            }
+
+            function renameRowShow(show) {
+                var row = document.getElementById("renameLayerRow");
+                row.style.display = show ? "flex" : "none";
+                if (show) {
+                    var input = document.getElementById("renameLayerInput");
+                    input.value = activeDrawingLayer ? activeDrawingLayer.title : "";
+                    input.focus(); input.select();
+                }
+            }
+            document.getElementById("renameLayerToggleBtn").addEventListener("click", function() {
+                if (!activeDrawingLayer) { alert("ยังไม่มี Draw Layer ให้แก้ไขชื่อ"); return; }
+                var row = document.getElementById("renameLayerRow");
+                renameRowShow(row.style.display === "none");
+            });
+            document.getElementById("renameLayerCancelBtn").addEventListener("click", function() { renameRowShow(false); });
+            document.getElementById("renameLayerSaveBtn").addEventListener("click", function() {
+                if (!activeDrawingLayer) return;
+                var name = document.getElementById("renameLayerInput").value.trim();
+                if (!name) { alert("กรุณาระบุชื่อ Layer"); return; }
+                renameDrawLayer(activeDrawingLayer, name);
+                renameRowShow(false);
+            });
+            document.getElementById("renameLayerInput").addEventListener("keydown", function(e) {
+                if (e.key === "Enter") document.getElementById("renameLayerSaveBtn").click();
+                else if (e.key === "Escape") renameRowShow(false);
+            });
+            document.getElementById("drawLayerSelect").addEventListener("change", function() { renameRowShow(false); });
+
+            // =====================================================================
+            // --- DRAW TOOLS: SELECT & MOVE/COPY GRAPHICS TO ANOTHER LAYER ---
+            // =====================================================================
+            var moveLayerTool = { mode: null, selected: [], highlights: [], dragPoints: [], dragGraphic: null };
+            var ML_NEW_LAYER = "__new__";
+
+            function mlDrawLayers() {
+                return map.layers.filter(function(l) { return l.isDrawLayer; }).toArray();
+            }
+
+            function mlRefreshLayerSelects() {
+                var srcSel = document.getElementById("mlSourceLayer");
+                var tgtSel = document.getElementById("mlTargetLayer");
+                var prevSrc = srcSel.value, prevTgt = tgtSel.value;
+                var layers = mlDrawLayers();
+
+                srcSel.innerHTML = "";
+                layers.forEach(function(l) {
+                    var o = document.createElement("option"); o.value = l.id; o.textContent = l.title + " (" + l.graphics.length + ")"; srcSel.appendChild(o);
+                });
+                if (layers.some(function(l) { return l.id === prevSrc; })) srcSel.value = prevSrc;
+                else if (activeDrawingLayer && layers.indexOf(activeDrawingLayer) >= 0) srcSel.value = activeDrawingLayer.id;
+
+                tgtSel.innerHTML = "";
+                layers.forEach(function(l) {
+                    if (l.id === srcSel.value) return;
+                    var o = document.createElement("option"); o.value = l.id; o.textContent = l.title; tgtSel.appendChild(o);
+                });
+                var on = document.createElement("option"); on.value = ML_NEW_LAYER; on.textContent = "+ สร้าง Layer ใหม่..."; tgtSel.appendChild(on);
+                if (Array.from(tgtSel.options).some(function(o) { return o.value === prevTgt; })) tgtSel.value = prevTgt;
+                document.getElementById("mlNewLayerName").style.display = (tgtSel.value === ML_NEW_LAYER) ? "block" : "none";
+
+                // ตัดรายการที่ไม่อยู่ในแผนที่แล้วออก
+                mlSetSelection(moveLayerTool.selected.filter(function(g) { return g.layer && map.layers.includes(g.layer); }));
+            }
+
+            function mlToViewSR(geom) {
+                var sr = geom.spatialReference;
+                if (!sr || sr.wkid === view.spatialReference.wkid) return geom;
+                if (sr.isWebMercator && view.spatialReference.isWebMercator) return geom;
+                if ((sr.isWGS84 || sr.wkid === 4326) && view.spatialReference.isWebMercator) return webMercatorUtils.geographicToWebMercator(geom);
+                return projection.project(geom, view.spatialReference);
+            }
+
+            function mlHighlightSymbol(type) {
+                if (type === "point" || type === "multipoint")
+                    return new SimpleMarkerSymbol({ color: [255, 0, 255, 0.35], size: 16, outline: { color: [255, 0, 255, 1], width: 2 } });
+                if (type === "polyline")
+                    return new SimpleLineSymbol({ color: [255, 0, 255, 1], width: 4, style: "dash" });
+                return new SimpleFillSymbol({ color: [255, 0, 255, 0.15], outline: { color: [255, 0, 255, 1], width: 2.5, style: "dash" } });
+            }
+
+            function mlSetSelection(list) {
+                // ไม่ให้ซ้ำ
+                var seen = {};
+                moveLayerTool.selected = list.filter(function(g) { if (seen[g.uid]) return false; seen[g.uid] = true; return true; });
+                moveLayerTool.highlights.forEach(function(h) { highlightLayer.remove(h); });
+                moveLayerTool.highlights = [];
+                ensureHighlightLayerOnTop();
+                moveLayerTool.selected.forEach(function(g) {
+                    if (!g.geometry) return;
+                    var h = new Graphic({ geometry: g.geometry, symbol: mlHighlightSymbol(g.geometry.type) });
+                    moveLayerTool.highlights.push(h);
+                    highlightLayer.add(h);
+                });
+                document.getElementById("mlSelCount").textContent = moveLayerTool.selected.length;
+                var tgt = document.getElementById("mlTargetLayer");
+                document.getElementById("mlExecuteBtn").disabled = moveLayerTool.selected.length === 0 || !tgt.value;
+            }
+
+            function mlSourceLayer() {
+                return map.findLayerById(document.getElementById("mlSourceLayer").value);
+            }
+
+            function mlSetMode(mode) {
+                // กดซ้ำ = ปิดโหมด
+                if (moveLayerTool.mode === mode) mode = null;
+                moveLayerTool.mode = mode;
+                if (mode && sketch) { try { sketch.cancel(); } catch (e) {} }
+                [["mlSelClick", "click"], ["mlSelRect", "rect"], ["mlSelLasso", "lasso"]].forEach(function(b) {
+                    var el = document.getElementById(b[0]);
+                    el.classList.toggle("btn-primary", mode === b[1]);
+                    el.classList.toggle("text-white", mode === b[1]);
+                    el.classList.toggle("btn-outline-primary", mode !== b[1]);
+                });
+                var hint = document.getElementById("mlSelHint");
+                var hints = { click: "คลิกที่ข้อมูลเพื่อเลือก/ยกเลิก", rect: "ลากกรอบบนแผนที่", lasso: "กดค้างแล้ววาดรอบข้อมูล" };
+                hint.textContent = mode ? "* " + hints[mode] + " (Esc = ปิด)" : "";
+                hint.style.display = mode ? "inline" : "none";
+                if (moveLayerTool.dragGraphic) { tempGraphicsLayer.remove(moveLayerTool.dragGraphic); moveLayerTool.dragGraphic = null; }
+            }
+
+            function mlSelectByGeometry(areaGeom) {
+                var layer = mlSourceLayer();
+                if (!layer) return;
+                var found = [];
+                layer.graphics.forEach(function(g) {
+                    if (!g.geometry) return;
+                    try {
+                        var gg = mlToViewSR(g.geometry);
+                        if (gg && geometryEngine.intersects(areaGeom, gg)) found.push(g);
+                    } catch (e) { console.warn("Select test failed:", e); }
+                });
+                mlSetSelection(moveLayerTool.selected.concat(found));
+            }
+
+            document.getElementById("mlSelClick").addEventListener("click", function() { mlSetMode("click"); });
+            document.getElementById("mlSelRect").addEventListener("click", function() { mlSetMode("rect"); });
+            document.getElementById("mlSelLasso").addEventListener("click", function() { mlSetMode("lasso"); });
+            document.getElementById("mlSelAll").addEventListener("click", function() {
+                var layer = mlSourceLayer();
+                if (layer) mlSetSelection(moveLayerTool.selected.concat(layer.graphics.toArray()));
+            });
+            document.getElementById("mlSelClear").addEventListener("click", function() { mlSetSelection([]); mlSetMode(null); });
+            document.getElementById("mlSelFromCurrent").addEventListener("click", function() {
+                var list = [];
+                if (sketch && sketch.updateGraphics) sketch.updateGraphics.forEach(function(g) { list.push(g); });
+                if (view.popup.visible && view.popup.features) view.popup.features.forEach(function(g) { list.push(g); });
+                list = list.filter(function(g) { return g.layer && g.layer.isDrawLayer; });
+                if (list.length === 0) { alert("ยังไม่มีข้อมูลที่เลือกอยู่จาก Draw Tools หรือ Select by Attribute"); return; }
+                mlSetSelection(moveLayerTool.selected.concat(list));
+            });
+            document.getElementById("mlSourceLayer").addEventListener("change", function() { mlRefreshLayerSelects(); });
+            document.getElementById("mlTargetLayer").addEventListener("change", function(e) {
+                var isNew = e.target.value === ML_NEW_LAYER;
+                document.getElementById("mlNewLayerName").style.display = isNew ? "block" : "none";
+                if (isNew) document.getElementById("mlNewLayerName").focus();
+                document.getElementById("mlExecuteBtn").disabled = moveLayerTool.selected.length === 0;
+            });
+            document.querySelectorAll('input[name="mlMode"]').forEach(function(r) {
+                r.addEventListener("change", function() {
+                    var copy = document.getElementById("mlModeCopy").checked;
+                    document.getElementById("mlExecuteBtn").innerHTML = copy
+                        ? '<i class="fas fa-copy"></i> คัดลอกข้อมูลที่เลือก'
+                        : '<i class="fas fa-share-square"></i> ย้ายข้อมูลที่เลือก';
+                });
+            });
+
+            // Click เลือกทีละรายการ
+            view.on("click", function(event) {
+                if (moveLayerTool.mode !== "click") return;
+                event.stopPropagation(); // ไม่เปิด popup ระหว่างเลือก
+                var layer = mlSourceLayer();
+                if (!layer) return;
+                view.hitTest(event, { include: [layer] }).then(function(res) {
+                    var hit = res.results.find(function(r) { return r.graphic && r.graphic.layer === layer; });
+                    if (!hit) return;
+                    var g = hit.graphic;
+                    var exists = moveLayerTool.selected.some(function(s) { return s.uid === g.uid; });
+                    mlSetSelection(exists
+                        ? moveLayerTool.selected.filter(function(s) { return s.uid !== g.uid; })
+                        : moveLayerTool.selected.concat([g]));
+                });
+            });
+
+            // Rectangle / Lasso ด้วยการลากบนแผนที่
+            view.on("drag", function(event) {
+                if (moveLayerTool.mode !== "rect" && moveLayerTool.mode !== "lasso") return;
+                event.stopPropagation(); // ไม่เลื่อนแผนที่ระหว่างลาก
+                var mp = view.toMap({ x: event.x, y: event.y });
+                if (!mp) return;
+                if (event.action === "start") moveLayerTool.dragPoints = [[mp.x, mp.y]];
+                else moveLayerTool.dragPoints.push([mp.x, mp.y]);
+
+                var pts = moveLayerTool.dragPoints, area = null;
+                if (moveLayerTool.mode === "rect" && pts.length > 1) {
+                    var a = pts[0], b = pts[pts.length - 1];
+                    area = new Polygon({ rings: [[[a[0], a[1]], [a[0], b[1]], [b[0], b[1]], [b[0], a[1]], [a[0], a[1]]]], spatialReference: view.spatialReference });
+                } else if (moveLayerTool.mode === "lasso" && pts.length > 2) {
+                    area = new Polygon({ rings: [pts.concat([pts[0]])], spatialReference: view.spatialReference });
+                }
+
+                if (moveLayerTool.dragGraphic) tempGraphicsLayer.remove(moveLayerTool.dragGraphic);
+                moveLayerTool.dragGraphic = null;
+                if (area && event.action !== "end") {
+                    moveLayerTool.dragGraphic = new Graphic({
+                        geometry: area,
+                        symbol: new SimpleFillSymbol({ color: [255, 0, 255, 0.1], outline: { color: [255, 0, 255, 1], width: 1.5, style: "dash" } })
+                    });
+                    tempGraphicsLayer.add(moveLayerTool.dragGraphic);
+                }
+                if (event.action === "end") {
+                    if (area) {
+                        if (moveLayerTool.mode === "lasso") {
+                            try { var simp = geometryEngine.simplify(area); if (simp) area = simp; } catch (e) {}
+                        }
+                        mlSelectByGeometry(area);
+                    }
+                    moveLayerTool.dragPoints = [];
+                }
+            });
+
+            document.addEventListener("keydown", function(e) {
+                if (e.key === "Escape" && moveLayerTool.mode) mlSetMode(null);
+            });
+
+            document.getElementById("mlExecuteBtn").addEventListener("click", function() {
+                var items = moveLayerTool.selected.filter(function(g) { return g.layer && map.layers.includes(g.layer); });
+                if (items.length === 0) { alert("ยังไม่ได้เลือกข้อมูล"); return; }
+                var isCopy = document.getElementById("mlModeCopy").checked;
+                var tgtVal = document.getElementById("mlTargetLayer").value;
+                var target;
+
+                if (tgtVal === ML_NEW_LAYER) {
+                    var nm = document.getElementById("mlNewLayerName").value.trim();
+                    if (!nm) { alert("กรุณาระบุชื่อ Layer ใหม่"); document.getElementById("mlNewLayerName").focus(); return; }
+                    target = new GraphicsLayer({ title: nm, isDrawLayer: true });
+                    map.add(target);
+                    document.getElementById("mlNewLayerName").value = "";
+                } else {
+                    target = map.findLayerById(tgtVal);
+                }
+                if (!target) { alert("ไม่พบ Layer ปลายทาง"); return; }
+
+                if (sketch) { try { sketch.cancel(); } catch (e) {} }
+
+                var affected = {}; affected[target.id] = true;
+                var toAdd = [], skipped = 0;
+                items.forEach(function(g) {
+                    if (g.layer === target) { skipped++; return; }
+                    var src = g.layer;
+                    affected[src.id] = true;
+                    var ng;
+                    if (isCopy) {
+                        ng = g.clone();
+                        ng.attributes = Object.assign({}, g.attributes || {});
+                    } else {
+                        src.remove(g);
+                        ng = g;
+                        ng.attributes = ng.attributes || {};
+                    }
+                    ng.attributes.LayerName = target.title;
+                    toAdd.push(ng);
+                });
+                if (toAdd.length) target.addMany(toAdd);
+
+                mlSetSelection([]);
+                mlSetMode(null);
+                Object.keys(affected).forEach(function(id) { if (map.findLayerById(id)) updateLabels(id); });
+                updateLayerList();
+                populateDrawLayerSelect();
+                mlRefreshLayerSelects();
+                var tp = document.getElementById("attributeTablePanel");
+                if (tp && tp.style.display !== "none" && tp.style.display !== "" && affected[currentTableLayerId]) renderAttributeTable();
+
+                alert((isCopy ? "คัดลอก " : "ย้าย ") + toAdd.length + " รายการ ไปยัง \"" + target.title + "\"" +
+                      (skipped ? "\n(ข้าม " + skipped + " รายการที่อยู่ใน Layer ปลายทางอยู่แล้ว)" : ""));
+            });
+
+            map.layers.on("change", function() { mlRefreshLayerSelects(); });
+            document.getElementById("drawBtn").addEventListener("click", function() { mlRefreshLayerSelects(); });
+            mlRefreshLayerSelects();
 
             view.when(() => { document.querySelectorAll('.panel, .draw-tools, .excel-import-panel').forEach(p => p.style.display = 'none'); });
         });
