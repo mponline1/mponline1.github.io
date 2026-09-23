@@ -332,10 +332,11 @@
               </label>
               <div class="row-btns" style="margin-top:-4px">
                 <button type="button" class="btn small" id="btnDraw">วาดเส้นบนแผนที่</button>
-                <button type="button" class="btn small" id="btnReshape">แก้ไขรูปเส้น</button>
+                <button type="button" class="btn small" id="btnReshape">แก้ไขจุดยอดของเส้น</button>
                 <button type="button" class="btn small" id="btnStraight">สร้างเส้นตรงจากสองจุด</button>
                 <button type="button" class="btn small" id="btnWktFix" hidden>แปลง WKT เป็น EPSG:4326</button>
               </div>
+              <label class="check top" style="margin:0 0 8px"><input type="checkbox" id="fSnap" checked> ดูดเส้นเข้าหาจุดเริ่มต้น จุดสิ้นสุด และเส้นอื่นบนแผนที่ (snap) กด Ctrl ค้างไว้เพื่อปิดชั่วคราว</label>
               <p class="auto-place" id="plLine">ตำบล/อำเภอ ที่เส้นทางพาดผ่าน: ยังไม่ได้คำนวณ</p>
             </fieldset>
 
@@ -613,10 +614,11 @@ require([
   const startLayer = new GraphicsLayer({ title: "จุดเริ่มต้นโครงการ" });
   const endLayer = new GraphicsLayer({ title: "จุดสิ้นสุดโครงการ" });
   const importLayer = new GraphicsLayer({ title: "ตัวอย่างการนำเข้า", listMode: "hide" });
-  const previewLayer = new GraphicsLayer({ title: "ตัวอย่าง", listMode: "hide" });
+  const previewLayer = new GraphicsLayer({ title: "ตัวอย่างจุด", listMode: "hide" });
+  const previewLineLayer = new GraphicsLayer({ title: "ตัวอย่างเส้น", listMode: "hide" });
   const editLayer = new GraphicsLayer({ title: "แก้ไข", listMode: "hide" });
   const map = new EsriMap({ basemap: getBasemap("imagery"),
-    layers: [adminLayer, areaLayer, lineLayer, startLayer, endLayer, importLayer, previewLayer, editLayer] });
+    layers: [adminLayer, areaLayer, lineLayer, startLayer, endLayer, importLayer, previewLineLayer, previewLayer, editLayer] });
   const view = new MapView({
     container: "viewDiv", map, center: CONFIG.CENTER, zoom: CONFIG.ZOOM,
     highlightOptions: { color: [201, 145, 47, 1], haloOpacity: 1, fillOpacity: 0.2 }
@@ -789,7 +791,7 @@ require([
   const POPUP = {
     title: ({ graphic }) => { const r = recs.get(graphic.attributes.id)?.row; return r ? damTitle(r) : "ไม่ระบุชื่อ"; },
     content: popupContent,
-    actions: [{ id: "edit-record", title: "แก้ไขข้อมูล", icon: "pencil" }]
+    actions: [{ id: "edit-record", title: "แก้ไขข้อมูล", icon: "pencil" }, { id: "edit-line", title: "แก้ไขจุดยอดของเส้นทาง", icon: "move" }]
   };
 
   function buildRec(row) {
@@ -1056,13 +1058,18 @@ require([
   }
 
   reactiveUtils.on(() => view.popup, "trigger-action", ev => {
-    if (ev.action.id !== "edit-record") return;
+    const id = ev.action.id;
+    if (id !== "edit-record" && id !== "edit-line") return;
     const g = view.popup.selectedFeature;
     const rec = g && recs.get(g.attributes.id);
     if (!rec) return;
     if (!canEdit) { toast("เข้าสู่ระบบเพื่อแก้ไขข้อมูล"); return; }
     view.closePopup();
     openForm(rec.row);
+    if (id === "edit-line") {
+      if (!rec.line) { toast("ช่วงนี้ยังไม่มีเส้นทางให้แก้ไข", "error"); return; }
+      startReshape();
+    }
   });
 
   /* ---------- รายการผลลัพธ์ ---------- */
@@ -1171,7 +1178,7 @@ require([
   function closeForm() {
     if (mode === "draw" || mode === "reshape") editSketch.cancel();
     if (mode) setMode(null);
-    previewLayer.removeAll(); editLayer.removeAll(); previewLayer.visible = true;
+    previewLayer.removeAll(); previewLineLayer.removeAll(); editLayer.removeAll(); previewLineLayer.visible = true;
     $("#damForm").reset(); F.id.value = ""; formPlaces = null;
     switchTab(queryActive ? "results" : "query");
   }
@@ -1214,7 +1221,7 @@ require([
 
   let previewTimer;
   function updatePreview() {
-    previewLayer.removeAll();
+    previewLayer.removeAll(); previewLineLayer.removeAll();
     const msgs = []; let bad = false; $("#btnWktFix").hidden = true;
     const sp = ptFrom(F.se.value, F.sn.value), ep = ptFrom(F.ee.value, F.en.value);
     let line = null;
@@ -1230,7 +1237,7 @@ require([
         const { geometry, type, utm } = parseWkt(F.wkt.value);
         if (geometry.type !== "polyline") throw new Error("ต้องเป็นข้อมูลเส้น (LINESTRING)");
         line = geometry;
-        previewLayer.add(new Graphic({ geometry, symbol: SYM.previewLine }));
+        previewLineLayer.add(new Graphic({ geometry, symbol: SYM.previewLine }));
         const nv = geometry.paths.reduce((a, p) => a + p.length, 0);
         msgs.push(`เส้นทาง: ${nv} จุดยอด ยาวประมาณ ${fmtLen(geometryEngine.geodesicLength(geometry, "meters"))}`);
         if (utm) { msgs.push("WKT มีค่าพิกัดแบบ UTM ควรแปลงเป็น EPSG:4326 ก่อนบันทึก"); bad = true; $("#btnWktFix").hidden = !["LINESTRING", "MULTILINESTRING"].includes(type); }
@@ -1265,8 +1272,8 @@ require([
     updatePreview(); toast("สร้างเส้นตรงระหว่างสองจุดแล้ว", "ok");
   };
   $("#btnPreviewZoom").onclick = () => {
-    if (!previewLayer.graphics.length) { toast("ยังไม่มีข้อมูลพิกัดให้แสดง"); return; }
-    const g = previewLayer.graphics.toArray();
+    const g = [...previewLayer.graphics.toArray(), ...previewLineLayer.graphics.toArray()];
+    if (!g.length) { toast("ยังไม่มีข้อมูลพิกัดให้แสดง"); return; }
     if (isMobile()) openPanel(false);
     view.goTo(g.length === 1 && g[0].geometry.type === "point" ? { target: g[0], zoom: 17 } : g, { duration: 600 }).catch(() => {});
   };
@@ -1274,38 +1281,69 @@ require([
   $("#btnPickStart").onclick = () => startPick("start");
   $("#btnPickEnd").onclick = () => startPick("end");
 
-  const editSketch = new SketchViewModel({ view, layer: editLayer, polylineSymbol: SYM.previewLine, updateOnGraphicClick: false,
-    defaultUpdateOptions: { tool: "reshape", toggleToolOnClick: false } });
+  // วาดและแก้ไขเส้นทาง พร้อม snap เข้าหาจุดเริ่มต้น จุดสิ้นสุด และข้อมูลเดิมบนแผนที่
+  const editSketch = new SketchViewModel({
+    view, layer: editLayer, polylineSymbol: SYM.previewLine, updateOnGraphicClick: false,
+    defaultUpdateOptions: { tool: "reshape", toggleToolOnClick: false, enableRotation: false, enableScaling: false },
+    snappingOptions: {
+      enabled: true, selfEnabled: true, featureEnabled: true,
+      featureSources: [
+        { layer: previewLayer, enabled: true },      // จุดเริ่มต้น/จุดสิ้นสุดของช่วงที่กำลังกรอก
+        { layer: startLayer, enabled: true },        // จุดเริ่มต้นของช่วงอื่นในฐานข้อมูล
+        { layer: endLayer, enabled: true },          // จุดสิ้นสุดของช่วงอื่น
+        { layer: lineLayer, enabled: true }          // เส้นทางของช่วงอื่น (ต่อเส้นให้ชนกัน)
+      ]
+    }
+  });
+  $("#fSnap").onchange = e => { editSketch.snappingOptions.enabled = e.target.checked; };
+
+  const SNAP_HINT = "ปลายเส้นจะดูดเข้าหาจุดเริ่มต้นและจุดสิ้นสุดอัตโนมัติ";
+  function syncWktFromSketch(g, { quiet = false } = {}) {
+    if (!g) return;
+    F.wkt.value = toWkt(webMercatorUtils.webMercatorToGeographic(g.geometry));
+    if (!quiet) updatePreview();
+  }
   $("#btnDraw").onclick = () => {
+    if (!F.se.value.trim() || !F.ee.value.trim()) toast("แนะนำให้กรอกพิกัดจุดเริ่มต้นและจุดสิ้นสุดก่อน เพื่อให้ snap ได้", "info", 5000);
     if (isMobile()) openPanel(false);
-    editLayer.removeAll();
-    setMode("draw", "คลิกวางจุดของเส้นทางเขื่อน ดับเบิลคลิกเพื่อจบ");
+    editLayer.removeAll(); previewLineLayer.visible = false;
+    setMode("draw", `คลิกวางจุดของเส้นทางเขื่อน ดับเบิลคลิกเพื่อจบ (${SNAP_HINT})`);
     editSketch.create("polyline");
   };
-  $("#btnReshape").onclick = () => {
+  function startReshape() {
     let geom;
     try { geom = parseWkt(F.wkt.value).geometry; } catch { toast("ยังไม่มี WKT เส้นทางที่ถูกต้องให้แก้ไข", "error"); return; }
     if (geom.type !== "polyline") { toast("แก้ไขรูปได้เฉพาะข้อมูลเส้น", "error"); return; }
     if (isMobile()) openPanel(false);
-    editLayer.removeAll();
+    editLayer.removeAll(); previewLineLayer.visible = false;
     const g = new Graphic({ geometry: webMercatorUtils.geographicToWebMercator(geom), symbol: SYM.previewLine });
-    editLayer.add(g); previewLayer.visible = false;
-    setMode("reshape", "ลากจุดยอดเพื่อปรับเส้น แล้วกดเสร็จสิ้น", { finish: true });
+    editLayer.add(g);
+    setMode("reshape", "ลากจุดยอดเพื่อย้าย คลิกจุดกึ่งกลางเพื่อเพิ่มจุด เลือกจุดแล้วกด Delete เพื่อลบ แล้วกดเสร็จสิ้น", { finish: true });
     view.goTo(g, { duration: 500 }).catch(() => {});
     editSketch.update([g], { tool: "reshape" });
-  };
+  }
+  $("#btnReshape").onclick = startReshape;
+
   editSketch.on("create", e => {
     if (e.state === "complete") {
-      F.wkt.value = toWkt(webMercatorUtils.webMercatorToGeographic(e.graphic.geometry));
-      editLayer.removeAll(); setMode(null); updatePreview();
+      previewLineLayer.visible = true;
+      syncWktFromSketch(e.graphic);
+      editLayer.removeAll(); setMode(null);
       if (isMobile()) openPanel(true);
       toast("บันทึกเส้นลงช่อง WKT แล้ว กดบันทึกข้อมูลเพื่อยืนยัน", "ok");
-    } else if (e.state === "cancel") { editLayer.removeAll(); setMode(null); }
+    } else if (e.state === "cancel") { editLayer.removeAll(); previewLineLayer.visible = true; setMode(null); }
   });
   editSketch.on("update", e => {
+    const g = e.graphics && e.graphics[0];
+    // อัปเดต WKT ทันทีทุกครั้งที่ย้าย เพิ่ม หรือลบจุดยอด
+    if (e.state === "active") {
+      const t = e.toolEventInfo && e.toolEventInfo.type;
+      if (t && (t.endsWith("-stop") || t === "vertex-add" || t === "vertex-remove")) syncWktFromSketch(g, { quiet: true });
+      return;
+    }
     if (e.state !== "complete") return;
-    if (!e.aborted && e.graphics[0]) F.wkt.value = toWkt(webMercatorUtils.webMercatorToGeographic(e.graphics[0].geometry));
-    editLayer.removeAll(); previewLayer.visible = true; setMode(null); updatePreview();
+    if (!e.aborted && g) syncWktFromSketch(g, { quiet: true });
+    editLayer.removeAll(); previewLineLayer.visible = true; setMode(null); updatePreview();
     if (isMobile()) openPanel(true);
   });
 
@@ -1326,7 +1364,7 @@ require([
       const saved = id ? await api.update(id, p) : await api.insert(p);
       toast(id ? "บันทึกการแก้ไขแล้ว" : "เพิ่มช่วงของโครงการแล้ว", "ok");
       await reload();
-      previewLayer.removeAll();
+      previewLayer.removeAll(); previewLineLayer.removeAll();
       $("#damForm").reset(); F.id.value = ""; formPlaces = null;
       switchTab("results");
       const rec = recs.get(saved.id);
