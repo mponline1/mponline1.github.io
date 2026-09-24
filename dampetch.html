@@ -107,6 +107,20 @@
   .res-edit{background:none;border:0;border-left:1px solid var(--line);padding:0 12px;color:var(--water);cursor:pointer;font-size:13px}
   .res-edit:hover{background:var(--bank)}
   .res-empty,.res-more{padding:14px 8px;color:var(--muted);font-size:14px}
+  .proj{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff}
+  .proj.selected{border-color:var(--ochre);box-shadow:0 0 0 1px var(--ochre)}
+  .proj-title{display:block;width:100%;text-align:left;background:var(--bank);border:0;padding:9px 12px;cursor:pointer;font-weight:600}
+  .proj-title:hover{background:#e3eaea}
+  .proj-sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted)}
+  .seg-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px 0}
+  .seg-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 12px;font-size:13px;cursor:pointer}
+  .seg-tab:hover{background:var(--bank)}
+  .seg-tab[aria-selected="true"]{background:var(--water);border-color:var(--water);color:#fff}
+  .seg-body{padding:8px 12px 10px}
+  .seg-place{font-size:13px;color:var(--muted)}
+  .seg-acts{display:flex;gap:8px;margin-top:8px}
+  .conv{align-items:end}
+  .conv .btn{width:100%}
 
   .legend{background:rgba(255,255,255,.95);padding:8px 12px;border-radius:8px;font-size:12.5px;box-shadow:0 1px 4px rgba(22,50,58,.25)}
   .legend b{display:block;font-size:12.5px;margin-bottom:2px}
@@ -311,6 +325,11 @@
                 <label class="field"><span>Easting</span><input id="fSE" inputmode="decimal" placeholder="601682.862"></label>
                 <label class="field"><span>Northing</span><input id="fSN" inputmode="decimal" placeholder="1447940.645"></label>
               </div>
+              <div class="grid3 conv">
+                <label class="field"><span>ละติจูด</span><input id="fSLat" inputmode="decimal" placeholder="13.096000"></label>
+                <label class="field"><span>ลองจิจูด</span><input id="fSLon" inputmode="decimal" placeholder="99.938000"></label>
+                <div class="field"><span>พิกัดภูมิศาสตร์</span><button type="button" class="btn small" id="btnConvStart">แปลงเป็น E/N</button></div>
+              </div>
               <div class="row-btns" style="margin-top:-4px"><button type="button" class="btn small" id="btnPickStart">เลือกจุดจากแผนที่</button></div>
               <p class="auto-place" id="plStart">ตำบล/อำเภอ: ยังไม่ได้คำนวณ</p>
             </fieldset>
@@ -320,6 +339,11 @@
               <div class="grid2">
                 <label class="field"><span>Easting</span><input id="fEE" inputmode="decimal" placeholder="602602.507"></label>
                 <label class="field"><span>Northing</span><input id="fEN" inputmode="decimal" placeholder="1448441.783"></label>
+              </div>
+              <div class="grid3 conv">
+                <label class="field"><span>ละติจูด</span><input id="fELat" inputmode="decimal" placeholder="13.100500"></label>
+                <label class="field"><span>ลองจิจูด</span><input id="fELon" inputmode="decimal" placeholder="99.946500"></label>
+                <div class="field"><span>พิกัดภูมิศาสตร์</span><button type="button" class="btn small" id="btnConvEnd">แปลงเป็น E/N</button></div>
               </div>
               <div class="row-btns" style="margin-top:-4px"><button type="button" class="btn small" id="btnPickEnd">เลือกจุดจากแผนที่</button></div>
               <p class="auto-place" id="plEnd">ตำบล/อำเภอ: ยังไม่ได้คำนวณ</p>
@@ -387,6 +411,8 @@
             <label class="check top"><input type="checkbox" id="impAutoEnds" checked> เติมจุดเริ่มต้นและจุดสิ้นสุดจากปลายเส้น เมื่อแถวนั้นไม่มีพิกัดจุด</label>
             <label class="check top"><input type="checkbox" id="impStraight" checked> สร้างเส้นทางเป็นเส้นตรงระหว่างสองจุด เมื่อแถวนั้นไม่มี WKT</label>
             <label class="check top"><input type="checkbox" id="impSkipDup" checked> ข้ามแถวที่ชื่อโครงการและช่วงที่ซ้ำกับข้อมูลเดิม</label>
+            <label class="check top"><input type="checkbox" id="impFixProv" checked> กรอกจังหวัดให้ทุกแถวเป็น
+              <input id="impProvName" style="width:120px;padding:3px 8px;border:1px solid var(--line);border-radius:6px;margin-left:4px"></label>
           </fieldset>
           <div class="imp-sum" id="impSum"></div>
           <label class="check"><input type="checkbox" id="impOnlyIssues"> แสดงเฉพาะแถวที่มีปัญหา</label>
@@ -456,7 +482,8 @@ const CONFIG = {
   SUPABASE_URL: "https://tgplexflqlwejudspgnv.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_H2j1Yttmt9GTQKCM1buNoQ_xtyNuLzj",
   TABLE: "dams",
-  ADMIN_FILE: "adminm.geojson",   // ชั้นข้อมูลขอบเขตตำบล วางไว้โฟลเดอร์เดียวกับ index.html
+  ADMIN_FILE: "adminm.geojson",
+  DEFAULT_PROVINCE: "เพชรบุรี",   // จังหวัดที่ระบบกรอกให้อัตโนมัติเวลานำเข้าข้อมูล   // ชั้นข้อมูลขอบเขตตำบล วางไว้โฟลเดอร์เดียวกับ index.html
   UTM_ZONE: 47,                   // EPSG:32647
   CENTER: [99.95, 13.05],
   ZOOM: 10
@@ -1074,39 +1101,84 @@ require([
 
   /* ---------- รายการผลลัพธ์ ---------- */
   const currentList = () => queryActive ? results : [...recs.values()].sort(byDam);
+  const activeSeg = new Map();   // ชื่อโครงการ -> id ของช่วงที่กำลังแสดง
+  function groupByProject(list) {
+    const g = new Map();
+    for (const rec of list) {
+      const k = rec.row.dam_name || "ไม่ระบุชื่อ";
+      if (!g.has(k)) g.set(k, []);
+      g.get(k).push(rec);
+    }
+    return g;
+  }
+  function segChips(rec) {
+    const r = rec.row;
+    return [
+      r.year && `<span class="chip">ปี ${esc(r.year)}</span>`,
+      r.status && `<span class="chip">${esc(r.status)}</span>`,
+      rec.line && `<span class="chip line">เส้น ${fmtLen(rec.lengthM)}</span>`,
+      !rec.start && `<span class="chip warn">ไม่มีจุดเริ่มต้น</span>`,
+      !rec.end && `<span class="chip warn">ไม่มีจุดสิ้นสุด</span>`,
+      !rec.line && `<span class="chip warn">${rec.error ? "WKT ผิดรูปแบบ" : "ไม่มีเส้นทาง"}</span>`
+    ].filter(Boolean).join("");
+  }
   function renderResults() {
-    const list = currentList(), MAX = 500;
-    $("#resCount").textContent = queryActive ? `พบ ${list.length.toLocaleString()} ช่วง` : `ทั้งหมด ${list.length.toLocaleString()} ช่วง`;
+    const list = currentList(), MAX = 300;
+    const groups = groupByProject(list);
+    $("#resCount").textContent = `${queryActive ? "พบ" : "ทั้งหมด"} ${groups.size.toLocaleString()} โครงการ ${list.length.toLocaleString()} ช่วง`;
     $("#resBadge").textContent = list.length.toLocaleString();
     if (!list.length) {
       $("#resList").innerHTML = `<li class="res-empty">${queryActive ? "ไม่พบรายการที่ตรงกับเงื่อนไข ลองลดเงื่อนไขหรือเปลี่ยนขอบเขตพื้นที่" : "ยังไม่มีข้อมูล กด “เพิ่มข้อมูล” เพื่อบันทึกช่วงแรกของโครงการ"}</li>`;
       return;
     }
-    $("#resList").innerHTML = list.slice(0, MAX).map(rec => {
-      const r = rec.row;
-      const chips = [
-        r.dam_type && `<span class="chip">${esc(r.dam_type)}</span>`,
-        r.year && `<span class="chip">ปี ${esc(r.year)}</span>`,
-        r.status && `<span class="chip">${esc(r.status)}</span>`,
-        rec.line && `<span class="chip line">เส้น ${fmtLen(rec.lengthM)}</span>`,
-        !rec.start && `<span class="chip warn">ไม่มีจุดเริ่มต้น</span>`,
-        !rec.end && `<span class="chip warn">ไม่มีจุดสิ้นสุด</span>`,
-        !rec.line && `<span class="chip warn">${rec.error ? "WKT ผิดรูปแบบ" : "ไม่มีเส้นทาง"}</span>`
-      ].filter(Boolean).join("");
-      return `<li class="res${r.id === selectedId ? " selected" : ""}" data-id="${r.id}">
-        <button type="button" class="res-main" data-act="zoom">
-          <span class="res-name">${esc(damTitle(r))}</span>
-          <span class="res-place">${esc(placeText(r) || "ไม่ระบุที่ตั้ง")}</span>
-          <span class="chips">${chips}</span>
-        </button>
-        ${canEdit ? `<button type="button" class="res-edit" data-act="edit" aria-label="แก้ไข ${esc(damTitle(r))}">แก้ไข</button>` : ""}
+    const names = [...groups.keys()].slice(0, MAX);
+    $("#resList").innerHTML = names.map(name => {
+      const segs = groups.get(name);
+      const ids = segs.map(r => r.row.id);
+      let cur = activeSeg.get(name);
+      if (!ids.includes(cur)) cur = ids.includes(selectedId) ? selectedId : ids[0];
+      activeSeg.set(name, cur);
+      const rec = segs.find(r => r.row.id === cur), r = rec.row;
+      const types = uniqJoin(segs.map(x => x.row.dam_type));
+      const sub = [segs.length > 1 ? `${segs.length} ช่วง` : "1 ช่วง", types, placeText(r) || "ไม่ระบุที่ตั้ง"].filter(Boolean).join(" | ");
+      const tabs = segs.length > 1 ? `<div class="seg-tabs" role="tablist">${segs.map(x =>
+        `<button type="button" class="seg-tab" role="tab" data-act="seg" data-id="${x.row.id}" aria-selected="${x.row.id === cur}">ช่วงที่ ${esc(x.row.segment || "-")}</button>`).join("")}</div>` : "";
+      return `<li class="proj${ids.includes(selectedId) ? " selected" : ""}" data-name="${esc(name)}">
+        <button type="button" class="proj-title" data-act="zoom-proj">${esc(name)}<span class="proj-sub">${esc(sub)}</span></button>
+        ${tabs}
+        <div class="seg-body">
+          <div class="seg-place">${segs.length > 1 ? `ช่วงที่ ${esc(r.segment || "-")} ` : ""}${esc(placeText(r) || "ไม่ระบุที่ตั้ง")}</div>
+          <div class="chips">${segChips(rec)}</div>
+          <div class="seg-acts">
+            <button type="button" class="btn small" data-act="zoom" data-id="${r.id}">ซูมไปยังช่วงนี้</button>
+            ${canEdit ? `<button type="button" class="btn small" data-act="edit" data-id="${r.id}">แก้ไข</button>` : ""}
+          </div>
+        </div>
       </li>`;
-    }).join("") + (list.length > MAX ? `<li class="res-more">แสดง ${MAX} รายการแรก เพิ่มเงื่อนไขค้นหาเพื่อจำกัดผลลัพธ์</li>` : "");
+    }).join("") + (groups.size > MAX ? `<li class="res-more">แสดง ${MAX} โครงการแรก เพิ่มเงื่อนไขค้นหาเพื่อจำกัดผลลัพธ์</li>` : "");
+  }
+  function markSelected() {
+    document.querySelectorAll(".proj").forEach(li => {
+      const ids = [...li.querySelectorAll("[data-id]")].map(b => Number(b.dataset.id));
+      li.classList.toggle("selected", ids.includes(selectedId));
+    });
   }
   $("#resList").addEventListener("click", e => {
     const btn = e.target.closest("[data-act]"); if (!btn) return;
-    const rec = recs.get(Number(btn.closest(".res").dataset.id)); if (!rec) return;
-    if (btn.dataset.act === "zoom") zoomToRec(rec); else openForm(rec.row);
+    const act = btn.dataset.act;
+    const li = btn.closest(".proj"), name = li && li.dataset.name;
+    if (act === "zoom-proj") {
+      const segs = groupByProject(currentList()).get(name) || [];
+      const geoms = segs.flatMap(r => [r.start, r.end, r.line]).filter(Boolean).map(g => g.geometry);
+      if (!geoms.length) { toast("โครงการนี้ยังไม่มีข้อมูลพิกัด"); return; }
+      if (isMobile()) openPanel(false);
+      view.goTo(geoms, { duration: 700 }).catch(() => {});
+      return;
+    }
+    const rec = recs.get(Number(btn.dataset.id)); if (!rec) return;
+    if (act === "seg") { activeSeg.set(name, rec.row.id); renderResults(); zoomToRec(rec); }
+    else if (act === "zoom") zoomToRec(rec);
+    else openForm(rec.row);
   });
 
   async function zoomAll({ quiet = false } = {}) {
@@ -1155,7 +1227,8 @@ require([
 
   /* ---------- ฟอร์มบันทึกข้อมูล (1 แถว = 1 ช่วง) ---------- */
   const F = { id: $("#fId"), name: $("#fName"), seg: $("#fSeg"), type: $("#fType"), year: $("#fYear"), status: $("#fStatus"),
-    prov: $("#fProv"), se: $("#fSE"), sn: $("#fSN"), ee: $("#fEE"), en: $("#fEN"), wkt: $("#fWkt") };
+    prov: $("#fProv"), se: $("#fSE"), sn: $("#fSN"), ee: $("#fEE"), en: $("#fEN"), wkt: $("#fWkt"),
+    slat: $("#fSLat"), slon: $("#fSLon"), elat: $("#fELat"), elon: $("#fELon") };
   let formPlaces = null;   // ชื่อตำบล/อำเภอ ที่คำนวณได้จากชั้นขอบเขต
 
   function openForm(row) {
@@ -1169,6 +1242,7 @@ require([
     F.se.value = row?.start_easting ?? ""; F.sn.value = row?.start_northing ?? "";
     F.ee.value = row?.end_easting ?? ""; F.en.value = row?.end_northing ?? "";
     F.wkt.value = row?.wkt || "";
+    F.slat.value = F.slon.value = F.elat.value = F.elon.value = "";
     formPlaces = row ? { start_tambon: row.start_tambon, start_amphoe: row.start_amphoe, end_tambon: row.end_tambon,
       end_amphoe: row.end_amphoe, line_tambon: row.line_tambon, line_amphoe: row.line_amphoe, province: row.province } : null;
     $("#btnDelete").hidden = !editing; $("#btnCopy").hidden = !editing;
@@ -1225,9 +1299,9 @@ require([
     const msgs = []; let bad = false; $("#btnWktFix").hidden = true;
     const sp = ptFrom(F.se.value, F.sn.value), ep = ptFrom(F.ee.value, F.en.value);
     let line = null;
-    if (sp) previewLayer.add(new Graphic({ geometry: sp, symbol: SYM.start }));
+    if (sp) { previewLayer.add(new Graphic({ geometry: sp, symbol: SYM.start })); F.slat.value = sp.latitude.toFixed(6); F.slon.value = sp.longitude.toFixed(6); }
     else if (F.se.value.trim() || F.sn.value.trim()) { msgs.push("พิกัดจุดเริ่มต้นไม่ครบหรือไม่ใช่ตัวเลข"); bad = true; }
-    if (ep) previewLayer.add(new Graphic({ geometry: ep, symbol: SYM.end }));
+    if (ep) { previewLayer.add(new Graphic({ geometry: ep, symbol: SYM.end })); F.elat.value = ep.latitude.toFixed(6); F.elon.value = ep.longitude.toFixed(6); }
     else if (F.ee.value.trim() || F.en.value.trim()) { msgs.push("พิกัดจุดสิ้นสุดไม่ครบหรือไม่ใช่ตัวเลข"); bad = true; }
     for (const [p, label] of [[sp, "จุดเริ่มต้น"], [ep, "จุดสิ้นสุด"]]) {
       if (p && !inThailand(p.longitude, p.latitude)) { msgs.push(`${label}อยู่นอกประเทศไทย ตรวจสอบว่า Easting กับ Northing สลับกันหรือไม่`); bad = true; }
@@ -1277,6 +1351,21 @@ require([
     if (isMobile()) openPanel(false);
     view.goTo(g.length === 1 && g[0].geometry.type === "point" ? { target: g[0], zoom: 17 } : g, { duration: 600 }).catch(() => {});
   };
+  // แปลงค่าละติจูด/ลองจิจูด เป็น Easting/Northing บน WGS84 UTM Zone 47
+  function convertLatLon(which) {
+    const lat = toNum(which === "start" ? F.slat.value : F.elat.value);
+    const lon = toNum(which === "start" ? F.slon.value : F.elon.value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) { toast("กรอกละติจูดและลองจิจูดเป็นตัวเลขให้ครบ", "error"); return; }
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) { toast("ค่าละติจูดหรือลองจิจูดเกินช่วงที่เป็นไปได้ อาจสลับช่องกัน", "error", 5000); return; }
+    const [E, N] = WGS.latLonToUtm(lon, lat, ZONE);
+    if (which === "start") { F.se.value = E.toFixed(3); F.sn.value = N.toFixed(3); }
+    else { F.ee.value = E.toFixed(3); F.en.value = N.toFixed(3); }
+    updatePreview();
+    toast(`แปลงเป็น Easting/Northing (UTM 47N) แล้ว${lon < 96 || lon > 102 ? " แต่ตำแหน่งอยู่นอกโซน 47" : ""}`, lon < 96 || lon > 102 ? "error" : "ok");
+  }
+  $("#btnConvStart").onclick = () => convertLatLon("start");
+  $("#btnConvEnd").onclick = () => convertLatLon("end");
+
   const startPick = target => { pickTarget = target; if (isMobile()) openPanel(false); setMode("pick", `คลิกบนแผนที่เพื่อกำหนด${target === "start" ? "จุดเริ่มต้น" : "จุดสิ้นสุด"}โครงการ`); };
   $("#btnPickStart").onclick = () => startPick("start");
   $("#btnPickEnd").onclick = () => startPick("end");
@@ -1409,10 +1498,16 @@ require([
     { key: "start_northing", label: "Northing จุดเริ่มต้น", aliases: ["start_northing", "northing จุดเริ่มต้น", "จุดเริ่มต้น northing", "northing เริ่มต้น", "n จุดเริ่มต้น", "start_n"] },
     { key: "end_easting", label: "Easting จุดสิ้นสุด", aliases: ["end_easting", "easting จุดสิ้นสุด", "จุดสิ้นสุด easting", "easting สิ้นสุด", "e จุดสิ้นสุด", "end_e"] },
     { key: "end_northing", label: "Northing จุดสิ้นสุด", aliases: ["end_northing", "northing จุดสิ้นสุด", "จุดสิ้นสุด northing", "northing สิ้นสุด", "n จุดสิ้นสุด", "end_n"] },
+    { key: "start_lat", label: "ละติจูด จุดเริ่มต้น", aliases: ["start_lat", "ละติจูดจุดเริ่มต้น", "ละติจูด จุดเริ่มต้น", "lat จุดเริ่มต้น", "latitude จุดเริ่มต้น", "start_latitude"] },
+    { key: "start_lon", label: "ลองจิจูด จุดเริ่มต้น", aliases: ["start_lon", "start_long", "ลองจิจูดจุดเริ่มต้น", "ลองจิจูด จุดเริ่มต้น", "lon จุดเริ่มต้น", "longitude จุดเริ่มต้น", "start_longitude"] },
+    { key: "end_lat", label: "ละติจูด จุดสิ้นสุด", aliases: ["end_lat", "ละติจูดจุดสิ้นสุด", "ละติจูด จุดสิ้นสุด", "lat จุดสิ้นสุด", "latitude จุดสิ้นสุด", "end_latitude"] },
+    { key: "end_lon", label: "ลองจิจูด จุดสิ้นสุด", aliases: ["end_lon", "end_long", "ลองจิจูดจุดสิ้นสุด", "ลองจิจูด จุดสิ้นสุด", "lon จุดสิ้นสุด", "longitude จุดสิ้นสุด", "end_longitude"] },
     { key: "wkt", label: "เส้นทาง WKT", aliases: ["wkt", "geometry", "geom", "the_geom", "wkt_geom", "ข้อมูลพิกัด wkt", "well known text", "เส้นทาง", "เส้นทางเขื่อน"] },
     { key: "province", label: "จังหวัด", aliases: ["province", "จังหวัด", "prov", "changwat"] },
     { key: "pt_easting", label: "Easting (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["easting", "e", "x", "utm_e", "จุดพิกัด easting", "พิกัด easting"] },
     { key: "pt_northing", label: "Northing (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["northing", "n", "y", "utm_n", "จุดพิกัด northing", "พิกัด northing"] },
+    { key: "pt_lat", label: "ละติจูด (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["lat", "latitude", "ละติจูด", "พิกัดละติจูด"] },
+    { key: "pt_lon", label: "ลองจิจูด (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["lon", "long", "lng", "longitude", "ลองจิจูด", "พิกัดลองจิจูด"] },
     { key: "point_type", label: "ประเภทจุดพิกัด (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["point_type", "ประเภทจุดพิกัด", "ประเภทจุด"] }
   ];
   let imp = null;
@@ -1505,7 +1600,9 @@ require([
     if (e.target.value) imp.map[k] = e.target.value; else delete imp.map[k];
     buildImport();
   });
-  ["#impAutoEnds", "#impStraight", "#impSkipDup"].forEach(s => $(s).onchange = () => imp && buildImport());
+  ["#impAutoEnds", "#impStraight", "#impSkipDup", "#impFixProv"].forEach(s => $(s).onchange = () => imp && buildImport());
+  $("#impProvName").value = CONFIG.DEFAULT_PROVINCE;
+  $("#impProvName").addEventListener("input", () => imp && buildImport());
   $("#impOnlyIssues").onchange = () => imp && renderImport();
 
   const dupKey = r => `${String(r.dam_name ?? "").trim().toLowerCase()}|${String(r.segment ?? "").trim().toLowerCase()}`;
@@ -1519,8 +1616,16 @@ require([
       return { dam_name: str(get("dam_name")), segment: str(get("segment")), dam_type: str(get("dam_type")),
         year: str(get("year")), status: str(get("status")), province: str(get("province")), wkt: str(get("wkt")) };
     };
+    // แปลงละติจูด/ลองจิจูด เป็น Easting/Northing บน WGS84 UTM Zone 47
+    const llToUtm = (latV, lonV) => {
+      const lat = toNum(latV), lon = toNum(lonV);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+      const [E, N] = WGS.latLonToUtm(lon, lat, ZONE);
+      return [+E.toFixed(3), +N.toFixed(3)];
+    };
     const geomPoints = imp.source.some(s => s.geom && (s.geom.type === "Point" || s.geom.type === "MultiPoint"));
-    const pointMode = !(m.start_easting || m.end_easting) && ((m.pt_easting && m.pt_northing) || m.point_type || geomPoints);
+    const pointMode = !(m.start_easting || m.end_easting || m.start_lat || m.end_lat)
+      && ((m.pt_easting && m.pt_northing) || (m.pt_lat && m.pt_lon) || m.point_type || geomPoints);
 
     // ---- รวบรวมเป็นรายช่วง ----
     const items = [];   // { srcs:[], d:{...} }
@@ -1531,6 +1636,14 @@ require([
           start_easting: num3(get("start_easting")), start_northing: num3(get("start_northing")),
           end_easting: num3(get("end_easting")), end_northing: num3(get("end_northing")) };
         const item = { srcs: [s.src], d, notes: [], error: null };
+        if (d.start_easting == null) {
+          const c = llToUtm(get("start_lat"), get("start_lon"));
+          if (c) { [d.start_easting, d.start_northing] = c; item.notes.push("แปลงจุดเริ่มต้นจากพิกัดภูมิศาสตร์"); }
+        }
+        if (d.end_easting == null) {
+          const c = llToUtm(get("end_lat"), get("end_lon"));
+          if (c) { [d.end_easting, d.end_northing] = c; item.notes.push("แปลงจุดสิ้นสุดจากพิกัดภูมิศาสตร์"); }
+        }
         try {
           if (s.geom && !d.wkt) {
             const w = gjToWkt(s.geom, conv);
@@ -1555,6 +1668,10 @@ require([
         g.srcs.push(s.src);
         for (const k of ["dam_type", "year", "status", "province", "wkt"]) if (!g.d[k] && base[k]) g.d[k] = base[k];
         let E = num3(get("pt_easting")), N = num3(get("pt_northing"));
+        if (E == null) {
+          const c = llToUtm(get("pt_lat"), get("pt_lon"));
+          if (c) { [E, N] = c; if (!g.notes.includes("แปลงจากพิกัดภูมิศาสตร์")) g.notes.push("แปลงจากพิกัดภูมิศาสตร์"); }
+        }
         try {
           if (s.geom) {
             if (s.geom.type === "Point" || s.geom.type === "MultiPoint") {
@@ -1607,6 +1724,7 @@ require([
               end_amphoe: pl.end_amphoe, line_tambon: pl.line_tambon, line_amphoe: pl.line_amphoe });
             if (!d.province && pl.province) d.province = pl.province;
           }
+          if ($("#impFixProv").checked) d.province = str($("#impProvName").value) || CONFIG.DEFAULT_PROVINCE;
           if (!d.segment) { d.segment = "1"; notes.push("ไม่มีช่วงที่ ใช้ค่า 1"); }
         } catch (err) { error = err.message; }
       }
