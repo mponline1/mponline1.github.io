@@ -193,6 +193,7 @@
 <!-- โหลด Supabase และ SheetJS ก่อน ArcGIS เพื่อไม่ให้ชนกับ AMD loader ของ ArcGIS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://js.arcgis.com/4.32/"></script>
 </head>
 <body>
@@ -297,6 +298,7 @@
           <strong id="resCount">ทั้งหมด 0 ช่วง</strong>
           <button class="btn small" id="btnZoomAll">ซูมทั้งหมด</button>
           <button class="btn small" id="btnCsv">ส่งออก CSV</button>
+          <button class="btn small" id="btnShp">ส่งออก Shapefile</button>
         </div>
         <ol class="res-list" id="resList"></ol>
       </section>
@@ -377,10 +379,17 @@
         <datalist id="dlName"></datalist><datalist id="dlType"></datalist>
         <datalist id="dlYear"></datalist><datalist id="dlProv"></datalist>
         <datalist id="dlStatus">
-          <option value="ยังไม่ดำเนินการ"></option>
-          <option value="อยู่ระหว่างดำเนินการ"></option>
-          <option value="ดำเนินการแล้วเสร็จ"></option>
-          <option value="ชะลอโครงการ"></option>
+          <option value="ดำเนินการเสร็จเรียบร้อย"></option>
+          <option value="อยู่ระหว่างก่อสร้าง"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (รอตัดต้นยางและตอกเสาเข็ม)"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (รอตีตราต้นไม้)"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (นำเสาเข็มมากอง)"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (กองเสาเข็ม และตอกเสาเข็ม)"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (หล่อเสาเข็ม)"></option>
+          <option value="ยังไม่ได้ดำเนินการเนื่องจากเป็นป่าชายเลน"></option>
+          <option value="อยู่ระหว่างดำเนินการแจ้ง อปท.ส่งมอบพื้นที่และขออนุญาต"></option>
+          <option value="อปท.รับมอบพื้นที่ เรียบร้อยแล้ว"></option>
+          <option value="(อยู่ระหว่างจัดซื้อจัดจ้าง)"></option>
         </datalist>
       </section>
 
@@ -552,7 +561,7 @@ require([
   const placesOf = (r, kind) => [...splitPlaces(r[`start_${kind}`]), ...splitPlaces(r[`end_${kind}`]), ...splitPlaces(r[`line_${kind}`])];
   function placeText(r) {
     const t = uniqJoin(placesOf(r, "tambon")), a = uniqJoin(placesOf(r, "amphoe"));
-    return [t && `ต.${t}`, a && `อ.${a}`, r.province && `จ.${r.province}`].filter(Boolean).join(" ");
+    return [t, a, r.province && `จ.${r.province}`].filter(Boolean).join(" ");
   }
   function downloadText(name, text, type = "text/csv;charset=utf-8") {
     const a = document.createElement("a");
@@ -864,7 +873,7 @@ require([
     const rec = recs.get(graphic.attributes.id);
     if (!rec) return "ไม่พบข้อมูล";
     const r = rec.row;
-    const pl = (t, a) => [t && `ต.${t}`, a && `อ.${a}`].filter(Boolean).join(" ") || "–";
+    const pl = (t, a) => [t, a].filter(Boolean).join(" ") || "–";
     const rows = [
       ["ประเภท", r.dam_type],
       ["ปี", r.year],
@@ -1204,6 +1213,240 @@ require([
     downloadText(`dams_${new Date().toISOString().slice(0, 10)}.csv`, "\ufeff" + [head.map(q).join(","), ...lines].join("\r\n"));
   };
 
+  /* =====================================================================
+     \u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01 Shapefile \u2014 WGS84 UTM Zone 47N (EPSG:32647) \u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19
+     \u0e44\u0e1f\u0e25\u0e4c\u0e17\u0e35\u0e48\u0e44\u0e14\u0e49\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e44\u0e1f\u0e25\u0e4c zip \u0e40\u0e14\u0e35\u0e22\u0e27 \u0e41\u0e1a\u0e48\u0e07\u0e40\u0e1b\u0e47\u0e19\u0e2a\u0e2d\u0e07\u0e0a\u0e38\u0e14
+       dam_point : \u0e08\u0e38\u0e14\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e41\u0e25\u0e30\u0e08\u0e38\u0e14\u0e2a\u0e34\u0e49\u0e19\u0e2a\u0e38\u0e14\u0e02\u0e2d\u0e07\u0e17\u0e38\u0e01\u0e0a\u0e48\u0e27\u0e07\u0e17\u0e38\u0e01\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23\u0e23\u0e27\u0e21\u0e01\u0e31\u0e19
+       dam_line  : \u0e40\u0e2a\u0e49\u0e19\u0e17\u0e32\u0e07\u0e23\u0e30\u0e2b\u0e27\u0e48\u0e32\u0e07\u0e08\u0e38\u0e14\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e01\u0e31\u0e1a\u0e08\u0e38\u0e14\u0e2a\u0e34\u0e49\u0e19\u0e2a\u0e38\u0e14\u0e02\u0e2d\u0e07\u0e17\u0e38\u0e01\u0e0a\u0e48\u0e27\u0e07\u0e17\u0e38\u0e01\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23\u0e23\u0e27\u0e21\u0e01\u0e31\u0e19
+     \u0e43\u0e0a\u0e49\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e1a\u0e17\u0e35\u0e48\u0e41\u0e2a\u0e14\u0e07\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e41\u0e17\u0e47\u0e1a\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23 \u0e08\u0e36\u0e07\u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01\u0e40\u0e09\u0e1e\u0e32\u0e30\u0e1c\u0e25\u0e17\u0e35\u0e48\u0e01\u0e23\u0e2d\u0e07\u0e08\u0e32\u0e01\u0e01\u0e32\u0e23\u0e04\u0e49\u0e19\u0e2b\u0e32
+     ===================================================================== */
+  const PRJ_UTM47N = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'
+    + 'SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],'
+    + 'UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],'
+    + 'PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],'
+    + 'PARAMETER["Central_Meridian",99.0],PARAMETER["Scale_Factor",0.9996],'
+    + 'PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
+
+  // \u0e15\u0e31\u0e27\u0e2d\u0e31\u0e01\u0e29\u0e23\u0e44\u0e17\u0e22\u0e43\u0e19 DBF \u0e43\u0e0a\u0e49\u0e23\u0e2b\u0e31\u0e2a CP874 (\u0e04\u0e39\u0e48\u0e01\u0e31\u0e1a\u0e44\u0e1f\u0e25\u0e4c .cpg)
+  function cp874(v, max = Infinity) {
+    const out = [];
+    for (const ch of String(v ?? "")) {
+      if (out.length >= max) break;
+      const c = ch.codePointAt(0);
+      if (c <= 0x7f) out.push(c);
+      else if (c >= 0x0e01 && c <= 0x0e5b) out.push(c - 0x0e00 + 0xa0);
+      else out.push(0x3f);
+    }
+    return out;
+  }
+
+  function buildDbf(fields, rows) {
+    const recLen = 1 + fields.reduce((s, f) => s + f.len, 0);
+    const headLen = 32 + fields.length * 32 + 1;
+    const buf = new ArrayBuffer(headLen + rows.length * recLen + 1);
+    const b = new Uint8Array(buf), view = new DataView(buf), now = new Date();
+    b[0] = 0x03; b[1] = now.getFullYear() - 1900; b[2] = now.getMonth() + 1; b[3] = now.getDate();
+    view.setUint32(4, rows.length, true);
+    view.setUint16(8, headLen, true);
+    view.setUint16(10, recLen, true);
+    b[29] = 0x7c;                       // language driver: Thai (code page 874)
+    let o = 32;
+    for (const f of fields) {
+      cp874(f.name, 10).forEach((c, i) => { b[o + i] = c; });
+      b[o + 11] = f.type.charCodeAt(0);
+      b[o + 16] = f.len;
+      b[o + 17] = f.dec || 0;
+      o += 32;
+    }
+    b[o++] = 0x0d;
+    for (const r of rows) {
+      b[o++] = 0x20;                    // \u0e23\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19\u0e17\u0e35\u0e48\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e16\u0e39\u0e01\u0e25\u0e1a
+      for (const f of fields) {
+        let bytes;
+        if (f.type === "C") bytes = cp874(f.get(r), f.len);
+        else {
+          let s = f.get(r);
+          s = (s === null || s === undefined || s === "") ? "" : String(s);
+          if (s.length > f.len) s = s.slice(0, f.len);
+          bytes = cp874(s.padStart(f.len, " "), f.len);
+        }
+        for (let i = 0; i < f.len; i++) b[o + i] = bytes[i] ?? 0x20;
+        o += f.len;
+      }
+    }
+    b[o] = 0x1a;
+    return b;
+  }
+
+  // shapeType 1 = Point (shape \u0e40\u0e1b\u0e47\u0e19 [x,y]) , 3 = Polyline (shape \u0e40\u0e1b\u0e47\u0e19 [ [ [x,y],\u2026 ], \u2026 ])
+  function buildShp(shapes, shapeType, bbox) {
+    const contents = shapes.map(sh => {
+      if (shapeType === 1) {
+        const ab = new ArrayBuffer(20), v = new DataView(ab);
+        v.setInt32(0, 1, true); v.setFloat64(4, sh[0], true); v.setFloat64(12, sh[1], true);
+        return ab;
+      }
+      const parts = sh, pts = parts.flat();
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+      const ab = new ArrayBuffer(44 + 4 * parts.length + 16 * pts.length), v = new DataView(ab);
+      let o = 0;
+      v.setInt32(o, 3, true); o += 4;
+      v.setFloat64(o, x0, true); o += 8; v.setFloat64(o, y0, true); o += 8;
+      v.setFloat64(o, x1, true); o += 8; v.setFloat64(o, y1, true); o += 8;
+      v.setInt32(o, parts.length, true); o += 4;
+      v.setInt32(o, pts.length, true); o += 4;
+      let acc = 0;
+      for (const p of parts) { v.setInt32(o, acc, true); o += 4; acc += p.length; }
+      for (const [x, y] of pts) { v.setFloat64(o, x, true); o += 8; v.setFloat64(o, y, true); o += 8; }
+      return ab;
+    });
+    const shpLen = 100 + contents.reduce((s, c) => s + 8 + c.byteLength, 0);
+    const shxLen = 100 + contents.length * 8;
+    const shp = new Uint8Array(shpLen), shx = new Uint8Array(shxLen);
+    for (const [arr, len] of [[shp, shpLen], [shx, shxLen]]) {
+      const v = new DataView(arr.buffer);
+      v.setInt32(0, 9994, false);       // file code (big endian)
+      v.setInt32(24, len / 2, false);   // \u0e04\u0e27\u0e32\u0e21\u0e22\u0e32\u0e27\u0e44\u0e1f\u0e25\u0e4c \u0e2b\u0e19\u0e48\u0e27\u0e22\u0e40\u0e1b\u0e47\u0e19 16-bit word
+      v.setInt32(28, 1000, true);       // version
+      v.setInt32(32, shapeType, true);
+      v.setFloat64(36, bbox[0], true); v.setFloat64(44, bbox[1], true);
+      v.setFloat64(52, bbox[2], true); v.setFloat64(60, bbox[3], true);
+    }
+    const sv = new DataView(shp.buffer), xv = new DataView(shx.buffer);
+    let off = 100, word = 50;
+    contents.forEach((c, i) => {
+      sv.setInt32(off, i + 1, false);
+      sv.setInt32(off + 4, c.byteLength / 2, false);
+      shp.set(new Uint8Array(c), off + 8);
+      xv.setInt32(100 + i * 8, word, false);
+      xv.setInt32(104 + i * 8, c.byteLength / 2, false);
+      off += 8 + c.byteLength;
+      word += 4 + c.byteLength / 2;
+    });
+    return { shp, shx };
+  }
+
+  function addShapefile(zip, name, shapeType, features, fields) {
+    if (!features.length) return 0;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const f of features) {
+      const pts = shapeType === 1 ? [f.shape] : f.shape.flat();
+      for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    }
+    const { shp, shx } = buildShp(features.map(f => f.shape), shapeType, [x0, y0, x1, y1]);
+    zip.file(`${name}.shp`, shp);
+    zip.file(`${name}.shx`, shx);
+    zip.file(`${name}.dbf`, buildDbf(fields, features.map(f => f.attr)));
+    zip.file(`${name}.prj`, PRJ_UTM47N);
+    zip.file(`${name}.cpg`, "CP874");
+    return features.length;
+  }
+
+  const SHP_COMMON = [
+    { name: "ID", type: "N", len: 10, get: a => a.id },
+    { name: "DAM_NAME", type: "C", len: 120, get: a => a.dam_name },
+    { name: "SEGMENT", type: "C", len: 20, get: a => a.segment },
+    { name: "DAM_TYPE", type: "C", len: 80, get: a => a.dam_type },
+    { name: "YEAR", type: "C", len: 10, get: a => a.year },
+    { name: "STATUS", type: "C", len: 60, get: a => a.status }
+  ];
+  const SHP_POINT_FIELDS = [
+    SHP_COMMON[0],
+    { name: "PART", type: "C", len: 10, get: a => a.part },
+    { name: "PART_TH", type: "C", len: 30, get: a => a.part_th },
+    ...SHP_COMMON.slice(1),
+    { name: "EASTING", type: "F", len: 19, dec: 3, get: a => a.easting.toFixed(3) },
+    { name: "NORTHING", type: "F", len: 19, dec: 3, get: a => a.northing.toFixed(3) },
+    { name: "LON", type: "F", len: 19, dec: 7, get: a => a.lon.toFixed(7) },
+    { name: "LAT", type: "F", len: 19, dec: 7, get: a => a.lat.toFixed(7) },
+    { name: "TAMBON", type: "C", len: 100, get: a => a.tambon },
+    { name: "AMPHOE", type: "C", len: 100, get: a => a.amphoe },
+    { name: "PROVINCE", type: "C", len: 60, get: a => a.province }
+  ];
+  const SHP_LINE_FIELDS = [
+    ...SHP_COMMON,
+    { name: "LENGTH_M", type: "F", len: 19, dec: 2, get: a => a.length_m },
+    { name: "S_EAST", type: "F", len: 19, dec: 3, get: a => a.s_east },
+    { name: "S_NORTH", type: "F", len: 19, dec: 3, get: a => a.s_north },
+    { name: "E_EAST", type: "F", len: 19, dec: 3, get: a => a.e_east },
+    { name: "E_NORTH", type: "F", len: 19, dec: 3, get: a => a.e_north },
+    { name: "TAMBON", type: "C", len: 200, get: a => a.tambon },
+    { name: "AMPHOE", type: "C", len: 200, get: a => a.amphoe },
+    { name: "PROVINCE", type: "C", len: 60, get: a => a.province }
+  ];
+
+  const baseAttr = r => ({ id: r.id, dam_name: r.dam_name, segment: r.segment, dam_type: r.dam_type, year: r.year, status: r.status });
+  const toUtm47 = ([lon, lat]) => WGS.latLonToUtm(lon, lat, 47);
+
+  async function exportShapefile() {
+    if (typeof JSZip === "undefined") { toast("\u0e42\u0e2b\u0e25\u0e14\u0e44\u0e25\u0e1a\u0e23\u0e32\u0e23\u0e35 JSZip \u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e01\u0e32\u0e23\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e15\u0e48\u0e2d\u0e2d\u0e34\u0e19\u0e40\u0e17\u0e2d\u0e23\u0e4c\u0e40\u0e19\u0e47\u0e15", "error", 6000); return; }
+    const list = currentList();
+    if (!list.length) { toast("\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e43\u0e2b\u0e49\u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01", "error"); return; }
+
+    const points = [], lines = [];
+    let noGeom = 0;
+    for (const rec of list) {
+      const r = rec.row;
+      for (const part of ["start", "end"]) {
+        const e = toNum(part === "start" ? r.start_easting : r.end_easting);
+        const n = toNum(part === "start" ? r.start_northing : r.end_northing);
+        const ll = part === "start" ? rec.startLL : rec.endLL;
+        if (!Number.isFinite(e) || !Number.isFinite(n) || !ll) continue;
+        points.push({
+          shape: [e, n],
+          attr: Object.assign(baseAttr(r), {
+            part, part_th: part === "start" ? "\u0e08\u0e38\u0e14\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23" : "\u0e08\u0e38\u0e14\u0e2a\u0e34\u0e49\u0e19\u0e2a\u0e38\u0e14\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23",
+            easting: e, northing: n, lon: ll[0], lat: ll[1],
+            tambon: part === "start" ? r.start_tambon : r.end_tambon,
+            amphoe: part === "start" ? r.start_amphoe : r.end_amphoe,
+            province: r.province
+          })
+        });
+      }
+      if (rec.line) {
+        // \u0e1e\u0e34\u0e01\u0e31\u0e14\u0e43\u0e19\u0e10\u0e32\u0e19\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e40\u0e1b\u0e47\u0e19 EPSG:4326 \u0e41\u0e1b\u0e25\u0e07\u0e17\u0e38\u0e01\u0e08\u0e38\u0e14\u0e22\u0e2d\u0e14\u0e40\u0e1b\u0e47\u0e19 UTM 47N \u0e01\u0e48\u0e2d\u0e19\u0e40\u0e02\u0e35\u0e22\u0e19\u0e25\u0e07 shapefile
+        const parts = rec.line.geometry.paths.map(p => p.map(c => toUtm47([c[0], c[1]]))).filter(p => p.length >= 2);
+        if (parts.length) {
+          lines.push({
+            shape: parts,
+            attr: Object.assign(baseAttr(r), {
+              length_m: rec.lengthM != null ? rec.lengthM.toFixed(2) : "",
+              s_east: toNum(r.start_easting), s_north: toNum(r.start_northing),
+              e_east: toNum(r.end_easting), e_north: toNum(r.end_northing),
+              tambon: r.line_tambon, amphoe: r.line_amphoe, province: r.province
+            })
+          });
+        }
+      }
+      if (!rec.start && !rec.end && !rec.line) noGeom++;
+    }
+    // \u0e1f\u0e34\u0e25\u0e14\u0e4c\u0e15\u0e31\u0e27\u0e40\u0e25\u0e02\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e21\u0e35\u0e04\u0e48\u0e32 \u0e43\u0e2b\u0e49\u0e40\u0e27\u0e49\u0e19\u0e27\u0e48\u0e32\u0e07\u0e41\u0e17\u0e19\u0e01\u0e32\u0e23\u0e40\u0e02\u0e35\u0e22\u0e19 NaN
+    for (const f of lines) for (const k of ["s_east", "s_north", "e_east", "e_north"])
+      f.attr[k] = Number.isFinite(f.attr[k]) ? f.attr[k].toFixed(3) : "";
+
+    if (!points.length && !lines.length) { toast("\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e17\u0e35\u0e48\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e1e\u0e34\u0e01\u0e31\u0e14", "error", 5000); return; }
+
+    const btn = $("#btnShp"); btn.disabled = true; btn.textContent = "\u0e01\u0e33\u0e25\u0e31\u0e07\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e44\u0e1f\u0e25\u0e4c\u2026";
+    try {
+      const zip = new JSZip();
+      const nP = addShapefile(zip, "dam_point", 1, points, SHP_POINT_FIELDS);
+      const nL = addShapefile(zip, "dam_line", 3, lines, SHP_LINE_FIELDS);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `dam_shp_utm47n_${new Date().toISOString().slice(0, 10)}.zip`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      toast(`\u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01\u0e41\u0e25\u0e49\u0e27: dam_point ${nP.toLocaleString()} \u0e08\u0e38\u0e14, dam_line ${nL.toLocaleString()} \u0e40\u0e2a\u0e49\u0e19 (UTM 47N)`
+        + (noGeom ? ` \u2014 \u0e02\u0e49\u0e32\u0e21 ${noGeom.toLocaleString()} \u0e0a\u0e48\u0e27\u0e07\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e21\u0e35\u0e1e\u0e34\u0e01\u0e31\u0e14` : ""), "ok", 6000);
+    } catch (err) {
+      console.error(err);
+      toast("\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e44\u0e1f\u0e25\u0e4c Shapefile \u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08: " + (err.message || err), "error", 6000);
+    } finally { btn.disabled = false; btn.textContent = "\u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01 Shapefile"; }
+  }
+  $("#btnShp").onclick = exportShapefile;
+
   /* ---------- แผงและแท็บ ---------- */
   function openPanel(open) {
     $("#layout").classList.toggle("collapsed", !open);
@@ -1324,7 +1567,7 @@ require([
       if (pl.province && !F.prov.value.trim()) F.prov.value = pl.province;
     }
     const shown = formPlaces || {};
-    const txt = (t, a) => (t || a) ? `${t ? "ต." + t : ""} ${a ? "อ." + a : ""}`.trim() : (admin.ready ? "ไม่อยู่ในขอบเขตที่มีในไฟล์" : "ยังไม่ได้คำนวณ");
+    const txt = (t, a) => (t || a) ? [t, a].filter(Boolean).join(" ") : (admin.ready ? "ไม่อยู่ในขอบเขตที่มีในไฟล์" : "ยังไม่ได้คำนวณ");
     $("#plStart").innerHTML = `ตำบล/อำเภอ: <b>${esc(txt(shown.start_tambon, shown.start_amphoe))}</b>`;
     $("#plEnd").innerHTML = `ตำบล/อำเภอ: <b>${esc(txt(shown.end_tambon, shown.end_amphoe))}</b>`;
     $("#plLine").innerHTML = `ตำบล/อำเภอ ที่เส้นทางพาดผ่าน: <b>${esc(txt(shown.line_tambon, shown.line_amphoe))}</b>`;
@@ -1841,9 +2084,9 @@ require([
   const TPL_HEAD = ["ชื่อโครงการ", "ช่วงที่", "ประเภท", "ปี", "สถานะการดำเนินการ",
     "easting จุดเริ่มต้น", "northing จุดเริ่มต้น", "easting จุดสิ้นสุด", "northing จุดสิ้นสุด", "wkt", "จังหวัด"];
   const TPL_ROWS = [
-    ["เขื่อนป้องกันตลิ่งบ้านท่าราบ", "1", "เขื่อนป้องกันตลิ่ง", "2566", "ดำเนินการแล้วเสร็จ",
+    ["เขื่อนป้องกันตลิ่งบ้านท่าราบ", "1", "เขื่อนป้องกันตลิ่ง", "2566", "ดำเนินการเสร็จเรียบร้อย",
       601682.862, 1447940.645, 602602.507, 1448441.783, "LINESTRING(99.938 13.096, 99.942 13.099, 99.9465 13.1005)", "เพชรบุรี"],
-    ["เขื่อนป้องกันตลิ่งบ้านท่าราบ", "2", "เขื่อนป้องกันตลิ่ง", "2567", "อยู่ระหว่างดำเนินการ",
+    ["เขื่อนป้องกันตลิ่งบ้านท่าราบ", "2", "เขื่อนป้องกันตลิ่ง", "2567", "อยู่ระหว่างก่อสร้าง",
       602602.507, 1448441.783, 603190.000, 1448950.000, "LINESTRING(99.9465 13.1005, 99.95 13.103, 99.9522 13.1051)", "เพชรบุรี"]
   ];
   $("#btnTplXlsx").onclick = () => {
