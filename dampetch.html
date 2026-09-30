@@ -14,7 +14,7 @@
     --calcite-font-family:var(--font);
     --ink:#16323a; --ink-2:#2b4a52; --water:#1f6fb2; --bank:#eef2f1; --paper:#fff;
     --line:#d3dcdb; --muted:#5b6d71; --start:#2f8f4e; --end:#b83a2f;
-    --ochre:#c9912f; --ochre-soft:#fbf1dd; --danger:#a7342a; --admin:#e6b422;
+    --ochre:#c9912f; --ochre-soft:#fbf1dd; --danger:#a7342a; --admin:#e6b422; --dam:#ff2bd6;
   }
   *{box-sizing:border-box}
   [hidden]{display:none !important}
@@ -62,7 +62,7 @@
   fieldset.plain{border:0;padding:0;margin:0}
   legend{font-size:13px;font-weight:600;color:var(--ink-2);padding:0 4px}
   legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:baseline}
-  .dot.s{background:var(--start)} .dot.e{background:var(--end);border-radius:2px} .dot.l{background:var(--water);border-radius:2px;width:16px;height:4px}
+  .dot.s{background:var(--start)} .dot.e{background:var(--end);border-radius:2px} .dot.l{background:var(--dam);border-radius:2px;width:16px;height:4px}
   .opts{display:flex;flex-wrap:wrap;gap:4px 14px}
   .opts label,.check{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
   .check{margin:4px 0 12px}
@@ -453,7 +453,7 @@
     <b>สัญลักษณ์</b>
     <div class="lg"><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#2f8f4e" stroke="#fff" stroke-width="2"/></svg>จุดเริ่มต้นโครงการ</div>
     <div class="lg"><svg width="16" height="16"><rect x="2.5" y="2.5" width="11" height="11" fill="#b83a2f" stroke="#fff" stroke-width="2"/></svg>จุดสิ้นสุดโครงการ</div>
-    <div class="lg"><svg width="16" height="16"><path d="M1 12 15 4" stroke="#1f6fb2" stroke-width="3.5" stroke-linecap="round"/></svg>เส้นทางเขื่อน</div>
+    <div class="lg"><svg width="16" height="16"><path d="M1 12 15 4" stroke="#ff2bd6" stroke-width="3.5" stroke-linecap="round"/></svg>เส้นทางเขื่อน</div>
     <div class="lg"><svg width="16" height="16"><rect x="2" y="3" width="12" height="10" fill="rgba(230,180,34,.12)" stroke="#e6b422" stroke-width="2"/></svg>ขอบเขตตำบล</div>
   </div>
   <div class="coord" id="coordBar">
@@ -618,19 +618,25 @@ require([
   const SYM = {
     start: { type: "simple-marker", style: "circle", size: 12, color: "#2f8f4e", outline: { color: "#fff", width: 2 } },
     end: { type: "simple-marker", style: "square", size: 11, color: "#b83a2f", outline: { color: "#fff", width: 2 } },
-    line: { type: "simple-line", color: "#1f6fb2", width: 3.5, cap: "round", join: "round" },
+    line: { type: "simple-line", color: "#ff2bd6", width: 3.5, cap: "round", join: "round" },
     previewLine: { type: "simple-line", color: "#c9912f", width: 3.5, style: "dash", cap: "round" },
     previewPoint: { type: "simple-marker", style: "circle", size: 16, color: [201, 145, 47, 0.35], outline: { color: "#c9912f", width: 2.5 } },
     area: { type: "simple-fill", color: [201, 145, 47, 0.12], outline: { color: "#c9912f", width: 2, style: "dash" } },
-    admin: { type: "simple-fill", color: [230, 180, 34, 0.05], outline: { color: "#e6b422", width: 1.6 } }
+    admin: { type: "simple-fill", color: [230, 180, 34, 0.05], outline: { color: "#e6b422", width: 1.6 } },
+    // ป้ายชื่อช่วง ตัวอักษรดำ ขอบขาว (halo) ให้อ่านได้บนภาพถ่ายดาวเทียม
+    segLabel: { type: "text", color: "#000000", haloColor: "#ffffff", haloSize: 2.4,
+      font: { size: 11.5, weight: "bold", family: "IBM Plex Sans Thai, Sarabun, Noto Sans Thai, sans-serif" },
+      verticalAlignment: "middle", horizontalAlignment: "center" }
   };
 
   /* ---------- แผนที่ฐาน ---------- */
   const ESRI = "https://services.arcgisonline.com/ArcGIS/rest/services/";
   const tile = p => new TileLayer({ url: ESRI + p + "/MapServer" });
   const BASEMAPS = [
-    { id: "imagery", label: "ภาพถ่ายดาวเทียม", thumb: ESRI + "World_Imagery/MapServer/tile/8/118/199",
-      create: () => new Basemap({ title: "ภาพถ่ายดาวเทียม", baseLayers: [tile("World_Imagery")], referenceLayers: [tile("Reference/World_Boundaries_and_Places")] }) },
+    { id: "imagery", label: "ดาวเทียม + ชื่อสถานที่", thumb: ESRI + "World_Imagery/MapServer/tile/8/118/199",
+      create: () => new Basemap({ title: "ภาพถ่ายดาวเทียม + ชื่อสถานที่", baseLayers: [tile("World_Imagery")], referenceLayers: [tile("Reference/World_Boundaries_and_Places")] }) },
+    { id: "imageryOnly", label: "ดาวเทียมล้วน", thumb: ESRI + "World_Imagery/MapServer/tile/8/118/199",
+      create: () => new Basemap({ title: "ภาพถ่ายดาวเทียมล้วน", baseLayers: [tile("World_Imagery")] }) },
     { id: "topo", label: "ภูมิประเทศ", thumb: ESRI + "World_Topo_Map/MapServer/tile/8/118/199",
       create: () => new Basemap({ title: "ภูมิประเทศ", baseLayers: [tile("World_Topo_Map")] }) },
     { id: "streets", label: "ถนน", thumb: ESRI + "World_Street_Map/MapServer/tile/8/118/199",
@@ -653,8 +659,9 @@ require([
   const previewLayer = new GraphicsLayer({ title: "ตัวอย่างจุด", listMode: "hide" });
   const previewLineLayer = new GraphicsLayer({ title: "ตัวอย่างเส้น", listMode: "hide" });
   const editLayer = new GraphicsLayer({ title: "แก้ไข", listMode: "hide" });
+  const labelLayer = new GraphicsLayer({ title: "ป้ายช่วงที่" });
   const map = new EsriMap({ basemap: getBasemap("imagery"),
-    layers: [adminLayer, areaLayer, lineLayer, startLayer, endLayer, importLayer, previewLineLayer, previewLayer, editLayer] });
+    layers: [adminLayer, areaLayer, lineLayer, startLayer, endLayer, importLayer, previewLineLayer, previewLayer, editLayer, labelLayer] });
   const view = new MapView({
     container: "viewDiv", map, center: CONFIG.CENTER, zoom: CONFIG.ZOOM,
     highlightOptions: { color: [201, 145, 47, 1], haloOpacity: 1, fillOpacity: 0.2 }
@@ -893,13 +900,51 @@ require([
 
   /* ---------- ไฮไลต์และซูม ---------- */
   let hlHandles = [], selectedId = null;
-  function clearHighlight() { hlHandles.forEach(h => h.remove()); hlHandles = []; }
+  function clearHighlight() { hlHandles.forEach(h => h.remove()); hlHandles = []; labelLayer.removeAll(); }
+
+  // จุดวางป้าย: จุดกลางของเส้นทาง (เลือกช่วงเส้นที่ยาวที่สุด) ถ้าไม่มีเส้นใช้จุดเริ่มต้นหรือจุดสิ้นสุด
+  function labelAnchor(rec) {
+    if (rec.line) {
+      const paths = rec.line.geometry.paths.filter(p => p.length);
+      if (paths.length) {
+        const p = paths.reduce((a, b) => (b.length > a.length ? b : a));
+        const c = p[Math.floor(p.length / 2)];
+        return new Point({ longitude: c[0], latitude: c[1] });
+      }
+    }
+    const g = rec.start || rec.end;
+    return g ? g.geometry : null;
+  }
+  // ป้าย "ช่วงที่ …" ของแต่ละช่วง ตัวอักษรดำ ขอบขาว
+  function showSegLabels(list) {
+    labelLayer.removeAll();
+    const gs = [];
+    for (const rec of list) {
+      const seg = String(rec.row.segment ?? "").trim();
+      if (!seg) continue;
+      const pt = labelAnchor(rec);
+      if (!pt) continue;
+      gs.push(new Graphic({ geometry: pt, symbol: { ...SYM.segLabel, text: `ช่วงที่ ${seg}` } }));
+    }
+    if (gs.length) labelLayer.addMany(gs);
+  }
+
   async function highlight(rec) {
     clearHighlight();
     const [lvS, lvE, lvL] = await Promise.all([view.whenLayerView(startLayer), view.whenLayerView(endLayer), view.whenLayerView(lineLayer)]);
     if (rec.start) hlHandles.push(lvS.highlight(rec.start));
     if (rec.end) hlHandles.push(lvE.highlight(rec.end));
     if (rec.line) hlHandles.push(lvL.highlight(rec.line));
+  }
+  // ไฮไลต์ทุกช่วงของโครงการเดียวกัน
+  async function highlightMany(list) {
+    clearHighlight();
+    const [lvS, lvE, lvL] = await Promise.all([view.whenLayerView(startLayer), view.whenLayerView(endLayer), view.whenLayerView(lineLayer)]);
+    for (const rec of list) {
+      if (rec.start) hlHandles.push(lvS.highlight(rec.start));
+      if (rec.end) hlHandles.push(lvE.highlight(rec.end));
+      if (rec.line) hlHandles.push(lvL.highlight(rec.line));
+    }
   }
   async function zoomToRec(rec, openPopup = true) {
     selectedId = rec.row.id; markSelected();
@@ -908,11 +953,24 @@ require([
     if (isMobile()) openPanel(false);
     const single = geoms.length === 1 && geoms[0].type === "point";
     await view.goTo(single ? { target: geoms[0], zoom: 17 } : { target: geoms }, { duration: 700 }).catch(() => {});
-    highlight(rec);
+    await highlight(rec);
+    showSegLabels([rec]);
     if (openPopup) {
       const g = rec.line || rec.start || rec.end;
       view.openPopup({ features: [g], location: g.geometry.type === "point" ? g.geometry : g.geometry.extent.center });
     }
+  }
+  // คลิกชื่อโครงการ: ซูมให้เห็นทุกช่วงของโครงการนั้น ไฮไลต์และติดป้ายทุกช่วง
+  async function zoomToProject(list) {
+    const segs = list.filter(r => r.start || r.end || r.line);
+    if (!segs.length) { clearHighlight(); toast("โครงการนี้ยังไม่มีข้อมูลพิกัด"); return; }
+    const geoms = segs.flatMap(r => [r.line, r.start, r.end]).filter(Boolean).map(g => g.geometry);
+    if (isMobile()) openPanel(false);
+    view.closePopup();
+    const single = geoms.length === 1 && geoms[0].type === "point";
+    await view.goTo(single ? { target: geoms[0], zoom: 17 } : { target: geoms }, { duration: 700 }).catch(() => {});
+    await highlightMany(segs);
+    showSegLabels(segs);
   }
   function markSelected() {
     document.querySelectorAll(".res").forEach(li => li.classList.toggle("selected", Number(li.dataset.id) === selectedId));
@@ -1178,10 +1236,11 @@ require([
     const li = btn.closest(".proj"), name = li && li.dataset.name;
     if (act === "zoom-proj") {
       const segs = groupByProject(currentList()).get(name) || [];
-      const geoms = segs.flatMap(r => [r.start, r.end, r.line]).filter(Boolean).map(g => g.geometry);
-      if (!geoms.length) { toast("โครงการนี้ยังไม่มีข้อมูลพิกัด"); return; }
-      if (isMobile()) openPanel(false);
-      view.goTo(geoms, { duration: 700 }).catch(() => {});
+      if (!segs.length) return;
+      const cur = activeSeg.get(name);
+      selectedId = segs.some(r => r.row.id === cur) ? cur : segs[0].row.id;
+      markSelected();
+      zoomToProject(segs);
       return;
     }
     const rec = recs.get(Number(btn.dataset.id)); if (!rec) return;
