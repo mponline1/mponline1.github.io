@@ -63,6 +63,24 @@
   legend{font-size:13px;font-weight:600;color:var(--ink-2);padding:0 4px}
   legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:baseline}
   .dot.s{background:var(--start)} .dot.e{background:var(--end);border-radius:2px} .dot.l{background:var(--dam);border-radius:2px;width:16px;height:4px}
+  /* ตัวกรองแบบเลือกได้หลายค่า (multi-select) ในแท็บค้นหา
+     รายการตัวเลือกกางเต็มความกว้างของแถว (.ms-row) และตัดบรรทัดเอง จึงไม่ต้องเลื่อนอ่านไปด้านข้าง */
+  .ms-row{position:relative}
+  .ms-btn{display:flex;align-items:center;gap:6px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;text-align:left}
+  .ms.on .ms-btn{border-color:var(--water);box-shadow:inset 0 0 0 1px var(--water)}
+  .ms-sum{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
+  .ms:not(.on) .ms-sum{color:var(--muted)}
+  .ms-btn .caret{color:var(--muted);font-size:11px;line-height:1}
+  .ms-pop{position:absolute;z-index:40;top:calc(100% - 8px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(22,50,58,.2);padding:6px}
+  .ms-head{font-size:12.5px;font-weight:600;color:var(--ink-2);padding:2px 6px 4px}
+  .ms-tools{display:flex;gap:10px;padding:0 6px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+  .ms-list{max-height:230px;overflow-y:auto;overflow-x:hidden}
+  /* ใช้ grid ไม่ใช้ flex เพื่อให้ข้อความยาวตัดบรรทัดตามปกติ ไม่ล้นออกด้านข้าง */
+  .ms-list label{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;padding:5px 6px;border-radius:6px;font-size:13.5px;cursor:pointer;line-height:1.4}
+  .ms-list label:hover{background:var(--bank)}
+  .ms-list label span{min-width:0;white-space:normal;overflow-wrap:break-word}
+  .ms-list input{margin:3px 0 0;flex:0 0 auto}
+  .ms-empty{margin:4px 6px;font-size:13px;color:var(--muted)}
   .opts{display:flex;flex-wrap:wrap;gap:4px 14px}
   .opts label,.check{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
   .check{margin:4px 0 12px}
@@ -255,15 +273,15 @@
           <label class="field"><span>คำค้น</span>
             <input id="qText" type="search" placeholder="ชื่อโครงการ ช่วงที่ ตำบล อำเภอ หรือสถานะ">
           </label>
-          <div class="grid3">
-            <label class="field"><span>ประเภท</span><select id="qType"></select></label>
-            <label class="field"><span>ปี</span><select id="qYear"></select></label>
-            <label class="field"><span>สถานะ</span><select id="qStatus"></select></label>
+          <div class="grid3 ms-row">
+            <div class="field"><span>ประเภท</span><div class="ms" id="qType"></div></div>
+            <div class="field"><span>ปี</span><div class="ms" id="qYear"></div></div>
+            <div class="field"><span>สถานะ</span><div class="ms" id="qStatus"></div></div>
           </div>
-          <div class="grid3">
-            <label class="field"><span>จังหวัด</span><select id="qProv"></select></label>
-            <label class="field"><span>อำเภอ</span><select id="qAmp"></select></label>
-            <label class="field"><span>ตำบล</span><select id="qTam"></select></label>
+          <div class="grid3 ms-row">
+            <div class="field"><span>จังหวัด</span><div class="ms" id="qProv"></div></div>
+            <div class="field"><span>อำเภอ</span><div class="ms" id="qAmp"></div></div>
+            <div class="field"><span>ตำบล</span><div class="ms" id="qTam"></div></div>
           </div>
           <fieldset>
             <legend>ข้อมูลที่แสดงบนแผนที่</legend>
@@ -983,38 +1001,100 @@ require([
     document.querySelectorAll(".res").forEach(li => li.classList.toggle("selected", Number(li.dataset.id) === selectedId));
   }
 
+  /* ---------- ตัวกรองแบบเลือกได้หลายค่า ---------- */
+  // ไม่เลือกอะไรเลย = ไม่กรองด้วยเงื่อนไขนั้น (เหมือน "ทั้งหมด" ของ select เดิม)
+  const msAll = [];
+  function closeAllMs() { msAll.forEach(m => m.close()); }
+  document.addEventListener("click", e => { if (!e.target.closest(".ms")) closeAllMs(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeAllMs(); });
+
+  function MultiSelect(host, title = "", placeholder = "ทั้งหมด") {
+    const sel = new Set();
+    let options = [];
+    host.innerHTML = `<button type="button" class="ms-btn" aria-expanded="false"><span class="ms-sum"></span><span class="caret" aria-hidden="true">▼</span></button>
+      <div class="ms-pop" hidden>
+        ${title ? `<div class="ms-head">${esc(title)}</div>` : ""}
+        <div class="ms-tools">
+          <button type="button" class="link-btn" data-ms="all">เลือกทั้งหมด</button>
+          <button type="button" class="link-btn" data-ms="none">ล้าง</button>
+        </div>
+        <div class="ms-list"></div>
+      </div>`;
+    const btn = host.querySelector(".ms-btn"), sum = host.querySelector(".ms-sum"),
+      pop = host.querySelector(".ms-pop"), list = host.querySelector(".ms-list");
+    const paint = () => {
+      sum.textContent = sel.size === 0 ? placeholder : (sel.size === 1 ? [...sel][0] : `เลือกไว้ ${sel.size} รายการ`);
+      host.classList.toggle("on", sel.size > 0);
+      btn.title = sel.size ? [...sel].join(", ") : placeholder;
+    };
+    const renderList = () => {
+      list.innerHTML = options.length
+        ? options.map(v => `<label><input type="checkbox" value="${esc(v)}"${sel.has(v) ? " checked" : ""}><span>${esc(v)}</span></label>`).join("")
+        : `<p class="ms-empty">ไม่มีตัวเลือก</p>`;
+    };
+    const api = {
+      onChange: null,
+      get size() { return sel.size; },
+      values() { return [...sel]; },
+      has(v) { return sel.has(v); },
+      // ไม่มีการเลือก หรือค่านั้นถูกเลือกไว้
+      pass(v) { return sel.size === 0 || sel.has(v); },
+      passAny(arr) { return sel.size === 0 || arr.some(v => sel.has(v)); },
+      clear() { sel.clear(); renderList(); paint(); },
+      setOptions(values) {
+        options = values;
+        for (const v of [...sel]) if (!options.includes(v)) sel.delete(v);
+        renderList(); paint();
+      },
+      close() { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); }
+    };
+    btn.onclick = () => {
+      const willOpen = pop.hidden;
+      closeAllMs();
+      pop.hidden = !willOpen;
+      btn.setAttribute("aria-expanded", String(willOpen));
+    };
+    list.addEventListener("change", e => {
+      const cb = e.target.closest('input[type="checkbox"]'); if (!cb) return;
+      if (cb.checked) sel.add(cb.value); else sel.delete(cb.value);
+      paint(); api.onChange && api.onChange();
+    });
+    pop.querySelector('[data-ms="all"]').onclick = () => { options.forEach(v => sel.add(v)); renderList(); paint(); api.onChange && api.onChange(); };
+    pop.querySelector('[data-ms="none"]').onclick = () => { sel.clear(); renderList(); paint(); api.onChange && api.onChange(); };
+    paint(); renderList();
+    msAll.push(api);
+    return api;
+  }
+
   /* ---------- ตัวกรองและการค้นหา ---------- */
-  const qEls = { text: $("#qText"), type: $("#qType"), year: $("#qYear"), status: $("#qStatus"),
-    prov: $("#qProv"), amp: $("#qAmp"), tam: $("#qTam"),
+  const qEls = { text: $("#qText"),
+    type: MultiSelect($("#qType"), "ประเภท"), year: MultiSelect($("#qYear"), "ปี"), status: MultiSelect($("#qStatus"), "สถานะ"),
+    prov: MultiSelect($("#qProv"), "จังหวัด"), amp: MultiSelect($("#qAmp"), "อำเภอ"), tam: MultiSelect($("#qTam"), "ตำบล"),
     showS: $("#qShowStart"), showE: $("#qShowEnd"), showL: $("#qShowLine"), only: $("#qOnly") };
   const spatialValue = () => document.querySelector('input[name="qSpatial"]:checked').value;
   const setSpatial = v => { document.querySelector(`input[name="qSpatial"][value="${v}"]`).checked = true; $("#btnRedraw").hidden = !["rect", "polygon"].includes(v); };
 
   const distinct = (rows, key) => [...new Set(rows.map(r => r[key]).filter(v => v != null && String(v).trim() !== ""))].sort(byThai);
   const distinctPlaces = (rows, kind) => [...new Set(rows.flatMap(r => placesOf(r, kind)))].sort(byThai);
-  function fillSelect(sel, values) {
-    const cur = sel.value;
-    sel.innerHTML = `<option value="">ทั้งหมด</option>` + values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
-    if (values.includes(cur)) sel.value = cur;
-  }
   function fillDatalist(dl, values) { dl.innerHTML = values.map(v => `<option value="${esc(v)}">`).join(""); }
   function refreshFilterOptions() {
     const rows = [...recs.values()].map(r => r.row);
-    fillSelect(qEls.type, distinct(rows, "dam_type"));
-    fillSelect(qEls.year, distinct(rows, "year"));
-    fillSelect(qEls.status, distinct(rows, "status"));
-    fillSelect(qEls.prov, distinct(rows, "province"));
-    const rp = qEls.prov.value ? rows.filter(r => r.province === qEls.prov.value) : rows;
-    fillSelect(qEls.amp, distinctPlaces(rp, "amphoe"));
-    const ra = qEls.amp.value ? rp.filter(r => placesOf(r, "amphoe").includes(qEls.amp.value)) : rp;
-    fillSelect(qEls.tam, distinctPlaces(ra, "tambon"));
+    qEls.type.setOptions(distinct(rows, "dam_type"));
+    qEls.year.setOptions(distinct(rows, "year"));
+    qEls.status.setOptions(distinct(rows, "status"));
+    qEls.prov.setOptions(distinct(rows, "province"));
+    // อำเภอและตำบลยังไล่ตามจังหวัด/อำเภอที่เลือกไว้เหมือนเดิม แต่รับได้หลายค่า
+    const rp = rows.filter(r => qEls.prov.pass(r.province));
+    qEls.amp.setOptions(distinctPlaces(rp, "amphoe"));
+    const ra = rp.filter(r => qEls.amp.passAny(placesOf(r, "amphoe")));
+    qEls.tam.setOptions(distinctPlaces(ra, "tambon"));
     fillDatalist($("#dlName"), distinct(rows, "dam_name"));
     fillDatalist($("#dlType"), distinct(rows, "dam_type"));
     fillDatalist($("#dlYear"), distinct(rows, "year"));
     fillDatalist($("#dlProv"), distinct(rows, "province"));
   }
-  qEls.prov.onchange = () => { qEls.amp.value = ""; qEls.tam.value = ""; refreshFilterOptions(); };
-  qEls.amp.onchange = () => { qEls.tam.value = ""; refreshFilterOptions(); };
+  qEls.prov.onChange = () => { qEls.amp.clear(); qEls.tam.clear(); refreshFilterOptions(); };
+  qEls.amp.onChange = () => { qEls.tam.clear(); refreshFilterOptions(); };
 
   let results = [], queryActive = false, searchArea = null;
   const resultIds = new Set();
@@ -1027,19 +1107,19 @@ require([
       if (!searchArea) { if (!silent) startAreaDraw(sp); return; }
       area = searchArea;
     }
-    const f = { text: qEls.text.value.trim().toLowerCase(), type: qEls.type.value, year: qEls.year.value, status: qEls.status.value,
-      prov: qEls.prov.value, amp: qEls.amp.value, tam: qEls.tam.value,
+    const f = { text: qEls.text.value.trim().toLowerCase(),
       showS: qEls.showS.checked, showE: qEls.showE.checked, showL: qEls.showL.checked };
     results = [];
     for (const rec of recs.values()) {
       const r = rec.row;
       if (f.text && !rec.search.includes(f.text)) continue;
-      if (f.type && r.dam_type !== f.type) continue;
-      if (f.year && r.year !== f.year) continue;
-      if (f.status && r.status !== f.status) continue;
-      if (f.prov && r.province !== f.prov) continue;
-      if (f.amp && !placesOf(r, "amphoe").includes(f.amp)) continue;
-      if (f.tam && !placesOf(r, "tambon").includes(f.tam)) continue;
+      // ตัวกรองหลายค่า: ถ้าไม่เลือกอะไรเลยถือว่าผ่าน ถ้าเลือกไว้ต้องตรงกับค่าใดค่าหนึ่ง
+      if (!qEls.type.pass(r.dam_type)) continue;
+      if (!qEls.year.pass(r.year)) continue;
+      if (!qEls.status.pass(r.status)) continue;
+      if (!qEls.prov.pass(r.province)) continue;
+      if (!qEls.amp.passAny(placesOf(r, "amphoe"))) continue;
+      if (!qEls.tam.passAny(placesOf(r, "tambon"))) continue;
       if (area) {
         const parts = [f.showS && rec.start, f.showE && rec.end, f.showL && rec.line].filter(Boolean);
         if (!parts.some(g => geometryEngine.intersects(area, g.geometry))) continue;
@@ -1069,6 +1149,9 @@ require([
 
   function resetQuery() {
     $("#queryForm").reset();
+    // form.reset() ไม่ล้างตัวกรองแบบหลายค่า จึงต้องล้างเอง
+    [qEls.type, qEls.year, qEls.status, qEls.prov, qEls.amp, qEls.tam].forEach(m => m.clear());
+    closeAllMs();
     setSpatial("none");
     if (mode === "area") { areaSketch.cancel(); setMode(null); }
     areaLayer.removeAll(); searchArea = null;
