@@ -620,6 +620,13 @@ require([
     end: { type: "simple-marker", style: "square", size: 11, color: "#b83a2f", outline: { color: "#fff", width: 2 } },
     line: { type: "simple-line", color: "#ff2bd6", width: 3.5, cap: "round", join: "round" },
     previewLine: { type: "simple-line", color: "#c9912f", width: 3.5, style: "dash", cap: "round" },
+    // ---- สัญลักษณ์ชั่วคราวเฉพาะฟังก์ชันบันทึก ขณะวาดและขณะแก้ไข ----
+    // เส้นทางที่กำลังวาด/แก้ไข ใช้เขียวสด เมื่อบันทึกแล้วจะถูกวาดใหม่ด้วย SYM.line
+    drawLine: { type: "simple-line", color: "#00FF00", width: 3.5, style: "dash", cap: "round", join: "round" },
+    // จุดเริ่มต้น/จุดสิ้นสุดที่กำลังกรอก ใช้กากบาท โทนสีใกล้เคียงของเดิมแต่สว่างกว่า
+    // หมายเหตุ: style "cross" และ "x" ของ ArcGIS วาดด้วย outline สีจึงต้องกำหนดที่ outline.color
+    drawStart: { type: "simple-marker", style: "cross", size: 17, outline: { color: "#46d47e", width: 3.2 } },
+    drawEnd: { type: "simple-marker", style: "x", size: 15, outline: { color: "#ef6a5a", width: 3.2 } },
     previewPoint: { type: "simple-marker", style: "circle", size: 16, color: [201, 145, 47, 0.35], outline: { color: "#c9912f", width: 2.5 } },
     area: { type: "simple-fill", color: [201, 145, 47, 0.12], outline: { color: "#c9912f", width: 2, style: "dash" } },
     admin: { type: "simple-fill", color: [230, 180, 34, 0.05], outline: { color: "#e6b422", width: 1.6 } },
@@ -1601,9 +1608,9 @@ require([
     const msgs = []; let bad = false; $("#btnWktFix").hidden = true;
     const sp = ptFrom(F.se.value, F.sn.value), ep = ptFrom(F.ee.value, F.en.value);
     let line = null;
-    if (sp) { previewLayer.add(new Graphic({ geometry: sp, symbol: SYM.start })); F.slat.value = sp.latitude.toFixed(6); F.slon.value = sp.longitude.toFixed(6); }
+    if (sp) { previewLayer.add(new Graphic({ geometry: sp, symbol: SYM.drawStart })); F.slat.value = sp.latitude.toFixed(6); F.slon.value = sp.longitude.toFixed(6); }
     else if (F.se.value.trim() || F.sn.value.trim()) { msgs.push("พิกัดจุดเริ่มต้นไม่ครบหรือไม่ใช่ตัวเลข"); bad = true; }
-    if (ep) { previewLayer.add(new Graphic({ geometry: ep, symbol: SYM.end })); F.elat.value = ep.latitude.toFixed(6); F.elon.value = ep.longitude.toFixed(6); }
+    if (ep) { previewLayer.add(new Graphic({ geometry: ep, symbol: SYM.drawEnd })); F.elat.value = ep.latitude.toFixed(6); F.elon.value = ep.longitude.toFixed(6); }
     else if (F.ee.value.trim() || F.en.value.trim()) { msgs.push("พิกัดจุดสิ้นสุดไม่ครบหรือไม่ใช่ตัวเลข"); bad = true; }
     for (const [p, label] of [[sp, "จุดเริ่มต้น"], [ep, "จุดสิ้นสุด"]]) {
       if (p && !inThailand(p.longitude, p.latitude)) { msgs.push(`${label}อยู่นอกประเทศไทย ตรวจสอบว่า Easting กับ Northing สลับกันหรือไม่`); bad = true; }
@@ -1613,7 +1620,7 @@ require([
         const { geometry, type, utm } = parseWkt(F.wkt.value);
         if (geometry.type !== "polyline") throw new Error("ต้องเป็นข้อมูลเส้น (LINESTRING)");
         line = geometry;
-        previewLineLayer.add(new Graphic({ geometry, symbol: SYM.previewLine }));
+        previewLineLayer.add(new Graphic({ geometry, symbol: SYM.drawLine }));
         const nv = geometry.paths.reduce((a, p) => a + p.length, 0);
         msgs.push(`เส้นทาง: ${nv} จุดยอด ยาวประมาณ ${fmtLen(geometryEngine.geodesicLength(geometry, "meters"))}`);
         if (utm) { msgs.push("WKT มีค่าพิกัดแบบ UTM ควรแปลงเป็น EPSG:4326 ก่อนบันทึก"); bad = true; $("#btnWktFix").hidden = !["LINESTRING", "MULTILINESTRING"].includes(type); }
@@ -1674,7 +1681,7 @@ require([
 
   // วาดและแก้ไขเส้นทาง พร้อม snap เข้าหาจุดเริ่มต้น จุดสิ้นสุด และข้อมูลเดิมบนแผนที่
   const editSketch = new SketchViewModel({
-    view, layer: editLayer, polylineSymbol: SYM.previewLine, updateOnGraphicClick: false,
+    view, layer: editLayer, polylineSymbol: SYM.drawLine, updateOnGraphicClick: false,
     defaultUpdateOptions: { tool: "reshape", toggleToolOnClick: false, enableRotation: false, enableScaling: false },
     snappingOptions: {
       enabled: true, selfEnabled: true, featureEnabled: true,
@@ -1707,7 +1714,7 @@ require([
     if (geom.type !== "polyline") { toast("แก้ไขรูปได้เฉพาะข้อมูลเส้น", "error"); return; }
     if (isMobile()) openPanel(false);
     editLayer.removeAll(); previewLineLayer.visible = false;
-    const g = new Graphic({ geometry: webMercatorUtils.geographicToWebMercator(geom), symbol: SYM.previewLine });
+    const g = new Graphic({ geometry: webMercatorUtils.geographicToWebMercator(geom), symbol: SYM.drawLine });
     editLayer.add(g);
     setMode("reshape", "ลากจุดยอดเพื่อย้าย คลิกจุดกึ่งกลางเพื่อเพิ่มจุด เลือกจุดแล้วกด Delete เพื่อลบ แล้วกดเสร็จสิ้น", { finish: true });
     view.goTo(g, { duration: 500 }).catch(() => {});
