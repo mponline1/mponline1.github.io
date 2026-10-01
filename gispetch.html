@@ -1,0 +1,2330 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ระบบฐานข้อมูลเขื่อน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://js.arcgis.com/4.32/esri/themes/light/main.css">
+<style>
+  :root{
+    --font:"IBM Plex Sans Thai","Sarabun","Noto Sans Thai",system-ui,sans-serif;
+    --calcite-font-family:var(--font);
+    --ink:#16323a; --ink-2:#2b4a52; --water:#1f6fb2; --bank:#eef2f1; --paper:#fff;
+    --line:#d3dcdb; --muted:#5b6d71; --start:#2f8f4e; --end:#b83a2f;
+    --ochre:#c9912f; --ochre-soft:#fbf1dd; --danger:#a7342a; --admin:#e6b422; --dam:#ff2bd6;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{height:100%;margin:0}
+  body{display:grid;grid-template-rows:auto 1fr;font-family:var(--font);font-size:15px;line-height:1.5;color:var(--ink);background:var(--bank)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  :focus-visible{outline:3px solid var(--ochre);outline-offset:2px}
+
+  .topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px;background:var(--ink);color:#fff;border-bottom:3px solid var(--water)}
+  .brand{display:flex;align-items:center;gap:12px;min-width:0;margin-right:auto}
+  .brand svg{flex:none}
+  .brand h1{font-size:18px;font-weight:700;margin:0;line-height:1.25}
+  .brand p{margin:0;font-size:12.5px;color:#b9cdd1}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .tb{display:inline-flex;align-items:center;gap:6px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:14px}
+  .tb:hover{background:rgba(255,255,255,.1)}
+  .tb.solid{background:var(--water);border-color:var(--water)}
+  .tb.solid:hover{background:#2a7fc6}
+  .tb[disabled]{opacity:.45;cursor:not-allowed}
+  .tb svg{width:16px;height:16px}
+
+  .layout{display:grid;grid-template-columns:400px minmax(0,1fr);min-height:0;position:relative}
+  .layout.wide{grid-template-columns:600px minmax(0,1fr)}
+  .layout.collapsed{grid-template-columns:0 minmax(0,1fr)}
+  .panel{display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--paper);border-right:1px solid var(--line)}
+  .layout.collapsed .panel{border-right:0}
+  .panel-head{display:flex;align-items:stretch;border-bottom:1px solid var(--line);background:var(--bank)}
+  .tabs{display:flex;flex:1}
+  .tab{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:11px 4px 9px;cursor:pointer;color:var(--muted);font-weight:500;font-size:14px;white-space:nowrap}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--water);background:var(--paper)}
+  .tab .badge{display:inline-block;min-width:22px;padding:0 6px;margin-left:4px;border-radius:10px;background:var(--line);font-size:12px;color:var(--ink)}
+  .icon-btn{background:none;border:0;padding:0 12px;cursor:pointer;color:var(--muted);font-size:20px}
+  .panel-body{flex:1;overflow:auto;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 20px)}
+
+  .map-wrap{position:relative;min-width:0;min-height:0}
+  #viewDiv{position:absolute;inset:0}
+
+  .field{display:block;margin-bottom:12px}
+  .field > span{display:block;font-size:13px;font-weight:500;color:var(--ink-2);margin-bottom:4px}
+  .field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .field textarea{min-height:88px;resize:vertical;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 8px}
+  fieldset{border:1px solid var(--line);border-radius:10px;padding:10px 12px 8px;margin:0 0 12px}
+  fieldset.plain{border:0;padding:0;margin:0}
+  legend{font-size:13px;font-weight:600;color:var(--ink-2);padding:0 4px}
+  legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:baseline}
+  .dot.s{background:var(--start)} .dot.e{background:var(--end);border-radius:2px} .dot.l{background:var(--dam);border-radius:2px;width:16px;height:4px}
+  /* ตัวกรองแบบเลือกได้หลายค่า (multi-select) ในแท็บค้นหา
+     รายการตัวเลือกกางเต็มความกว้างของแถว (.ms-row) และตัดบรรทัดเอง จึงไม่ต้องเลื่อนอ่านไปด้านข้าง */
+  .ms-row{position:relative}
+  .ms-btn{display:flex;align-items:center;gap:6px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;text-align:left}
+  .ms.on .ms-btn{border-color:var(--water);box-shadow:inset 0 0 0 1px var(--water)}
+  .ms-sum{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
+  .ms:not(.on) .ms-sum{color:var(--muted)}
+  .ms-btn .caret{color:var(--muted);font-size:11px;line-height:1}
+  .ms-pop{position:absolute;z-index:40;top:calc(100% - 8px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(22,50,58,.2);padding:6px}
+  .ms-head{font-size:12.5px;font-weight:600;color:var(--ink-2);padding:2px 6px 4px}
+  .ms-tools{display:flex;gap:10px;padding:0 6px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+  .ms-list{max-height:230px;overflow-y:auto;overflow-x:hidden}
+  /* ใช้ grid ไม่ใช้ flex เพื่อให้ข้อความยาวตัดบรรทัดตามปกติ ไม่ล้นออกด้านข้าง */
+  .ms-list label{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;padding:5px 6px;border-radius:6px;font-size:13.5px;cursor:pointer;line-height:1.4}
+  .ms-list label:hover{background:var(--bank)}
+  .ms-list label span{min-width:0;white-space:normal;overflow-wrap:break-word}
+  .ms-list input{margin:3px 0 0;flex:0 0 auto}
+  .ms-empty{margin:4px 6px;font-size:13px;color:var(--muted)}
+  .opts{display:flex;flex-wrap:wrap;gap:4px 14px}
+  .opts label,.check{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+  .check{margin:4px 0 12px}
+  .check.top{align-items:flex-start}
+  .check.top input{margin-top:5px}
+  .row-btns{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:14px}
+  .btn:hover{background:var(--bank)}
+  .btn.primary{background:var(--water);border-color:var(--water);color:#fff}
+  .btn.primary:hover{background:#185d96}
+  .btn.danger{color:var(--danger);border-color:#e5b8b3}
+  .btn.danger:hover{background:#fbeceb}
+  .btn.small{padding:5px 10px;font-size:13px}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .link-btn{background:none;border:0;color:var(--water);cursor:pointer;padding:2px 0;font-size:13.5px;text-decoration:underline}
+  .hint{font-size:13px;color:var(--muted);margin:4px 0 0}
+  .stats{font-size:13.5px;color:var(--ink-2);background:var(--bank);border-radius:8px;padding:10px 12px;margin:0 0 14px}
+  .stats.error{background:#fbeceb;color:var(--danger)}
+  .form-title{font-size:17px;font-weight:700;margin:0 0 12px}
+  .lock{background:var(--ochre-soft);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+  .auto-place{font-size:13px;color:var(--ink-2);background:var(--bank);border-radius:6px;padding:6px 10px;margin:0 0 10px}
+  .auto-place b{font-weight:600}
+  .geo-status{list-style:none;margin:0 0 12px;padding:8px 12px;background:var(--bank);border-radius:8px;font-size:13px}
+  .geo-status.warn{background:#fbeceb;color:var(--danger)}
+  .geo-status li{margin:2px 0}
+
+  .res-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .res-head strong{margin-right:auto}
+  .res-list{list-style:none;margin:0;padding:0}
+  .res{display:flex;align-items:stretch;border-bottom:1px solid var(--line)}
+  .res.selected{background:var(--ochre-soft);box-shadow:inset 3px 0 0 var(--ochre)}
+  .res-main{flex:1;text-align:left;background:none;border:0;padding:10px 8px;cursor:pointer;min-width:0}
+  .res-main:hover{background:rgba(31,111,178,.05)}
+  .res-name{display:block;font-weight:600;overflow-wrap:anywhere}
+  .res-place{display:block;font-size:13px;color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+  .chip{font-size:12px;padding:1px 8px;border-radius:10px;background:var(--bank);color:var(--ink-2)}
+  .chip.start{background:#e3f2e7;color:#1f6a38}
+  .chip.end{background:#f7e2df;color:#8e2c23}
+  .chip.line{background:#e1ecf7;color:#17548a}
+  .chip.warn{background:var(--ochre-soft);color:#7a5412}
+  .res-edit{background:none;border:0;border-left:1px solid var(--line);padding:0 12px;color:var(--water);cursor:pointer;font-size:13px}
+  .res-edit:hover{background:var(--bank)}
+  .res-empty,.res-more{padding:14px 8px;color:var(--muted);font-size:14px}
+  .proj{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff}
+  .proj.selected{border-color:var(--ochre);box-shadow:0 0 0 1px var(--ochre)}
+  .proj-title{display:block;width:100%;text-align:left;background:var(--bank);border:0;padding:9px 12px;cursor:pointer;font-weight:600}
+  .proj-title:hover{background:#e3eaea}
+  .proj-sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted)}
+  .seg-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px 0}
+  .seg-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 12px;font-size:13px;cursor:pointer}
+  .seg-tab:hover{background:var(--bank)}
+  .seg-tab[aria-selected="true"]{background:var(--water);border-color:var(--water);color:#fff}
+  .seg-body{padding:8px 12px 10px}
+  .seg-place{font-size:13px;color:var(--muted)}
+  .seg-acts{display:flex;gap:8px;margin-top:8px}
+  .conv{align-items:end}
+  .conv .btn{width:100%}
+
+  .legend{background:rgba(255,255,255,.95);padding:8px 12px;border-radius:8px;font-size:12.5px;box-shadow:0 1px 4px rgba(22,50,58,.25)}
+  .legend b{display:block;font-size:12.5px;margin-bottom:2px}
+  .lg{display:flex;align-items:center;gap:8px;margin:2px 0}
+  .coord{background:rgba(22,50,58,.9);color:#fff;border-radius:6px;padding:5px 10px;font-size:12.5px;font-variant-numeric:tabular-nums;line-height:1.45}
+  .coord span{display:block}
+  .coord em{font-style:normal;color:#9fc0c7;margin-right:6px}
+  .bm-panel{padding:10px;width:280px;background:#fff}
+  .bm-panel h2{font-size:14px;margin:0 0 8px}
+  .bm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .bm-btn{border:2px solid transparent;border-radius:8px;padding:0;background:var(--bank);cursor:pointer;overflow:hidden;text-align:left}
+  .bm-btn img{display:block;width:100%;height:62px;object-fit:cover;background:#cfd8d6}
+  .bm-btn span{display:block;padding:4px 8px;font-size:13px}
+  .bm-btn[aria-pressed="true"]{border-color:var(--water)}
+  .bm-btn[aria-pressed="true"] span{background:var(--water);color:#fff}
+  .mode-banner{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:10px;max-width:calc(100% - 120px);background:var(--ink);color:#fff;padding:8px 10px 8px 14px;border-radius:10px;font-size:14px;box-shadow:0 4px 14px rgba(22,50,58,.35)}
+  .mode-banner .btn{padding:4px 10px;font-size:13px}
+  .pop table{border-collapse:collapse;width:100%;font-size:13.5px}
+  .pop th{text-align:left;font-weight:500;color:var(--muted);padding:3px 10px 3px 0;vertical-align:top;white-space:nowrap}
+  .pop td{padding:3px 0;overflow-wrap:anywhere}
+  .pop .part{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;background:var(--bank);margin-bottom:6px}
+
+  .drop{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;background:var(--bank);margin-bottom:10px}
+  .drop.over{border-color:var(--water);background:#e6f0f9}
+  .drop p{margin:0 0 8px}
+  .map-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+  .map-row span{display:block;font-size:12.5px;color:var(--ink-2)}
+  .map-row select{width:100%;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:13.5px}
+  .imp-sum{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+  .imp-sum .chip{font-size:13px;padding:2px 10px}
+  .imp-wrap{overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
+  .imp-table{border-collapse:collapse;width:100%;font-size:12.5px}
+  .imp-table th{position:sticky;top:0;background:var(--bank);text-align:left;font-weight:600;padding:6px 8px;white-space:nowrap}
+  .imp-table td{padding:5px 8px;border-top:1px solid var(--line);vertical-align:top;white-space:nowrap}
+  .imp-table td.msg{white-space:normal;min-width:150px}
+  .imp-table tr.error td{background:#fdf1ef}
+  .imp-table tr.dup td{color:var(--muted)}
+  .st{font-weight:600}
+  .st.ok{color:#1f6a38}.st.error{color:var(--danger)}.st.dup{color:var(--muted)}
+  .imp-table .note{color:#7a5412}
+  .progress{height:8px;background:var(--bank);border-radius:4px;overflow:hidden;margin-bottom:10px}
+  .progress div{height:100%;width:0;background:var(--water);transition:width .2s}
+
+  .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px)}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.error{background:var(--danger)}
+  .toast.ok{background:#236b3b}
+
+  dialog{border:0;border-radius:12px;padding:20px;width:min(360px,calc(100% - 32px));box-shadow:0 12px 40px rgba(22,50,58,.35)}
+  dialog::backdrop{background:rgba(22,50,58,.45)}
+  dialog h2{margin:0 0 4px;font-size:18px}
+  .err{color:var(--danger);font-size:13.5px;min-height:1.2em;margin:0 0 8px}
+
+  .esri-widget,.esri-popup{font-family:var(--font)}
+
+  @media (max-width:760px){
+    .brand p{display:none}
+    .tb .lbl{display:none}
+    .tb{padding:8px 10px}
+    .layout,.layout.wide,.layout.collapsed{grid-template-columns:1fr}
+    .map-grid{grid-template-columns:1fr}
+    .panel{position:absolute;left:0;right:0;bottom:0;height:64%;z-index:30;border-right:0;border-radius:14px 14px 0 0;box-shadow:0 -6px 24px rgba(22,50,58,.25);transition:transform .25s ease}
+    .layout.collapsed .panel{transform:translateY(105%)}
+    .mode-banner{max-width:calc(100% - 24px);top:8px}
+    .legend{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){ .panel,.toast{transition:none} }
+</style>
+
+<!-- โหลด Supabase และ SheetJS ก่อน ArcGIS เพื่อไม่ให้ชนกับ AMD loader ของ ArcGIS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://js.arcgis.com/4.32/"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true">
+      <rect x="3" y="17" width="15" height="14" fill="#1f6fb2"/>
+      <path d="M3 20c2.5-1.6 5-1.6 7.5 0s5 1.6 7.5 0" stroke="#8cc0ea" stroke-width="1.6" fill="none"/>
+      <path d="M15 31 19 9h4l9 22Z" fill="#cfd8d6"/>
+      <path d="M2 31.5h36" stroke="#fff" stroke-width="2"/>
+    </svg>
+    <div>
+      <h1>ระบบฐานข้อมูลเขื่อน</h1>
+      <p id="sourceLabel">1 โครงการมีได้หลายช่วง แต่ละช่วงมีจุดเริ่มต้น จุดสิ้นสุด และเส้นทางเขื่อน</p>
+    </div>
+  </div>
+  <nav class="actions" aria-label="เมนูหลัก">
+    <button class="tb" id="btnPanel" aria-controls="panel" aria-expanded="true" title="ค้นหาข้อมูล">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <span class="lbl">ค้นหา</span>
+    </button>
+    <button class="tb" id="btnBasemap" title="เปลี่ยนแผนที่ฐาน">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>
+      <span class="lbl">แผนที่ฐาน</span>
+    </button>
+    <button class="tb solid" id="btnAdd" title="เพิ่มช่วงของโครงการ">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+      <span class="lbl">เพิ่มข้อมูล</span>
+    </button>
+    <button class="tb" id="btnImportTop" title="นำเข้าข้อมูลจาก GeoJSON, Excel หรือ CSV">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v3h16v-3"/></svg>
+      <span class="lbl">นำเข้า</span>
+    </button>
+    <button class="tb" id="btnAuth">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+      <span class="lbl" id="authLabel">เข้าสู่ระบบ</span>
+    </button>
+  </nav>
+</header>
+
+<main class="layout" id="layout">
+  <aside class="panel" id="panel" aria-label="แผงข้อมูล">
+    <div class="panel-head">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="query" aria-selected="true">ค้นหา</button>
+        <button class="tab" role="tab" data-tab="results" aria-selected="false">รายการ<span class="badge" id="resBadge">0</span></button>
+        <button class="tab" role="tab" data-tab="form" aria-selected="false">บันทึก</button>
+        <button class="tab" role="tab" data-tab="import" aria-selected="false">นำเข้า</button>
+      </div>
+      <button class="icon-btn" id="btnClosePanel" aria-label="ปิดแผง">×</button>
+    </div>
+
+    <div class="panel-body">
+      <!-- ============ ค้นหา ============ -->
+      <section id="tab-query" role="tabpanel">
+        <p class="stats" id="stats">กำลังโหลดข้อมูล…</p>
+        <form id="queryForm" autocomplete="off">
+          <label class="field"><span>คำค้น</span>
+            <input id="qText" type="search" placeholder="ชื่อโครงการ ช่วงที่ ตำบล อำเภอ หรือสถานะ">
+          </label>
+          <div class="grid3 ms-row">
+            <div class="field"><span>ประเภท</span><div class="ms" id="qType"></div></div>
+            <div class="field"><span>ปี</span><div class="ms" id="qYear"></div></div>
+            <div class="field"><span>สถานะ</span><div class="ms" id="qStatus"></div></div>
+          </div>
+          <div class="grid3 ms-row">
+            <div class="field"><span>จังหวัด</span><div class="ms" id="qProv"></div></div>
+            <div class="field"><span>อำเภอ</span><div class="ms" id="qAmp"></div></div>
+            <div class="field"><span>ตำบล</span><div class="ms" id="qTam"></div></div>
+          </div>
+          <fieldset>
+            <legend>ข้อมูลที่แสดงบนแผนที่</legend>
+            <div class="opts">
+              <label><input type="checkbox" id="qShowStart" checked> จุดเริ่มต้น</label>
+              <label><input type="checkbox" id="qShowEnd" checked> จุดสิ้นสุด</label>
+              <label><input type="checkbox" id="qShowLine" checked> เส้นทางเขื่อน</label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>ขอบเขตพื้นที่ค้นหา</legend>
+            <div class="opts">
+              <label><input type="radio" name="qSpatial" value="none" checked> ทั้งหมด</label>
+              <label><input type="radio" name="qSpatial" value="extent"> ขอบเขตแผนที่ที่เห็น</label>
+              <label><input type="radio" name="qSpatial" value="rect"> วาดสี่เหลี่ยม</label>
+              <label><input type="radio" name="qSpatial" value="polygon"> วาดรูปหลายเหลี่ยม</label>
+            </div>
+            <button type="button" class="link-btn" id="btnRedraw" hidden>วาดพื้นที่ใหม่</button>
+          </fieldset>
+          <label class="check"><input type="checkbox" id="qOnly" checked> แสดงเฉพาะผลการค้นหาบนแผนที่</label>
+          <div class="row-btns">
+            <button type="submit" class="btn primary">ค้นหา</button>
+            <button type="button" class="btn" id="btnReset">ล้างเงื่อนไข</button>
+          </div>
+          <p class="hint">คลิกจุดหรือเส้นบนแผนที่เพื่อดูรายละเอียดของช่วงนั้น</p>
+        </form>
+      </section>
+
+      <!-- ============ รายการ ============ -->
+      <section id="tab-results" role="tabpanel" hidden>
+        <div class="res-head">
+          <strong id="resCount">ทั้งหมด 0 ช่วง</strong>
+          <button class="btn small" id="btnZoomAll">ซูมทั้งหมด</button>
+          <button class="btn small" id="btnCsv">ส่งออก CSV</button>
+          <button class="btn small" id="btnShp">ส่งออก Shapefile</button>
+        </div>
+        <ol class="res-list" id="resList"></ol>
+      </section>
+
+      <!-- ============ บันทึก ============ -->
+      <section id="tab-form" role="tabpanel" hidden>
+        <h2 class="form-title" id="formTitle">เพิ่มช่วงของโครงการ</h2>
+        <p class="lock" id="formLock" hidden>เข้าสู่ระบบเพื่อเพิ่มหรือแก้ไขข้อมูล</p>
+        <form id="damForm" autocomplete="off">
+          <input type="hidden" id="fId">
+          <fieldset class="plain" id="formFields">
+            <label class="field"><span>ชื่อโครงการ *</span><input id="fName" list="dlName" required></label>
+            <div class="grid2">
+              <label class="field"><span>ช่วงที่ *</span><input id="fSeg" placeholder="เช่น 1"></label>
+              <label class="field"><span>ประเภท</span><input id="fType" list="dlType" placeholder="เช่น เขื่อนป้องกันตลิ่ง"></label>
+            </div>
+            <div class="grid3">
+              <label class="field"><span>ปี</span><input id="fYear" list="dlYear" placeholder="เช่น 2567"></label>
+              <label class="field"><span>สถานะการดำเนินการ</span><input id="fStatus" list="dlStatus"></label>
+              <label class="field"><span>จังหวัด</span><input id="fProv" list="dlProv"></label>
+            </div>
+
+            <fieldset>
+              <legend><span class="dot s"></span>จุดเริ่มต้นโครงการ</legend>
+              <div class="grid2">
+                <label class="field"><span>Easting</span><input id="fSE" inputmode="decimal" placeholder="601682.862"></label>
+                <label class="field"><span>Northing</span><input id="fSN" inputmode="decimal" placeholder="1447940.645"></label>
+              </div>
+              <div class="grid3 conv">
+                <label class="field"><span>ละติจูด</span><input id="fSLat" inputmode="decimal" placeholder="13.096000"></label>
+                <label class="field"><span>ลองจิจูด</span><input id="fSLon" inputmode="decimal" placeholder="99.938000"></label>
+                <div class="field"><span>พิกัดภูมิศาสตร์</span><button type="button" class="btn small" id="btnConvStart">แปลงเป็น E/N</button></div>
+              </div>
+              <div class="row-btns" style="margin-top:-4px"><button type="button" class="btn small" id="btnPickStart">เลือกจุดจากแผนที่</button></div>
+              <p class="auto-place" id="plStart">ตำบล/อำเภอ: ยังไม่ได้คำนวณ</p>
+            </fieldset>
+
+            <fieldset>
+              <legend><span class="dot e"></span>จุดสิ้นสุดโครงการ</legend>
+              <div class="grid2">
+                <label class="field"><span>Easting</span><input id="fEE" inputmode="decimal" placeholder="602602.507"></label>
+                <label class="field"><span>Northing</span><input id="fEN" inputmode="decimal" placeholder="1448441.783"></label>
+              </div>
+              <div class="grid3 conv">
+                <label class="field"><span>ละติจูด</span><input id="fELat" inputmode="decimal" placeholder="13.100500"></label>
+                <label class="field"><span>ลองจิจูด</span><input id="fELon" inputmode="decimal" placeholder="99.946500"></label>
+                <div class="field"><span>พิกัดภูมิศาสตร์</span><button type="button" class="btn small" id="btnConvEnd">แปลงเป็น E/N</button></div>
+              </div>
+              <div class="row-btns" style="margin-top:-4px"><button type="button" class="btn small" id="btnPickEnd">เลือกจุดจากแผนที่</button></div>
+              <p class="auto-place" id="plEnd">ตำบล/อำเภอ: ยังไม่ได้คำนวณ</p>
+            </fieldset>
+
+            <fieldset>
+              <legend><span class="dot l"></span>เส้นทางเขื่อนระหว่างจุด</legend>
+              <label class="field"><span>WKT (EPSG:4326)</span>
+                <textarea id="fWkt" spellcheck="false" placeholder="LINESTRING(99.9380 13.0960, 99.9420 13.0990)"></textarea>
+              </label>
+              <div class="row-btns" style="margin-top:-4px">
+                <button type="button" class="btn small" id="btnDraw">วาดเส้นบนแผนที่</button>
+                <button type="button" class="btn small" id="btnReshape">แก้ไขจุดยอดของเส้น</button>
+                <button type="button" class="btn small" id="btnStraight">สร้างเส้นตรงจากสองจุด</button>
+                <button type="button" class="btn small" id="btnWktFix" hidden>แปลง WKT เป็น EPSG:4326</button>
+              </div>
+              <label class="check top" style="margin:0 0 8px"><input type="checkbox" id="fSnap" checked> ดูดเส้นเข้าหาจุดเริ่มต้น จุดสิ้นสุด และเส้นอื่นบนแผนที่ (snap) กด Ctrl ค้างไว้เพื่อปิดชั่วคราว</label>
+              <p class="auto-place" id="plLine">ตำบล/อำเภอ ที่เส้นทางพาดผ่าน: ยังไม่ได้คำนวณ</p>
+            </fieldset>
+
+            <ul class="geo-status" id="geoStatus"><li>ยังไม่มีข้อมูลพิกัด</li></ul>
+            <div class="row-btns">
+              <button type="submit" class="btn primary" id="btnSave">บันทึกข้อมูล</button>
+              <button type="button" class="btn" id="btnPreviewZoom">ซูมไปยังตำแหน่ง</button>
+              <button type="button" class="btn" id="btnCopy" hidden>เพิ่มช่วงถัดไปของโครงการนี้</button>
+              <button type="button" class="btn danger" id="btnDelete" hidden>ลบช่วงนี้</button>
+              <button type="button" class="btn" id="btnCancel">ยกเลิก</button>
+            </div>
+          </fieldset>
+        </form>
+        <datalist id="dlName"></datalist><datalist id="dlType"></datalist>
+        <datalist id="dlYear"></datalist><datalist id="dlProv"></datalist>
+        <datalist id="dlStatus">
+          <option value="ดำเนินการเสร็จเรียบร้อย"></option>
+          <option value="อยู่ระหว่างก่อสร้าง"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (รอตัดต้นยางและตอกเสาเข็ม)"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (รอตีตราต้นไม้)"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (นำเสาเข็มมากอง)"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (กองเสาเข็ม และตอกเสาเข็ม)"></option>
+          <option value="อยู่ระหว่างก่อสร้าง (หล่อเสาเข็ม)"></option>
+          <option value="ยังไม่ได้ดำเนินการเนื่องจากเป็นป่าชายเลน"></option>
+          <option value="อยู่ระหว่างดำเนินการแจ้ง อปท.ส่งมอบพื้นที่และขออนุญาต"></option>
+          <option value="อปท.รับมอบพื้นที่ เรียบร้อยแล้ว"></option>
+          <option value="(อยู่ระหว่างจัดซื้อจัดจ้าง)"></option>
+        </datalist>
+      </section>
+
+      <!-- ============ นำเข้า ============ -->
+      <section id="tab-import" role="tabpanel" hidden>
+        <h2 class="form-title">นำเข้าข้อมูลหลายรายการ</h2>
+        <p class="lock" id="importLock" hidden>เข้าสู่ระบบเพื่อนำเข้าข้อมูล ตรวจสอบไฟล์และดูตัวอย่างได้ก่อนเข้าสู่ระบบ</p>
+        <div class="drop" id="dropZone">
+          <p>ลากไฟล์มาวางที่นี่</p>
+          <label class="btn primary">เลือกไฟล์<input type="file" id="impFile" accept=".geojson,.json,.xlsx,.xls,.csv" hidden></label>
+          <p class="hint" style="margin:8px 0 0">GeoJSON, Excel (.xlsx, .xls) หรือ CSV (UTF-8 หรือ Windows-874)</p>
+        </div>
+        <p class="hint">แม่แบบสำหรับกรอกข้อมูล:
+          <button type="button" class="link-btn" id="btnTplXlsx">Excel</button> หรือ
+          <button type="button" class="link-btn" id="btnTplCsv">CSV</button>
+        </p>
+
+        <div id="impStep2" hidden style="margin-top:14px">
+          <p class="stats" id="impInfo"></p>
+          <label class="field" id="impSheetWrap" hidden><span>แผ่นงาน</span><select id="impSheet"></select></label>
+          <fieldset>
+            <legend>จับคู่คอลัมน์ในไฟล์กับฐานข้อมูล</legend>
+            <div class="map-grid" id="impMap"></div>
+            <p class="hint" id="impGeoHint" hidden>geometry ของ GeoJSON นำเข้าอัตโนมัติ เส้นบันทึกเป็น WKT ส่วนจุดแปลงเป็น Easting/Northing (UTM 47N)</p>
+          </fieldset>
+          <fieldset>
+            <legend>ตัวเลือก</legend>
+            <label class="check top"><input type="checkbox" id="impAutoEnds" checked> เติมจุดเริ่มต้นและจุดสิ้นสุดจากปลายเส้น เมื่อแถวนั้นไม่มีพิกัดจุด</label>
+            <label class="check top"><input type="checkbox" id="impStraight" checked> สร้างเส้นทางเป็นเส้นตรงระหว่างสองจุด เมื่อแถวนั้นไม่มี WKT</label>
+            <label class="check top"><input type="checkbox" id="impSkipDup" checked> ข้ามแถวที่ชื่อโครงการและช่วงที่ซ้ำกับข้อมูลเดิม</label>
+            <label class="check top"><input type="checkbox" id="impFixProv" checked> กรอกจังหวัดให้ทุกแถวเป็น
+              <input id="impProvName" style="width:120px;padding:3px 8px;border:1px solid var(--line);border-radius:6px;margin-left:4px"></label>
+          </fieldset>
+          <div class="imp-sum" id="impSum"></div>
+          <label class="check"><input type="checkbox" id="impOnlyIssues"> แสดงเฉพาะแถวที่มีปัญหา</label>
+          <div class="imp-wrap"><table class="imp-table" id="impTable"></table></div>
+          <div class="progress" id="impProgress" hidden><div></div></div>
+          <div id="impErrors"></div>
+          <div class="row-btns">
+            <button type="button" class="btn primary" id="btnImport" disabled>นำเข้าข้อมูล</button>
+            <button type="button" class="btn" id="btnImpZoom">ดูตำแหน่งบนแผนที่</button>
+            <button type="button" class="btn" id="btnImpClear">ยกเลิก</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <div class="map-wrap">
+    <div id="viewDiv"></div>
+    <div class="mode-banner" id="modeBanner" hidden role="status">
+      <span id="modeText"></span>
+      <button class="btn small primary" id="modeFinish" hidden>เสร็จสิ้น</button>
+      <button class="btn small" id="modeCancel">ยกเลิก</button>
+    </div>
+  </div>
+</main>
+
+<div hidden>
+  <div class="legend" id="legend">
+    <b>สัญลักษณ์</b>
+    <div class="lg"><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#2f8f4e" stroke="#fff" stroke-width="2"/></svg>จุดเริ่มต้นโครงการ</div>
+    <div class="lg"><svg width="16" height="16"><rect x="2.5" y="2.5" width="11" height="11" fill="#b83a2f" stroke="#fff" stroke-width="2"/></svg>จุดสิ้นสุดโครงการ</div>
+    <div class="lg"><svg width="16" height="16"><path d="M1 12 15 4" stroke="#ff2bd6" stroke-width="3.5" stroke-linecap="round"/></svg>เส้นทางเขื่อน</div>
+    <div class="lg"><svg width="16" height="16"><rect x="2" y="3" width="12" height="10" fill="rgba(230,180,34,.12)" stroke="#e6b422" stroke-width="2"/></svg>ขอบเขตตำบล</div>
+  </div>
+  <div class="coord" id="coordBar">
+    <span><em>Lat, Lon</em><b id="cLL">–</b></span>
+    <span><em>UTM 47N</em><b id="cUTM">–</b></span>
+  </div>
+  <div class="bm-panel" id="bmPanel">
+    <h2>แผนที่ฐาน</h2>
+    <div class="bm-grid" id="bmGrid"></div>
+  </div>
+</div>
+
+<dialog id="loginDialog">
+  <form id="loginForm">
+    <h2>เข้าสู่ระบบ</h2>
+    <p class="hint" style="margin-bottom:12px">ใช้บัญชีผู้ใช้ที่สร้างไว้ใน Supabase Authentication</p>
+    <label class="field"><span>อีเมล</span><input id="lEmail" type="email" required autocomplete="username"></label>
+    <label class="field"><span>รหัสผ่าน</span><input id="lPass" type="password" required autocomplete="current-password"></label>
+    <p class="err" id="lErr"></p>
+    <div class="row-btns">
+      <button type="submit" class="btn primary" id="lSubmit">เข้าสู่ระบบ</button>
+      <button type="button" class="btn" id="lCancel">ยกเลิก</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =====================================================================
+   ตั้งค่าการเชื่อมต่อ — แก้ 2 บรรทัดแรกเป็นค่าจาก Supabase > Project Settings > API Keys
+   ถ้ายังไม่แก้ ระบบจะทำงานใน "โหมดตัวอย่าง" (ข้อมูลอยู่ในหน่วยความจำ ไม่บันทึกจริง)
+   ===================================================================== */
+const CONFIG = {
+  SUPABASE_URL: "https://tgplexflqlwejudspgnv.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_H2j1Yttmt9GTQKCM1buNoQ_xtyNuLzj",
+  TABLE: "dams",
+  ADMIN_FILE: "adminm.geojson",
+  DEFAULT_PROVINCE: "เพชรบุรี",   // จังหวัดที่ระบบกรอกให้อัตโนมัติเวลานำเข้าข้อมูล   // ชั้นข้อมูลขอบเขตตำบล วางไว้โฟลเดอร์เดียวกับ index.html
+  UTM_ZONE: 47,                   // EPSG:32647
+  CENTER: [99.95, 13.05],
+  ZOOM: 10
+};
+
+/* ---------- แปลงพิกัด UTM <-> ละติจูด/ลองจิจูด (WGS84) ---------- */
+const WGS = (() => {
+  const A = 6378137, F = 1 / 298.257223563, E2 = F * (2 - F), EP2 = E2 / (1 - E2), K0 = 0.9996;
+  const lon0 = z => ((z - 1) * 6 - 180 + 3) * Math.PI / 180;
+  function utmToLatLon(E, N, zone) {
+    const x = E - 500000, M = N / K0;
+    const mu = M / (A * (1 - E2 / 4 - 3 * E2 * E2 / 64 - 5 * E2 ** 3 / 256));
+    const e1 = (1 - Math.sqrt(1 - E2)) / (1 + Math.sqrt(1 - E2));
+    const p1 = mu + (3 * e1 / 2 - 27 * e1 ** 3 / 32) * Math.sin(2 * mu) + (21 * e1 * e1 / 16 - 55 * e1 ** 4 / 32) * Math.sin(4 * mu)
+      + (151 * e1 ** 3 / 96) * Math.sin(6 * mu) + (1097 * e1 ** 4 / 512) * Math.sin(8 * mu);
+    const s = Math.sin(p1), c = Math.cos(p1), t = Math.tan(p1);
+    const N1 = A / Math.sqrt(1 - E2 * s * s), R1 = A * (1 - E2) / Math.pow(1 - E2 * s * s, 1.5);
+    const T1 = t * t, C1 = EP2 * c * c, D = x / (N1 * K0);
+    const lat = p1 - (N1 * t / R1) * (D * D / 2 - (5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * EP2) * D ** 4 / 24
+      + (61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 252 * EP2 - 3 * C1 * C1) * D ** 6 / 720);
+    const lon = lon0(zone) + (D - (1 + 2 * T1 + C1) * D ** 3 / 6 + (5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * EP2 + 24 * T1 * T1) * D ** 5 / 120) / c;
+    return [lon * 180 / Math.PI, lat * 180 / Math.PI];
+  }
+  function latLonToUtm(lon, lat, zone) {
+    const p = lat * Math.PI / 180, l = lon * Math.PI / 180;
+    const s = Math.sin(p), c = Math.cos(p), t = Math.tan(p);
+    const N = A / Math.sqrt(1 - E2 * s * s), T = t * t, C = EP2 * c * c, Aa = c * (l - lon0(zone));
+    const M = A * ((1 - E2 / 4 - 3 * E2 * E2 / 64 - 5 * E2 ** 3 / 256) * p - (3 * E2 / 8 + 3 * E2 * E2 / 32 + 45 * E2 ** 3 / 1024) * Math.sin(2 * p)
+      + (15 * E2 * E2 / 256 + 45 * E2 ** 3 / 1024) * Math.sin(4 * p) - (35 * E2 ** 3 / 3072) * Math.sin(6 * p));
+    const E = K0 * N * (Aa + (1 - T + C) * Aa ** 3 / 6 + (5 - 18 * T + T * T + 72 * C - 58 * EP2) * Aa ** 5 / 120) + 500000;
+    const Nn = K0 * (M + N * t * (Aa * Aa / 2 + (5 - T + 9 * C + 4 * C * C) * Aa ** 4 / 24 + (61 - 58 * T + T * T + 600 * C - 330 * EP2) * Aa ** 6 / 720));
+    return [E, Nn];
+  }
+  return { utmToLatLon, latLonToUtm };
+})();
+
+require([
+  "esri/Map", "esri/views/MapView", "esri/Basemap", "esri/layers/TileLayer", "esri/layers/OpenStreetMapLayer",
+  "esri/layers/GraphicsLayer", "esri/Graphic", "esri/geometry/Point", "esri/geometry/Polyline", "esri/geometry/Polygon",
+  "esri/geometry/support/webMercatorUtils", "esri/geometry/geometryEngine",
+  "esri/widgets/Sketch/SketchViewModel", "esri/widgets/Home", "esri/widgets/ScaleBar", "esri/widgets/LayerList",
+  "esri/widgets/Expand", "esri/core/reactiveUtils"
+], (EsriMap, MapView, Basemap, TileLayer, OpenStreetMapLayer, GraphicsLayer, Graphic, Point, Polyline, Polygon,
+    webMercatorUtils, geometryEngine, SketchViewModel, Home, ScaleBar, LayerList, Expand, reactiveUtils) => {
+
+  const $ = s => document.querySelector(s);
+  const ZONE = CONFIG.UTM_ZONE;
+  const FIELDS = "id,dam_name,segment,dam_type,year,status,start_easting,start_northing,end_easting,end_northing,"
+    + "wkt,start_tambon,start_amphoe,end_tambon,end_amphoe,line_tambon,line_amphoe,province,updated_at";
+
+  /* ---------- ตัวช่วยทั่วไป ---------- */
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const toNum = v => { if (v == null || String(v).trim() === "") return null; const n = Number(String(v).replace(/,/g, "").trim()); return Number.isFinite(n) ? n : NaN; };
+  const num3 = v => { const n = toNum(v); return Number.isFinite(n) ? +n.toFixed(3) : null; };
+  const fmt3 = v => Number(v).toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const fmt0 = v => Math.round(v).toLocaleString("en-US");
+  const fmtLen = m => m >= 1000 ? `${(m / 1000).toFixed(2)} กม.` : `${Math.round(m).toLocaleString("en-US")} ม.`;
+  const byThai = (a, b) => String(a).localeCompare(String(b), "th");
+  const byDam = (a, b) => byThai(a.row.dam_name, b.row.dam_name)
+    || String(a.row.segment ?? "").localeCompare(String(b.row.segment ?? ""), "th", { numeric: true });
+  const damTitle = r => `${r.dam_name || "ไม่ระบุชื่อ"}${r.segment ? ` ช่วงที่ ${r.segment}` : ""}`;
+  const inThailand = (lon, lat) => lon > 97 && lon < 106 && lat > 5 && lat < 21;
+  const isMobile = () => matchMedia("(max-width:760px)").matches;
+  const uniqJoin = arr => [...new Set(arr.map(v => String(v ?? "").trim()).filter(Boolean))].join(", ") || null;
+  const splitPlaces = v => String(v ?? "").split(",").map(x => x.trim()).filter(Boolean);
+  const placesOf = (r, kind) => [...splitPlaces(r[`start_${kind}`]), ...splitPlaces(r[`end_${kind}`]), ...splitPlaces(r[`line_${kind}`])];
+  function placeText(r) {
+    const t = uniqJoin(placesOf(r, "tambon")), a = uniqJoin(placesOf(r, "amphoe"));
+    return [t, a, r.province && `จ.${r.province}`].filter(Boolean).join(" ");
+  }
+  function downloadText(name, text, type = "text/csv;charset=utf-8") {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  let toastTimer;
+  function toast(msg, kind = "info", ms = 3400) {
+    const t = $("#toast"); t.textContent = msg; t.className = `toast show ${kind}`;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.className = "toast"), ms);
+  }
+  function errText(err) {
+    if (!err) return "ไม่ทราบสาเหตุ";
+    if (err.code === "23505") return "มีช่วงนี้ของโครงการนี้อยู่แล้วในฐานข้อมูล";
+    if (err.code === "PGRST116") return "ไม่พบรายการ หรือบัญชีนี้ไม่มีสิทธิ์แก้ไข";
+    if (err.code === "42501") return "บัญชีนี้ไม่มีสิทธิ์ดำเนินการ (ตรวจสอบ RLS policy)";
+    if (err.code === "PGRST204" || err.code === "42703") return "โครงสร้างตารางไม่ตรงกับรุ่นนี้ ให้รัน migrate_v2.sql ก่อน";
+    return err.message || String(err);
+  }
+
+  /* ---------- WKT ---------- */
+  function parseWkt(text) {
+    const s = String(text).trim().replace(/^SRID=\d+;/i, "");
+    const m = s.match(/^([A-Za-z]+)\s*(?:ZM|Z|M)?\s*\(/i);
+    if (!m) throw new Error("รูปแบบไม่ถูกต้อง ต้องขึ้นต้นด้วย LINESTRING หรือ MULTILINESTRING");
+    const type = m[1].toUpperCase();
+    let utm = false;
+    const groups = [...s.matchAll(/\(([^()]+)\)/g)].map(g => g[1].split(",").map(pt => {
+      const v = pt.trim().split(/\s+/).map(Number);
+      if (v.length < 2 || !Number.isFinite(v[0]) || !Number.isFinite(v[1])) throw new Error(`ค่าพิกัด "${pt.trim()}" ไม่ใช่ตัวเลข`);
+      if (Math.abs(v[0]) > 180 || Math.abs(v[1]) > 90) { utm = true; return WGS.utmToLatLon(v[0], v[1], ZONE); }
+      return [v[0], v[1]];
+    }));
+    if (!groups.length) throw new Error("ไม่พบค่าพิกัดในวงเล็บ");
+    const sr = { wkid: 4326 };
+    let geometry;
+    if (type === "POINT") geometry = new Point({ x: groups[0][0][0], y: groups[0][0][1], spatialReference: sr });
+    else if (["LINESTRING", "MULTILINESTRING", "POLYGON", "MULTIPOLYGON"].includes(type)) {
+      if (groups.some(p => p.length < 2)) throw new Error("เส้นแต่ละช่วงต้องมีอย่างน้อย 2 จุด");
+      geometry = new Polyline({ paths: groups, spatialReference: sr });
+    } else throw new Error(`ยังไม่รองรับชนิด ${type}`);
+    return { geometry, type, utm };
+  }
+  const r7 = v => Number(v.toFixed(7));
+  function toWkt(geom) {
+    if (geom.type === "point") return `POINT(${r7(geom.x)} ${r7(geom.y)})`;
+    const paths = geom.paths.map(p => p.map(c => `${r7(c[0])} ${r7(c[1])}`).join(", "));
+    return paths.length === 1 ? `LINESTRING(${paths[0]})` : `MULTILINESTRING(${paths.map(p => `(${p})`).join(", ")})`;
+  }
+  const lineWkt = (a, b) => `LINESTRING(${r7(a[0])} ${r7(a[1])}, ${r7(b[0])} ${r7(b[1])})`;
+
+  /* ---------- สัญลักษณ์ ---------- */
+  const SYM = {
+    start: { type: "simple-marker", style: "circle", size: 12, color: "#2f8f4e", outline: { color: "#fff", width: 2 } },
+    end: { type: "simple-marker", style: "square", size: 11, color: "#b83a2f", outline: { color: "#fff", width: 2 } },
+    line: { type: "simple-line", color: "#ff2bd6", width: 3.5, cap: "round", join: "round" },
+    previewLine: { type: "simple-line", color: "#c9912f", width: 3.5, style: "dash", cap: "round" },
+    // ---- สัญลักษณ์ชั่วคราวเฉพาะฟังก์ชันบันทึก ขณะวาดและขณะแก้ไข ----
+    // เส้นทางที่กำลังวาด/แก้ไข ใช้เขียวสด เมื่อบันทึกแล้วจะถูกวาดใหม่ด้วย SYM.line
+    drawLine: { type: "simple-line", color: "#00FF00", width: 3.5, style: "dash", cap: "round", join: "round" },
+    // จุดเริ่มต้น/จุดสิ้นสุดที่กำลังกรอก ใช้กากบาท โทนสีใกล้เคียงของเดิมแต่สว่างกว่า
+    // หมายเหตุ: style "cross" และ "x" ของ ArcGIS วาดด้วย outline สีจึงต้องกำหนดที่ outline.color
+    drawStart: { type: "simple-marker", style: "cross", size: 17, outline: { color: "#46d47e", width: 3.2 } },
+    drawEnd: { type: "simple-marker", style: "x", size: 15, outline: { color: "#ef6a5a", width: 3.2 } },
+    previewPoint: { type: "simple-marker", style: "circle", size: 16, color: [201, 145, 47, 0.35], outline: { color: "#c9912f", width: 2.5 } },
+    area: { type: "simple-fill", color: [201, 145, 47, 0.12], outline: { color: "#c9912f", width: 2, style: "dash" } },
+    admin: { type: "simple-fill", color: [230, 180, 34, 0.05], outline: { color: "#e6b422", width: 1.6 } },
+    // ป้ายชื่อช่วง ตัวอักษรดำ ขอบขาว (halo) ให้อ่านได้บนภาพถ่ายดาวเทียม
+    segLabel: { type: "text", color: "#000000", haloColor: "#ffffff", haloSize: 2.4,
+      font: { size: 11.5, weight: "bold", family: "IBM Plex Sans Thai, Sarabun, Noto Sans Thai, sans-serif" },
+      verticalAlignment: "middle", horizontalAlignment: "center" }
+  };
+
+  /* ---------- แผนที่ฐาน ---------- */
+  const ESRI = "https://services.arcgisonline.com/ArcGIS/rest/services/";
+  const tile = p => new TileLayer({ url: ESRI + p + "/MapServer" });
+  const BASEMAPS = [
+    { id: "imagery", label: "ดาวเทียม + ชื่อสถานที่", thumb: ESRI + "World_Imagery/MapServer/tile/8/118/199",
+      create: () => new Basemap({ title: "ภาพถ่ายดาวเทียม + ชื่อสถานที่", baseLayers: [tile("World_Imagery")], referenceLayers: [tile("Reference/World_Boundaries_and_Places")] }) },
+    { id: "imageryOnly", label: "ดาวเทียมล้วน", thumb: ESRI + "World_Imagery/MapServer/tile/8/118/199",
+      create: () => new Basemap({ title: "ภาพถ่ายดาวเทียมล้วน", baseLayers: [tile("World_Imagery")] }) },
+    { id: "topo", label: "ภูมิประเทศ", thumb: ESRI + "World_Topo_Map/MapServer/tile/8/118/199",
+      create: () => new Basemap({ title: "ภูมิประเทศ", baseLayers: [tile("World_Topo_Map")] }) },
+    { id: "streets", label: "ถนน", thumb: ESRI + "World_Street_Map/MapServer/tile/8/118/199",
+      create: () => new Basemap({ title: "ถนน", baseLayers: [tile("World_Street_Map")] }) },
+    { id: "gray", label: "สีเทาอ่อน", thumb: ESRI + "Canvas/World_Light_Gray_Base/MapServer/tile/8/118/199",
+      create: () => new Basemap({ title: "สีเทาอ่อน", baseLayers: [tile("Canvas/World_Light_Gray_Base")], referenceLayers: [tile("Canvas/World_Light_Gray_Reference")] }) },
+    { id: "osm", label: "OpenStreetMap", thumb: "https://tile.openstreetmap.org/8/199/118.png",
+      create: () => new Basemap({ title: "OpenStreetMap", baseLayers: [new OpenStreetMapLayer()] }) }
+  ];
+  const bmCache = {};
+  const getBasemap = id => (bmCache[id] ||= BASEMAPS.find(b => b.id === id).create());
+
+  /* ---------- แผนที่และชั้นข้อมูล ---------- */
+  const adminLayer = new GraphicsLayer({ title: "ขอบเขตตำบล (adminm)" });
+  const areaLayer = new GraphicsLayer({ title: "พื้นที่ค้นหา", listMode: "hide" });
+  const lineLayer = new GraphicsLayer({ title: "เส้นทางเขื่อน" });
+  const startLayer = new GraphicsLayer({ title: "จุดเริ่มต้นโครงการ" });
+  const endLayer = new GraphicsLayer({ title: "จุดสิ้นสุดโครงการ" });
+  const importLayer = new GraphicsLayer({ title: "ตัวอย่างการนำเข้า", listMode: "hide" });
+  const previewLayer = new GraphicsLayer({ title: "ตัวอย่างจุด", listMode: "hide" });
+  const previewLineLayer = new GraphicsLayer({ title: "ตัวอย่างเส้น", listMode: "hide" });
+  const editLayer = new GraphicsLayer({ title: "แก้ไข", listMode: "hide" });
+  const labelLayer = new GraphicsLayer({ title: "ป้ายช่วงที่" });
+  const map = new EsriMap({ basemap: getBasemap("imagery"),
+    layers: [adminLayer, areaLayer, lineLayer, startLayer, endLayer, importLayer, previewLineLayer, previewLayer, editLayer, labelLayer] });
+  const view = new MapView({
+    container: "viewDiv", map, center: CONFIG.CENTER, zoom: CONFIG.ZOOM,
+    highlightOptions: { color: [201, 145, 47, 1], haloOpacity: 1, fillOpacity: 0.2 }
+  });
+
+  const home = new Home({ view });
+  view.ui.add(home, "top-left");
+  view.ui.add(new ScaleBar({ view, unit: "metric" }), "bottom-left");
+  view.ui.add($("#legend"), "bottom-left");
+  view.ui.add($("#coordBar"), "bottom-right");
+  const bmExpand = new Expand({ view, content: $("#bmPanel"), expandIcon: "basemap", expandTooltip: "เปลี่ยนแผนที่ฐาน", group: "tr" });
+  const llExpand = new Expand({ view, content: new LayerList({ view }), expandIcon: "layers", expandTooltip: "ชั้นข้อมูล", group: "tr" });
+  view.ui.add([bmExpand, llExpand], "top-right");
+
+  let currentBm = "imagery";
+  function renderBasemaps() {
+    $("#bmGrid").innerHTML = BASEMAPS.map(b => `
+      <button type="button" class="bm-btn" data-bm="${b.id}" aria-pressed="${b.id === currentBm}">
+        <img src="${b.thumb}" alt="" loading="lazy"><span>${b.label}</span>
+      </button>`).join("");
+  }
+  renderBasemaps();
+  $("#bmGrid").addEventListener("click", e => {
+    const btn = e.target.closest("[data-bm]"); if (!btn) return;
+    currentBm = btn.dataset.bm; map.basemap = getBasemap(currentBm); renderBasemaps();
+  });
+  $("#btnBasemap").onclick = () => { bmExpand.expanded = !bmExpand.expanded; };
+
+  /* ---------- ชั้นขอบเขตตำบล adminm.geojson ---------- */
+  const norm = v => String(v ?? "").toLowerCase().replace(/[\s_\-.()\/:]/g, "");
+  const str = v => { const t = v == null ? "" : String(v).trim(); return t || null; };
+  const ADMIN_ALIAS = {
+    tambon: ["tambol", "tambon", "tam_name", "ตำบล", "name_tambon"],
+    amphoe: ["อำเภอ", "amphoe", "amphur", "amp_name", "ampher", "district"],
+    province: ["จังหวัด", "province", "prov_name", "changwat"]
+  };
+  const pickField = (props, aliases) => {
+    const keys = Object.keys(props || {});
+    const hit = keys.find(k => aliases.map(norm).includes(norm(k))) || keys.find(k => aliases.map(norm).some(a => norm(k).includes(a)));
+    return hit ? str(props[hit]) : null;
+  };
+  const admin = { polys: [], ready: false, error: null };
+  const gjConv = forceUtm => c => {
+    const x = Number(c[0]), y = Number(c[1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("ค่าพิกัดใน geometry ไม่ใช่ตัวเลข");
+    return forceUtm || Math.abs(x) > 180 || Math.abs(y) > 90 ? WGS.utmToLatLon(x, y, ZONE) : [x, y];
+  };
+  async function loadAdmin() {
+    try {
+      const res = await fetch(CONFIG.ADMIN_FILE, { cache: "no-store" });
+      if (!res.ok) throw new Error(`เปิดไฟล์ไม่ได้ (HTTP ${res.status})`);
+      const gj = await res.json();
+      const feats = gj.type === "FeatureCollection" ? gj.features : gj.type === "Feature" ? [gj] : [];
+      const conv = gjConv(/32647|utm.*47/i.test(JSON.stringify(gj.crs || "")));
+      const gs = [];
+      for (const f of feats) {
+        const g = f.geometry; if (!g) continue;
+        const rings = g.type === "Polygon" ? g.coordinates : g.type === "MultiPolygon" ? g.coordinates.flat() : null;
+        if (!rings) continue;
+        const poly = new Polygon({ rings: rings.map(r => r.map(conv)), spatialReference: { wkid: 4326 } });
+        const p = f.properties || {};
+        const rec = { geom: poly, extent: poly.extent,
+          tambon: pickField(p, ADMIN_ALIAS.tambon), amphoe: pickField(p, ADMIN_ALIAS.amphoe), province: pickField(p, ADMIN_ALIAS.province) };
+        admin.polys.push(rec);
+        gs.push(new Graphic({ geometry: poly, symbol: SYM.admin, attributes: { t: rec.tambon || "-", a: rec.amphoe || "-" },
+          popupTemplate: { title: "ขอบเขตการปกครอง", content: "ตำบล {t} อำเภอ {a}" } }));
+      }
+      adminLayer.addMany(gs);
+      admin.ready = admin.polys.length > 0;
+      if (!admin.ready) admin.error = "ไม่พบรูปปิดในไฟล์";
+    } catch (err) { admin.error = err.message; }
+  }
+  function tambonAt(pt) {
+    if (!pt) return null;
+    for (const r of admin.polys) {
+      if (r.extent && !r.extent.contains(pt)) continue;
+      if (geometryEngine.contains(r.geom, pt)) return r;
+    }
+    return null;
+  }
+  function tambonsAlong(line) {
+    if (!line) return [];
+    const ext = line.extent, out = [];
+    for (const r of admin.polys) {
+      if (r.extent && ext && !r.extent.intersects(ext)) continue;
+      if (geometryEngine.intersects(r.geom, line)) out.push(r);
+    }
+    return out;
+  }
+  // คืนค่าชื่อตำบล/อำเภอของจุดเริ่มต้น จุดสิ้นสุด และเส้นทาง จากชั้นขอบเขต
+  function lookupPlaces({ startPt, endPt, line }) {
+    if (!admin.ready) return null;
+    const out = { start_tambon: null, start_amphoe: null, end_tambon: null, end_amphoe: null, line_tambon: null, line_amphoe: null, province: null };
+    const a = tambonAt(startPt), b = tambonAt(endPt);
+    if (a) { out.start_tambon = a.tambon; out.start_amphoe = a.amphoe; out.province = a.province; }
+    if (b) { out.end_tambon = b.tambon; out.end_amphoe = b.amphoe; out.province = out.province || b.province; }
+    if (line) {
+      const rs = tambonsAlong(line);
+      out.line_tambon = uniqJoin(rs.map(r => r.tambon));
+      out.line_amphoe = uniqJoin(rs.map(r => r.amphoe));
+      out.province = out.province || (rs[0] && rs[0].province) || null;
+    }
+    return out;
+  }
+
+  /* ---------- ข้อมูล (Supabase หรือโหมดตัวอย่าง) ---------- */
+  const DEMO = /YOUR-/.test(CONFIG.SUPABASE_URL + CONFIG.SUPABASE_ANON_KEY);
+  const sb = DEMO ? null : supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+  function makeSample() {
+    const segs = [
+      { dam_name: "เขื่อนป้องกันตลิ่งบ้านท่าราบ (ตัวอย่าง)", segment: "1", dam_type: "เขื่อนป้องกันตลิ่ง", year: "2566", status: "ดำเนินการแล้วเสร็จ",
+        line: [[99.938, 13.096], [99.942, 13.099], [99.9465, 13.1005]] },
+      { dam_name: "เขื่อนป้องกันตลิ่งบ้านท่าราบ (ตัวอย่าง)", segment: "2", dam_type: "เขื่อนป้องกันตลิ่ง", year: "2567", status: "อยู่ระหว่างดำเนินการ",
+        line: [[99.9465, 13.1005], [99.95, 13.103], [99.9522, 13.1051]] },
+      { dam_name: "เขื่อนป้องกันตลิ่งบ้านลาด (ตัวอย่าง)", segment: "1", dam_type: "เขื่อนป้องกันตลิ่ง", year: "2567", status: "อยู่ระหว่างดำเนินการ",
+        line: [[99.928, 13.045], [99.93, 13.05], [99.9335, 13.054]] },
+      { dam_name: "ฝายชะลอน้ำเขาย้อย (ตัวอย่าง)", segment: "1", dam_type: "ฝาย", year: "2568", status: "ยังไม่ดำเนินการ",
+        line: [[99.825, 13.24], [99.8262, 13.2405]] }
+    ];
+    return segs.map((s, i) => {
+      const [sE, sN] = WGS.latLonToUtm(s.line[0][0], s.line[0][1], ZONE);
+      const [eE, eN] = WGS.latLonToUtm(s.line.at(-1)[0], s.line.at(-1)[1], ZONE);
+      return { id: i + 1, dam_name: s.dam_name, segment: s.segment, dam_type: s.dam_type, year: s.year, status: s.status,
+        start_easting: +sE.toFixed(3), start_northing: +sN.toFixed(3), end_easting: +eE.toFixed(3), end_northing: +eN.toFixed(3),
+        wkt: toWkt({ type: "polyline", paths: [s.line] }), province: "เพชรบุรี" };
+    });
+  }
+  let demoRows = DEMO ? makeSample() : [];
+  let demoNext = demoRows.length + 1;
+
+  const api = {
+    async list() {
+      if (DEMO) return structuredClone(demoRows);
+      const out = [], size = 1000;
+      for (let from = 0; ; from += size) {
+        const { data, error } = await sb.from(CONFIG.TABLE).select(FIELDS).order("id").range(from, from + size - 1);
+        if (error) throw error;
+        out.push(...data);
+        if (data.length < size) break;
+      }
+      return out;
+    },
+    async insert(p) {
+      if (DEMO) { const r = { ...p, id: demoNext++ }; demoRows.push(r); return r; }
+      const { data, error } = await sb.from(CONFIG.TABLE).insert(p).select(FIELDS).single();
+      if (error) throw error; return data;
+    },
+    async insertMany(list) {
+      if (DEMO) { list.forEach(p => demoRows.push({ ...p, id: demoNext++ })); return; }
+      const { error } = await sb.from(CONFIG.TABLE).insert(list);
+      if (error) throw error;
+    },
+    async update(id, p) {
+      if (DEMO) { const i = demoRows.findIndex(r => r.id === id); demoRows[i] = { ...demoRows[i], ...p }; return demoRows[i]; }
+      const { data, error } = await sb.from(CONFIG.TABLE).update(p).eq("id", id).select(FIELDS).single();
+      if (error) throw error; return data;
+    },
+    async remove(id) {
+      if (DEMO) { demoRows = demoRows.filter(r => r.id !== id); return; }
+      const { data, error } = await sb.from(CONFIG.TABLE).delete().eq("id", id).select("id");
+      if (error) throw error;
+      if (!data.length) throw new Error("ลบไม่สำเร็จ บัญชีนี้อาจไม่มีสิทธิ์ลบข้อมูล");
+    }
+  };
+
+  /* ---------- สร้างกราฟิกของแต่ละช่วง ---------- */
+  const recs = new Map();   // id -> { row, start, end, line, startLL, endLL, lengthM, error }
+  const PART_LABEL = { start: "จุดเริ่มต้นโครงการ", end: "จุดสิ้นสุดโครงการ", line: "เส้นทางเขื่อน" };
+  const POPUP = {
+    title: ({ graphic }) => { const r = recs.get(graphic.attributes.id)?.row; return r ? damTitle(r) : "ไม่ระบุชื่อ"; },
+    content: popupContent,
+    actions: [{ id: "edit-record", title: "แก้ไขข้อมูล", icon: "pencil" }, { id: "edit-line", title: "แก้ไขจุดยอดของเส้นทาง", icon: "move" }]
+  };
+
+  function buildRec(row) {
+    const rec = { row, start: null, end: null, line: null, startLL: null, endLL: null, lengthM: null, error: null };
+    const mkPoint = (e, n, part) => {
+      e = toNum(e); n = toNum(n);
+      if (!Number.isFinite(e) || !Number.isFinite(n)) return null;
+      const [lon, lat] = WGS.utmToLatLon(e, n, ZONE);
+      return { ll: [lon, lat], g: new Graphic({ geometry: new Point({ longitude: lon, latitude: lat }),
+        symbol: SYM[part], attributes: { id: row.id, part }, popupTemplate: POPUP }) };
+    };
+    const s = mkPoint(row.start_easting, row.start_northing, "start");
+    if (s) { rec.start = s.g; rec.startLL = s.ll; }
+    const e = mkPoint(row.end_easting, row.end_northing, "end");
+    if (e) { rec.end = e.g; rec.endLL = e.ll; }
+    if (row.wkt && String(row.wkt).trim()) {
+      try {
+        const { geometry } = parseWkt(row.wkt);
+        if (geometry.type !== "polyline") throw new Error("เส้นทางเขื่อนต้องเป็นข้อมูลเส้น");
+        rec.line = new Graphic({ geometry, symbol: SYM.line, attributes: { id: row.id, part: "line" }, popupTemplate: POPUP });
+        rec.lengthM = geometryEngine.geodesicLength(geometry, "meters");
+      } catch (err) { rec.error = err.message; }
+    }
+    rec.search = [row.dam_name, row.segment && `ช่วงที่ ${row.segment}`, row.dam_type, row.year, row.status,
+      ...placesOf(row, "tambon"), ...placesOf(row, "amphoe"), row.province].filter(Boolean).join(" ").toLowerCase();
+    return rec;
+  }
+
+  function rebuild(rows) {
+    clearHighlight();
+    lineLayer.removeAll(); startLayer.removeAll(); endLayer.removeAll(); recs.clear();
+    const ls = [], ss = [], es = [];
+    for (const row of rows) {
+      const rec = buildRec(row); recs.set(row.id, rec);
+      if (rec.line) ls.push(rec.line);
+      if (rec.start) ss.push(rec.start);
+      if (rec.end) es.push(rec.end);
+    }
+    lineLayer.addMany(ls); startLayer.addMany(ss); endLayer.addMany(es);
+  }
+
+  function popupContent({ graphic }) {
+    const rec = recs.get(graphic.attributes.id);
+    if (!rec) return "ไม่พบข้อมูล";
+    const r = rec.row;
+    const pl = (t, a) => [t, a].filter(Boolean).join(" ") || "–";
+    const rows = [
+      ["ประเภท", r.dam_type],
+      ["ปี", r.year],
+      ["สถานะการดำเนินการ", r.status],
+      ["จุดเริ่มต้น", rec.start ? `E ${fmt3(r.start_easting)}  N ${fmt3(r.start_northing)}\n${pl(r.start_tambon, r.start_amphoe)}` : "ไม่มีข้อมูล"],
+      ["จุดสิ้นสุด", rec.end ? `E ${fmt3(r.end_easting)}  N ${fmt3(r.end_northing)}\n${pl(r.end_tambon, r.end_amphoe)}` : "ไม่มีข้อมูล"],
+      ["เส้นทางเขื่อน", rec.line ? `ยาวประมาณ ${fmtLen(rec.lengthM)}\nผ่าน ${pl(r.line_tambon, r.line_amphoe)}`
+        : rec.error ? `WKT ไม่ถูกต้อง: ${rec.error}` : "ไม่มีข้อมูล"],
+      ["จังหวัด", r.province]
+    ];
+    const div = document.createElement("div");
+    div.className = "pop";
+    div.innerHTML = `<span class="part">${esc(PART_LABEL[graphic.attributes.part] || "")}</span>`
+      + `<table>${rows.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v || "–").replace(/\n/g, "<br>")}</td></tr>`).join("")}</table>`;
+    return div;
+  }
+
+  /* ---------- ไฮไลต์และซูม ---------- */
+  let hlHandles = [], selectedId = null;
+  function clearHighlight() { hlHandles.forEach(h => h.remove()); hlHandles = []; labelLayer.removeAll(); }
+
+  // จุดวางป้าย: จุดกลางของเส้นทาง (เลือกช่วงเส้นที่ยาวที่สุด) ถ้าไม่มีเส้นใช้จุดเริ่มต้นหรือจุดสิ้นสุด
+  function labelAnchor(rec) {
+    if (rec.line) {
+      const paths = rec.line.geometry.paths.filter(p => p.length);
+      if (paths.length) {
+        const p = paths.reduce((a, b) => (b.length > a.length ? b : a));
+        const c = p[Math.floor(p.length / 2)];
+        return new Point({ longitude: c[0], latitude: c[1] });
+      }
+    }
+    const g = rec.start || rec.end;
+    return g ? g.geometry : null;
+  }
+  // ป้าย "ช่วงที่ …" ของแต่ละช่วง ตัวอักษรดำ ขอบขาว
+  function showSegLabels(list) {
+    labelLayer.removeAll();
+    const gs = [];
+    for (const rec of list) {
+      const seg = String(rec.row.segment ?? "").trim();
+      if (!seg) continue;
+      const pt = labelAnchor(rec);
+      if (!pt) continue;
+      gs.push(new Graphic({ geometry: pt, symbol: { ...SYM.segLabel, text: `ช่วงที่ ${seg}` } }));
+    }
+    if (gs.length) labelLayer.addMany(gs);
+  }
+
+  async function highlight(rec) {
+    clearHighlight();
+    const [lvS, lvE, lvL] = await Promise.all([view.whenLayerView(startLayer), view.whenLayerView(endLayer), view.whenLayerView(lineLayer)]);
+    if (rec.start) hlHandles.push(lvS.highlight(rec.start));
+    if (rec.end) hlHandles.push(lvE.highlight(rec.end));
+    if (rec.line) hlHandles.push(lvL.highlight(rec.line));
+  }
+  // ไฮไลต์ทุกช่วงของโครงการเดียวกัน
+  async function highlightMany(list) {
+    clearHighlight();
+    const [lvS, lvE, lvL] = await Promise.all([view.whenLayerView(startLayer), view.whenLayerView(endLayer), view.whenLayerView(lineLayer)]);
+    for (const rec of list) {
+      if (rec.start) hlHandles.push(lvS.highlight(rec.start));
+      if (rec.end) hlHandles.push(lvE.highlight(rec.end));
+      if (rec.line) hlHandles.push(lvL.highlight(rec.line));
+    }
+  }
+  async function zoomToRec(rec, openPopup = true) {
+    selectedId = rec.row.id; markSelected();
+    const geoms = [rec.line, rec.start, rec.end].filter(Boolean).map(g => g.geometry);
+    if (!geoms.length) { toast("ช่วงนี้ยังไม่มีข้อมูลพิกัด"); return; }
+    if (isMobile()) openPanel(false);
+    const single = geoms.length === 1 && geoms[0].type === "point";
+    await view.goTo(single ? { target: geoms[0], zoom: 17 } : { target: geoms }, { duration: 700 }).catch(() => {});
+    await highlight(rec);
+    showSegLabels([rec]);
+    if (openPopup) {
+      const g = rec.line || rec.start || rec.end;
+      view.openPopup({ features: [g], location: g.geometry.type === "point" ? g.geometry : g.geometry.extent.center });
+    }
+  }
+  // คลิกชื่อโครงการ: ซูมให้เห็นทุกช่วงของโครงการนั้น ไฮไลต์และติดป้ายทุกช่วง
+  async function zoomToProject(list) {
+    const segs = list.filter(r => r.start || r.end || r.line);
+    if (!segs.length) { clearHighlight(); toast("โครงการนี้ยังไม่มีข้อมูลพิกัด"); return; }
+    const geoms = segs.flatMap(r => [r.line, r.start, r.end]).filter(Boolean).map(g => g.geometry);
+    if (isMobile()) openPanel(false);
+    view.closePopup();
+    const single = geoms.length === 1 && geoms[0].type === "point";
+    await view.goTo(single ? { target: geoms[0], zoom: 17 } : { target: geoms }, { duration: 700 }).catch(() => {});
+    await highlightMany(segs);
+    showSegLabels(segs);
+  }
+  function markSelected() {
+    document.querySelectorAll(".res").forEach(li => li.classList.toggle("selected", Number(li.dataset.id) === selectedId));
+  }
+
+  /* ---------- ตัวกรองแบบเลือกได้หลายค่า ---------- */
+  // ไม่เลือกอะไรเลย = ไม่กรองด้วยเงื่อนไขนั้น (เหมือน "ทั้งหมด" ของ select เดิม)
+  const msAll = [];
+  function closeAllMs() { msAll.forEach(m => m.close()); }
+  document.addEventListener("click", e => { if (!e.target.closest(".ms")) closeAllMs(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeAllMs(); });
+
+  function MultiSelect(host, title = "", placeholder = "ทั้งหมด") {
+    const sel = new Set();
+    let options = [];
+    host.innerHTML = `<button type="button" class="ms-btn" aria-expanded="false"><span class="ms-sum"></span><span class="caret" aria-hidden="true">▼</span></button>
+      <div class="ms-pop" hidden>
+        ${title ? `<div class="ms-head">${esc(title)}</div>` : ""}
+        <div class="ms-tools">
+          <button type="button" class="link-btn" data-ms="all">เลือกทั้งหมด</button>
+          <button type="button" class="link-btn" data-ms="none">ล้าง</button>
+        </div>
+        <div class="ms-list"></div>
+      </div>`;
+    const btn = host.querySelector(".ms-btn"), sum = host.querySelector(".ms-sum"),
+      pop = host.querySelector(".ms-pop"), list = host.querySelector(".ms-list");
+    const paint = () => {
+      sum.textContent = sel.size === 0 ? placeholder : (sel.size === 1 ? [...sel][0] : `เลือกไว้ ${sel.size} รายการ`);
+      host.classList.toggle("on", sel.size > 0);
+      btn.title = sel.size ? [...sel].join(", ") : placeholder;
+    };
+    const renderList = () => {
+      list.innerHTML = options.length
+        ? options.map(v => `<label><input type="checkbox" value="${esc(v)}"${sel.has(v) ? " checked" : ""}><span>${esc(v)}</span></label>`).join("")
+        : `<p class="ms-empty">ไม่มีตัวเลือก</p>`;
+    };
+    const api = {
+      onChange: null,
+      get size() { return sel.size; },
+      values() { return [...sel]; },
+      has(v) { return sel.has(v); },
+      // ไม่มีการเลือก หรือค่านั้นถูกเลือกไว้
+      pass(v) { return sel.size === 0 || sel.has(v); },
+      passAny(arr) { return sel.size === 0 || arr.some(v => sel.has(v)); },
+      clear() { sel.clear(); renderList(); paint(); },
+      setOptions(values) {
+        options = values;
+        for (const v of [...sel]) if (!options.includes(v)) sel.delete(v);
+        renderList(); paint();
+      },
+      close() { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); }
+    };
+    btn.onclick = () => {
+      const willOpen = pop.hidden;
+      closeAllMs();
+      pop.hidden = !willOpen;
+      btn.setAttribute("aria-expanded", String(willOpen));
+    };
+    list.addEventListener("change", e => {
+      const cb = e.target.closest('input[type="checkbox"]'); if (!cb) return;
+      if (cb.checked) sel.add(cb.value); else sel.delete(cb.value);
+      paint(); api.onChange && api.onChange();
+    });
+    pop.querySelector('[data-ms="all"]').onclick = () => { options.forEach(v => sel.add(v)); renderList(); paint(); api.onChange && api.onChange(); };
+    pop.querySelector('[data-ms="none"]').onclick = () => { sel.clear(); renderList(); paint(); api.onChange && api.onChange(); };
+    paint(); renderList();
+    msAll.push(api);
+    return api;
+  }
+
+  /* ---------- ตัวกรองและการค้นหา ---------- */
+  const qEls = { text: $("#qText"),
+    type: MultiSelect($("#qType"), "ประเภท"), year: MultiSelect($("#qYear"), "ปี"), status: MultiSelect($("#qStatus"), "สถานะ"),
+    prov: MultiSelect($("#qProv"), "จังหวัด"), amp: MultiSelect($("#qAmp"), "อำเภอ"), tam: MultiSelect($("#qTam"), "ตำบล"),
+    showS: $("#qShowStart"), showE: $("#qShowEnd"), showL: $("#qShowLine"), only: $("#qOnly") };
+  const spatialValue = () => document.querySelector('input[name="qSpatial"]:checked').value;
+  const setSpatial = v => { document.querySelector(`input[name="qSpatial"][value="${v}"]`).checked = true; $("#btnRedraw").hidden = !["rect", "polygon"].includes(v); };
+
+  const distinct = (rows, key) => [...new Set(rows.map(r => r[key]).filter(v => v != null && String(v).trim() !== ""))].sort(byThai);
+  const distinctPlaces = (rows, kind) => [...new Set(rows.flatMap(r => placesOf(r, kind)))].sort(byThai);
+  function fillDatalist(dl, values) { dl.innerHTML = values.map(v => `<option value="${esc(v)}">`).join(""); }
+  function refreshFilterOptions() {
+    const rows = [...recs.values()].map(r => r.row);
+    qEls.type.setOptions(distinct(rows, "dam_type"));
+    qEls.year.setOptions(distinct(rows, "year"));
+    qEls.status.setOptions(distinct(rows, "status"));
+    qEls.prov.setOptions(distinct(rows, "province"));
+    // อำเภอและตำบลยังไล่ตามจังหวัด/อำเภอที่เลือกไว้เหมือนเดิม แต่รับได้หลายค่า
+    const rp = rows.filter(r => qEls.prov.pass(r.province));
+    qEls.amp.setOptions(distinctPlaces(rp, "amphoe"));
+    const ra = rp.filter(r => qEls.amp.passAny(placesOf(r, "amphoe")));
+    qEls.tam.setOptions(distinctPlaces(ra, "tambon"));
+    fillDatalist($("#dlName"), distinct(rows, "dam_name"));
+    fillDatalist($("#dlType"), distinct(rows, "dam_type"));
+    fillDatalist($("#dlYear"), distinct(rows, "year"));
+    fillDatalist($("#dlProv"), distinct(rows, "province"));
+  }
+  qEls.prov.onChange = () => { qEls.amp.clear(); qEls.tam.clear(); refreshFilterOptions(); };
+  qEls.amp.onChange = () => { qEls.tam.clear(); refreshFilterOptions(); };
+
+  let results = [], queryActive = false, searchArea = null;
+  const resultIds = new Set();
+
+  function runQuery({ silent = false } = {}) {
+    const sp = spatialValue();
+    let area = null;
+    if (sp === "extent") area = webMercatorUtils.webMercatorToGeographic(view.extent);
+    if (sp === "rect" || sp === "polygon") {
+      if (!searchArea) { if (!silent) startAreaDraw(sp); return; }
+      area = searchArea;
+    }
+    const f = { text: qEls.text.value.trim().toLowerCase(),
+      showS: qEls.showS.checked, showE: qEls.showE.checked, showL: qEls.showL.checked };
+    results = [];
+    for (const rec of recs.values()) {
+      const r = rec.row;
+      if (f.text && !rec.search.includes(f.text)) continue;
+      // ตัวกรองหลายค่า: ถ้าไม่เลือกอะไรเลยถือว่าผ่าน ถ้าเลือกไว้ต้องตรงกับค่าใดค่าหนึ่ง
+      if (!qEls.type.pass(r.dam_type)) continue;
+      if (!qEls.year.pass(r.year)) continue;
+      if (!qEls.status.pass(r.status)) continue;
+      if (!qEls.prov.pass(r.province)) continue;
+      if (!qEls.amp.passAny(placesOf(r, "amphoe"))) continue;
+      if (!qEls.tam.passAny(placesOf(r, "tambon"))) continue;
+      if (area) {
+        const parts = [f.showS && rec.start, f.showE && rec.end, f.showL && rec.line].filter(Boolean);
+        if (!parts.some(g => geometryEngine.intersects(area, g.geometry))) continue;
+      }
+      results.push(rec);
+    }
+    results.sort(byDam);
+    resultIds.clear(); results.forEach(r => resultIds.add(r.row.id));
+    queryActive = true;
+    applyVisibility(); renderResults();
+    if (!silent) {
+      switchTab("results");
+      toast(results.length ? `พบ ${results.length} ช่วง` : "ไม่พบรายการที่ตรงกับเงื่อนไข", results.length ? "ok" : "info");
+      if (results.length && !isMobile()) zoomAll({ quiet: true });
+    }
+  }
+
+  function applyVisibility() {
+    const only = queryActive && qEls.only.checked;
+    for (const rec of recs.values()) {
+      const show = !only || resultIds.has(rec.row.id);
+      if (rec.start) rec.start.visible = qEls.showS.checked && show;
+      if (rec.end) rec.end.visible = qEls.showE.checked && show;
+      if (rec.line) rec.line.visible = qEls.showL.checked && show;
+    }
+  }
+
+  function resetQuery() {
+    $("#queryForm").reset();
+    // form.reset() ไม่ล้างตัวกรองแบบหลายค่า จึงต้องล้างเอง
+    [qEls.type, qEls.year, qEls.status, qEls.prov, qEls.amp, qEls.tam].forEach(m => m.clear());
+    closeAllMs();
+    setSpatial("none");
+    if (mode === "area") { areaSketch.cancel(); setMode(null); }
+    areaLayer.removeAll(); searchArea = null;
+    queryActive = false; results = []; resultIds.clear();
+    refreshFilterOptions(); applyVisibility(); renderResults(); clearHighlight();
+    selectedId = null;
+  }
+
+  $("#queryForm").addEventListener("submit", e => { e.preventDefault(); runQuery(); });
+  $("#btnReset").onclick = resetQuery;
+  [qEls.showS, qEls.showE, qEls.showL].forEach(el => el.onchange = () => queryActive ? runQuery({ silent: true }) : applyVisibility());
+  qEls.only.onchange = applyVisibility;
+  document.querySelectorAll('input[name="qSpatial"]').forEach(r => r.onchange = () => {
+    const v = spatialValue();
+    areaLayer.removeAll(); searchArea = null;
+    if (mode === "area") { areaSketch.cancel(); setMode(null); }
+    setSpatial(v);
+    if (v === "rect" || v === "polygon") startAreaDraw(v);
+  });
+  $("#btnRedraw").onclick = () => startAreaDraw(spatialValue());
+
+  /* ---------- วาดพื้นที่ค้นหา ---------- */
+  const areaSketch = new SketchViewModel({ view, layer: areaLayer, polygonSymbol: SYM.area, updateOnGraphicClick: false });
+  function startAreaDraw(kind) {
+    areaLayer.removeAll(); searchArea = null;
+    if (isMobile()) openPanel(false);
+    setMode("area", kind === "rect" ? "ลากบนแผนที่เพื่อกำหนดพื้นที่ค้นหา" : "คลิกวางจุดของพื้นที่ ดับเบิลคลิกเพื่อจบ");
+    areaSketch.create(kind === "rect" ? "rectangle" : "polygon");
+  }
+  areaSketch.on("create", e => {
+    if (e.state === "complete") { searchArea = webMercatorUtils.webMercatorToGeographic(e.graphic.geometry); setMode(null); runQuery(); }
+    else if (e.state === "cancel") setMode(null);
+  });
+
+  /* ---------- โหมดการทำงานบนแผนที่ ---------- */
+  let mode = null, pickTarget = null;
+  function setMode(m, text = "", { finish = false } = {}) {
+    mode = m;
+    if (m) {
+      view.closePopup();
+      view.popupEnabled = false;
+      $("#modeText").textContent = text;
+      $("#modeFinish").hidden = !finish;
+      $("#modeBanner").hidden = false;
+    } else {
+      $("#modeBanner").hidden = true;
+      setTimeout(() => { if (!mode) view.popupEnabled = true; }, 0);
+    }
+  }
+  $("#modeCancel").onclick = () => {
+    if (mode === "area") { areaSketch.cancel(); setSpatial("none"); }
+    else if (mode === "draw" || mode === "reshape") editSketch.cancel();
+    setMode(null);
+  };
+  $("#modeFinish").onclick = () => editSketch.complete();
+
+  view.on("click", e => {
+    if (mode !== "pick") return;
+    e.stopPropagation();
+    const mp = e.mapPoint;
+    const [E, N] = WGS.latLonToUtm(mp.longitude, mp.latitude, ZONE);
+    if (pickTarget === "start") { F.se.value = E.toFixed(3); F.sn.value = N.toFixed(3); }
+    else { F.ee.value = E.toFixed(3); F.en.value = N.toFixed(3); }
+    setMode(null); updatePreview();
+    if (isMobile()) openPanel(true);
+    const warn = mp.longitude < 96 || mp.longitude > 102;
+    toast(warn ? "กำหนดจุดแล้ว แต่อยู่นอกโซน 47 ค่าพิกัดอาจคลาดเคลื่อน" : `กำหนด${pickTarget === "start" ? "จุดเริ่มต้น" : "จุดสิ้นสุด"}แล้ว`, warn ? "error" : "ok");
+  });
+
+  /* ---------- พิกัดเมาส์ ---------- */
+  function showCoord(lon, lat) {
+    const [E, N] = WGS.latLonToUtm(lon, lat, ZONE);
+    $("#cLL").textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+    $("#cUTM").textContent = `E ${fmt0(E)}  N ${fmt0(N)}`;
+  }
+  let lastMove = null, rafId = 0;
+  view.on("pointer-move", e => {
+    lastMove = e;
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = 0;
+      const p = view.toMap({ x: lastMove.x, y: lastMove.y });
+      if (p) showCoord(p.longitude, p.latitude);
+    });
+  });
+  if (matchMedia("(hover: none)").matches) {
+    reactiveUtils.when(() => view.stationary, () => view.center && showCoord(view.center.longitude, view.center.latitude));
+  }
+
+  reactiveUtils.on(() => view.popup, "trigger-action", ev => {
+    const id = ev.action.id;
+    if (id !== "edit-record" && id !== "edit-line") return;
+    const g = view.popup.selectedFeature;
+    const rec = g && recs.get(g.attributes.id);
+    if (!rec) return;
+    if (!canEdit) { toast("เข้าสู่ระบบเพื่อแก้ไขข้อมูล"); return; }
+    view.closePopup();
+    openForm(rec.row);
+    if (id === "edit-line") {
+      if (!rec.line) { toast("ช่วงนี้ยังไม่มีเส้นทางให้แก้ไข", "error"); return; }
+      startReshape();
+    }
+  });
+
+  /* ---------- รายการผลลัพธ์ ---------- */
+  const currentList = () => queryActive ? results : [...recs.values()].sort(byDam);
+  const activeSeg = new Map();   // ชื่อโครงการ -> id ของช่วงที่กำลังแสดง
+  function groupByProject(list) {
+    const g = new Map();
+    for (const rec of list) {
+      const k = rec.row.dam_name || "ไม่ระบุชื่อ";
+      if (!g.has(k)) g.set(k, []);
+      g.get(k).push(rec);
+    }
+    return g;
+  }
+  function segChips(rec) {
+    const r = rec.row;
+    return [
+      r.year && `<span class="chip">ปี ${esc(r.year)}</span>`,
+      r.status && `<span class="chip">${esc(r.status)}</span>`,
+      rec.line && `<span class="chip line">เส้น ${fmtLen(rec.lengthM)}</span>`,
+      !rec.start && `<span class="chip warn">ไม่มีจุดเริ่มต้น</span>`,
+      !rec.end && `<span class="chip warn">ไม่มีจุดสิ้นสุด</span>`,
+      !rec.line && `<span class="chip warn">${rec.error ? "WKT ผิดรูปแบบ" : "ไม่มีเส้นทาง"}</span>`
+    ].filter(Boolean).join("");
+  }
+  function renderResults() {
+    const list = currentList(), MAX = 300;
+    const groups = groupByProject(list);
+    $("#resCount").textContent = `${queryActive ? "พบ" : "ทั้งหมด"} ${groups.size.toLocaleString()} โครงการ ${list.length.toLocaleString()} ช่วง`;
+    $("#resBadge").textContent = list.length.toLocaleString();
+    if (!list.length) {
+      $("#resList").innerHTML = `<li class="res-empty">${queryActive ? "ไม่พบรายการที่ตรงกับเงื่อนไข ลองลดเงื่อนไขหรือเปลี่ยนขอบเขตพื้นที่" : "ยังไม่มีข้อมูล กด “เพิ่มข้อมูล” เพื่อบันทึกช่วงแรกของโครงการ"}</li>`;
+      return;
+    }
+    const names = [...groups.keys()].slice(0, MAX);
+    $("#resList").innerHTML = names.map(name => {
+      const segs = groups.get(name);
+      const ids = segs.map(r => r.row.id);
+      let cur = activeSeg.get(name);
+      if (!ids.includes(cur)) cur = ids.includes(selectedId) ? selectedId : ids[0];
+      activeSeg.set(name, cur);
+      const rec = segs.find(r => r.row.id === cur), r = rec.row;
+      const types = uniqJoin(segs.map(x => x.row.dam_type));
+      const sub = [segs.length > 1 ? `${segs.length} ช่วง` : "1 ช่วง", types, placeText(r) || "ไม่ระบุที่ตั้ง"].filter(Boolean).join(" | ");
+      const tabs = segs.length > 1 ? `<div class="seg-tabs" role="tablist">${segs.map(x =>
+        `<button type="button" class="seg-tab" role="tab" data-act="seg" data-id="${x.row.id}" aria-selected="${x.row.id === cur}">ช่วงที่ ${esc(x.row.segment || "-")}</button>`).join("")}</div>` : "";
+      return `<li class="proj${ids.includes(selectedId) ? " selected" : ""}" data-name="${esc(name)}">
+        <button type="button" class="proj-title" data-act="zoom-proj">${esc(name)}<span class="proj-sub">${esc(sub)}</span></button>
+        ${tabs}
+        <div class="seg-body">
+          <div class="seg-place">${segs.length > 1 ? `ช่วงที่ ${esc(r.segment || "-")} ` : ""}${esc(placeText(r) || "ไม่ระบุที่ตั้ง")}</div>
+          <div class="chips">${segChips(rec)}</div>
+          <div class="seg-acts">
+            <button type="button" class="btn small" data-act="zoom" data-id="${r.id}">ซูมไปยังช่วงนี้</button>
+            ${canEdit ? `<button type="button" class="btn small" data-act="edit" data-id="${r.id}">แก้ไข</button>` : ""}
+          </div>
+        </div>
+      </li>`;
+    }).join("") + (groups.size > MAX ? `<li class="res-more">แสดง ${MAX} โครงการแรก เพิ่มเงื่อนไขค้นหาเพื่อจำกัดผลลัพธ์</li>` : "");
+  }
+  function markSelected() {
+    document.querySelectorAll(".proj").forEach(li => {
+      const ids = [...li.querySelectorAll("[data-id]")].map(b => Number(b.dataset.id));
+      li.classList.toggle("selected", ids.includes(selectedId));
+    });
+  }
+  $("#resList").addEventListener("click", e => {
+    const btn = e.target.closest("[data-act]"); if (!btn) return;
+    const act = btn.dataset.act;
+    const li = btn.closest(".proj"), name = li && li.dataset.name;
+    if (act === "zoom-proj") {
+      const segs = groupByProject(currentList()).get(name) || [];
+      if (!segs.length) return;
+      const cur = activeSeg.get(name);
+      selectedId = segs.some(r => r.row.id === cur) ? cur : segs[0].row.id;
+      markSelected();
+      zoomToProject(segs);
+      return;
+    }
+    const rec = recs.get(Number(btn.dataset.id)); if (!rec) return;
+    if (act === "seg") { activeSeg.set(name, rec.row.id); renderResults(); zoomToRec(rec); }
+    else if (act === "zoom") zoomToRec(rec);
+    else openForm(rec.row);
+  });
+
+  async function zoomAll({ quiet = false } = {}) {
+    const geoms = currentList().flatMap(r => [r.start, r.end, r.line]).filter(g => g && g.visible).map(g => g.geometry);
+    if (!geoms.length) { if (!quiet) toast("ไม่มีข้อมูลพิกัดในรายการ"); return; }
+    if (isMobile()) openPanel(false);
+    await view.goTo(geoms, { duration: 700 }).catch(() => {});
+  }
+  $("#btnZoomAll").onclick = () => zoomAll();
+
+  $("#btnCsv").onclick = () => {
+    const head = ["id", "ชื่อโครงการ", "ช่วงที่", "ประเภท", "ปี", "สถานะการดำเนินการ",
+      "start_easting", "start_northing", "start_lat", "start_lon", "ตำบลจุดเริ่มต้น", "อำเภอจุดเริ่มต้น",
+      "end_easting", "end_northing", "end_lat", "end_lon", "ตำบลจุดสิ้นสุด", "อำเภอจุดสิ้นสุด",
+      "ตำบลที่เส้นทางผ่าน", "อำเภอที่เส้นทางผ่าน", "จังหวัด", "ความยาวเส้นทาง_ม", "wkt"];
+    const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const lines = currentList().map(({ row: r, startLL, endLL, lengthM }) => [
+      r.id, r.dam_name, r.segment, r.dam_type, r.year, r.status,
+      r.start_easting, r.start_northing, startLL ? startLL[1].toFixed(7) : "", startLL ? startLL[0].toFixed(7) : "", r.start_tambon, r.start_amphoe,
+      r.end_easting, r.end_northing, endLL ? endLL[1].toFixed(7) : "", endLL ? endLL[0].toFixed(7) : "", r.end_tambon, r.end_amphoe,
+      r.line_tambon, r.line_amphoe, r.province, lengthM != null ? lengthM.toFixed(2) : "", r.wkt
+    ].map(q).join(","));
+    downloadText(`dams_${new Date().toISOString().slice(0, 10)}.csv`, "\ufeff" + [head.map(q).join(","), ...lines].join("\r\n"));
+  };
+
+  /* =====================================================================
+     \u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01 Shapefile \u2014 WGS84 UTM Zone 47N (EPSG:32647) \u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19
+     \u0e44\u0e1f\u0e25\u0e4c\u0e17\u0e35\u0e48\u0e44\u0e14\u0e49\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e44\u0e1f\u0e25\u0e4c zip \u0e40\u0e14\u0e35\u0e22\u0e27 \u0e41\u0e1a\u0e48\u0e07\u0e40\u0e1b\u0e47\u0e19\u0e2a\u0e2d\u0e07\u0e0a\u0e38\u0e14
+       dam_point : \u0e08\u0e38\u0e14\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e41\u0e25\u0e30\u0e08\u0e38\u0e14\u0e2a\u0e34\u0e49\u0e19\u0e2a\u0e38\u0e14\u0e02\u0e2d\u0e07\u0e17\u0e38\u0e01\u0e0a\u0e48\u0e27\u0e07\u0e17\u0e38\u0e01\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23\u0e23\u0e27\u0e21\u0e01\u0e31\u0e19
+       dam_line  : \u0e40\u0e2a\u0e49\u0e19\u0e17\u0e32\u0e07\u0e23\u0e30\u0e2b\u0e27\u0e48\u0e32\u0e07\u0e08\u0e38\u0e14\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e01\u0e31\u0e1a\u0e08\u0e38\u0e14\u0e2a\u0e34\u0e49\u0e19\u0e2a\u0e38\u0e14\u0e02\u0e2d\u0e07\u0e17\u0e38\u0e01\u0e0a\u0e48\u0e27\u0e07\u0e17\u0e38\u0e01\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23\u0e23\u0e27\u0e21\u0e01\u0e31\u0e19
+     \u0e43\u0e0a\u0e49\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e1a\u0e17\u0e35\u0e48\u0e41\u0e2a\u0e14\u0e07\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e41\u0e17\u0e47\u0e1a\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23 \u0e08\u0e36\u0e07\u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01\u0e40\u0e09\u0e1e\u0e32\u0e30\u0e1c\u0e25\u0e17\u0e35\u0e48\u0e01\u0e23\u0e2d\u0e07\u0e08\u0e32\u0e01\u0e01\u0e32\u0e23\u0e04\u0e49\u0e19\u0e2b\u0e32
+     ===================================================================== */
+  const PRJ_UTM47N = 'PROJCS["WGS_1984_UTM_Zone_47N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'
+    + 'SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],'
+    + 'UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],'
+    + 'PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],'
+    + 'PARAMETER["Central_Meridian",99.0],PARAMETER["Scale_Factor",0.9996],'
+    + 'PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
+
+  // \u0e15\u0e31\u0e27\u0e2d\u0e31\u0e01\u0e29\u0e23\u0e44\u0e17\u0e22\u0e43\u0e19 DBF \u0e43\u0e0a\u0e49\u0e23\u0e2b\u0e31\u0e2a CP874 (\u0e04\u0e39\u0e48\u0e01\u0e31\u0e1a\u0e44\u0e1f\u0e25\u0e4c .cpg)
+  function cp874(v, max = Infinity) {
+    const out = [];
+    for (const ch of String(v ?? "")) {
+      if (out.length >= max) break;
+      const c = ch.codePointAt(0);
+      if (c <= 0x7f) out.push(c);
+      else if (c >= 0x0e01 && c <= 0x0e5b) out.push(c - 0x0e00 + 0xa0);
+      else out.push(0x3f);
+    }
+    return out;
+  }
+
+  function buildDbf(fields, rows) {
+    const recLen = 1 + fields.reduce((s, f) => s + f.len, 0);
+    const headLen = 32 + fields.length * 32 + 1;
+    const buf = new ArrayBuffer(headLen + rows.length * recLen + 1);
+    const b = new Uint8Array(buf), view = new DataView(buf), now = new Date();
+    b[0] = 0x03; b[1] = now.getFullYear() - 1900; b[2] = now.getMonth() + 1; b[3] = now.getDate();
+    view.setUint32(4, rows.length, true);
+    view.setUint16(8, headLen, true);
+    view.setUint16(10, recLen, true);
+    b[29] = 0x7c;                       // language driver: Thai (code page 874)
+    let o = 32;
+    for (const f of fields) {
+      cp874(f.name, 10).forEach((c, i) => { b[o + i] = c; });
+      b[o + 11] = f.type.charCodeAt(0);
+      b[o + 16] = f.len;
+      b[o + 17] = f.dec || 0;
+      o += 32;
+    }
+    b[o++] = 0x0d;
+    for (const r of rows) {
+      b[o++] = 0x20;                    // \u0e23\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19\u0e17\u0e35\u0e48\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e16\u0e39\u0e01\u0e25\u0e1a
+      for (const f of fields) {
+        let bytes;
+        if (f.type === "C") bytes = cp874(f.get(r), f.len);
+        else {
+          let s = f.get(r);
+          s = (s === null || s === undefined || s === "") ? "" : String(s);
+          if (s.length > f.len) s = s.slice(0, f.len);
+          bytes = cp874(s.padStart(f.len, " "), f.len);
+        }
+        for (let i = 0; i < f.len; i++) b[o + i] = bytes[i] ?? 0x20;
+        o += f.len;
+      }
+    }
+    b[o] = 0x1a;
+    return b;
+  }
+
+  // shapeType 1 = Point (shape \u0e40\u0e1b\u0e47\u0e19 [x,y]) , 3 = Polyline (shape \u0e40\u0e1b\u0e47\u0e19 [ [ [x,y],\u2026 ], \u2026 ])
+  function buildShp(shapes, shapeType, bbox) {
+    const contents = shapes.map(sh => {
+      if (shapeType === 1) {
+        const ab = new ArrayBuffer(20), v = new DataView(ab);
+        v.setInt32(0, 1, true); v.setFloat64(4, sh[0], true); v.setFloat64(12, sh[1], true);
+        return ab;
+      }
+      const parts = sh, pts = parts.flat();
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+      const ab = new ArrayBuffer(44 + 4 * parts.length + 16 * pts.length), v = new DataView(ab);
+      let o = 0;
+      v.setInt32(o, 3, true); o += 4;
+      v.setFloat64(o, x0, true); o += 8; v.setFloat64(o, y0, true); o += 8;
+      v.setFloat64(o, x1, true); o += 8; v.setFloat64(o, y1, true); o += 8;
+      v.setInt32(o, parts.length, true); o += 4;
+      v.setInt32(o, pts.length, true); o += 4;
+      let acc = 0;
+      for (const p of parts) { v.setInt32(o, acc, true); o += 4; acc += p.length; }
+      for (const [x, y] of pts) { v.setFloat64(o, x, true); o += 8; v.setFloat64(o, y, true); o += 8; }
+      return ab;
+    });
+    const shpLen = 100 + contents.reduce((s, c) => s + 8 + c.byteLength, 0);
+    const shxLen = 100 + contents.length * 8;
+    const shp = new Uint8Array(shpLen), shx = new Uint8Array(shxLen);
+    for (const [arr, len] of [[shp, shpLen], [shx, shxLen]]) {
+      const v = new DataView(arr.buffer);
+      v.setInt32(0, 9994, false);       // file code (big endian)
+      v.setInt32(24, len / 2, false);   // \u0e04\u0e27\u0e32\u0e21\u0e22\u0e32\u0e27\u0e44\u0e1f\u0e25\u0e4c \u0e2b\u0e19\u0e48\u0e27\u0e22\u0e40\u0e1b\u0e47\u0e19 16-bit word
+      v.setInt32(28, 1000, true);       // version
+      v.setInt32(32, shapeType, true);
+      v.setFloat64(36, bbox[0], true); v.setFloat64(44, bbox[1], true);
+      v.setFloat64(52, bbox[2], true); v.setFloat64(60, bbox[3], true);
+    }
+    const sv = new DataView(shp.buffer), xv = new DataView(shx.buffer);
+    let off = 100, word = 50;
+    contents.forEach((c, i) => {
+      sv.setInt32(off, i + 1, false);
+      sv.setInt32(off + 4, c.byteLength / 2, false);
+      shp.set(new Uint8Array(c), off + 8);
+      xv.setInt32(100 + i * 8, word, false);
+      xv.setInt32(104 + i * 8, c.byteLength / 2, false);
+      off += 8 + c.byteLength;
+      word += 4 + c.byteLength / 2;
+    });
+    return { shp, shx };
+  }
+
+  function addShapefile(zip, name, shapeType, features, fields) {
+    if (!features.length) return 0;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const f of features) {
+      const pts = shapeType === 1 ? [f.shape] : f.shape.flat();
+      for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    }
+    const { shp, shx } = buildShp(features.map(f => f.shape), shapeType, [x0, y0, x1, y1]);
+    zip.file(`${name}.shp`, shp);
+    zip.file(`${name}.shx`, shx);
+    zip.file(`${name}.dbf`, buildDbf(fields, features.map(f => f.attr)));
+    zip.file(`${name}.prj`, PRJ_UTM47N);
+    zip.file(`${name}.cpg`, "CP874");
+    return features.length;
+  }
+
+  const SHP_COMMON = [
+    { name: "ID", type: "N", len: 10, get: a => a.id },
+    { name: "DAM_NAME", type: "C", len: 120, get: a => a.dam_name },
+    { name: "SEGMENT", type: "C", len: 20, get: a => a.segment },
+    { name: "DAM_TYPE", type: "C", len: 80, get: a => a.dam_type },
+    { name: "YEAR", type: "C", len: 10, get: a => a.year },
+    { name: "STATUS", type: "C", len: 60, get: a => a.status }
+  ];
+  const SHP_POINT_FIELDS = [
+    SHP_COMMON[0],
+    { name: "PART", type: "C", len: 10, get: a => a.part },
+    { name: "PART_TH", type: "C", len: 30, get: a => a.part_th },
+    ...SHP_COMMON.slice(1),
+    { name: "EASTING", type: "F", len: 19, dec: 3, get: a => a.easting.toFixed(3) },
+    { name: "NORTHING", type: "F", len: 19, dec: 3, get: a => a.northing.toFixed(3) },
+    { name: "LON", type: "F", len: 19, dec: 7, get: a => a.lon.toFixed(7) },
+    { name: "LAT", type: "F", len: 19, dec: 7, get: a => a.lat.toFixed(7) },
+    { name: "TAMBON", type: "C", len: 100, get: a => a.tambon },
+    { name: "AMPHOE", type: "C", len: 100, get: a => a.amphoe },
+    { name: "PROVINCE", type: "C", len: 60, get: a => a.province }
+  ];
+  const SHP_LINE_FIELDS = [
+    ...SHP_COMMON,
+    { name: "LENGTH_M", type: "F", len: 19, dec: 2, get: a => a.length_m },
+    { name: "S_EAST", type: "F", len: 19, dec: 3, get: a => a.s_east },
+    { name: "S_NORTH", type: "F", len: 19, dec: 3, get: a => a.s_north },
+    { name: "E_EAST", type: "F", len: 19, dec: 3, get: a => a.e_east },
+    { name: "E_NORTH", type: "F", len: 19, dec: 3, get: a => a.e_north },
+    { name: "TAMBON", type: "C", len: 200, get: a => a.tambon },
+    { name: "AMPHOE", type: "C", len: 200, get: a => a.amphoe },
+    { name: "PROVINCE", type: "C", len: 60, get: a => a.province }
+  ];
+
+  const baseAttr = r => ({ id: r.id, dam_name: r.dam_name, segment: r.segment, dam_type: r.dam_type, year: r.year, status: r.status });
+  const toUtm47 = ([lon, lat]) => WGS.latLonToUtm(lon, lat, 47);
+
+  async function exportShapefile() {
+    if (typeof JSZip === "undefined") { toast("\u0e42\u0e2b\u0e25\u0e14\u0e44\u0e25\u0e1a\u0e23\u0e32\u0e23\u0e35 JSZip \u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e01\u0e32\u0e23\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e15\u0e48\u0e2d\u0e2d\u0e34\u0e19\u0e40\u0e17\u0e2d\u0e23\u0e4c\u0e40\u0e19\u0e47\u0e15", "error", 6000); return; }
+    const list = currentList();
+    if (!list.length) { toast("\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e43\u0e2b\u0e49\u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01", "error"); return; }
+
+    const points = [], lines = [];
+    let noGeom = 0;
+    for (const rec of list) {
+      const r = rec.row;
+      for (const part of ["start", "end"]) {
+        const e = toNum(part === "start" ? r.start_easting : r.end_easting);
+        const n = toNum(part === "start" ? r.start_northing : r.end_northing);
+        const ll = part === "start" ? rec.startLL : rec.endLL;
+        if (!Number.isFinite(e) || !Number.isFinite(n) || !ll) continue;
+        points.push({
+          shape: [e, n],
+          attr: Object.assign(baseAttr(r), {
+            part, part_th: part === "start" ? "\u0e08\u0e38\u0e14\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23" : "\u0e08\u0e38\u0e14\u0e2a\u0e34\u0e49\u0e19\u0e2a\u0e38\u0e14\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23",
+            easting: e, northing: n, lon: ll[0], lat: ll[1],
+            tambon: part === "start" ? r.start_tambon : r.end_tambon,
+            amphoe: part === "start" ? r.start_amphoe : r.end_amphoe,
+            province: r.province
+          })
+        });
+      }
+      if (rec.line) {
+        // \u0e1e\u0e34\u0e01\u0e31\u0e14\u0e43\u0e19\u0e10\u0e32\u0e19\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e40\u0e1b\u0e47\u0e19 EPSG:4326 \u0e41\u0e1b\u0e25\u0e07\u0e17\u0e38\u0e01\u0e08\u0e38\u0e14\u0e22\u0e2d\u0e14\u0e40\u0e1b\u0e47\u0e19 UTM 47N \u0e01\u0e48\u0e2d\u0e19\u0e40\u0e02\u0e35\u0e22\u0e19\u0e25\u0e07 shapefile
+        const parts = rec.line.geometry.paths.map(p => p.map(c => toUtm47([c[0], c[1]]))).filter(p => p.length >= 2);
+        if (parts.length) {
+          lines.push({
+            shape: parts,
+            attr: Object.assign(baseAttr(r), {
+              length_m: rec.lengthM != null ? rec.lengthM.toFixed(2) : "",
+              s_east: toNum(r.start_easting), s_north: toNum(r.start_northing),
+              e_east: toNum(r.end_easting), e_north: toNum(r.end_northing),
+              tambon: r.line_tambon, amphoe: r.line_amphoe, province: r.province
+            })
+          });
+        }
+      }
+      if (!rec.start && !rec.end && !rec.line) noGeom++;
+    }
+    // \u0e1f\u0e34\u0e25\u0e14\u0e4c\u0e15\u0e31\u0e27\u0e40\u0e25\u0e02\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e21\u0e35\u0e04\u0e48\u0e32 \u0e43\u0e2b\u0e49\u0e40\u0e27\u0e49\u0e19\u0e27\u0e48\u0e32\u0e07\u0e41\u0e17\u0e19\u0e01\u0e32\u0e23\u0e40\u0e02\u0e35\u0e22\u0e19 NaN
+    for (const f of lines) for (const k of ["s_east", "s_north", "e_east", "e_north"])
+      f.attr[k] = Number.isFinite(f.attr[k]) ? f.attr[k].toFixed(3) : "";
+
+    if (!points.length && !lines.length) { toast("\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e17\u0e35\u0e48\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e1e\u0e34\u0e01\u0e31\u0e14", "error", 5000); return; }
+
+    const btn = $("#btnShp"); btn.disabled = true; btn.textContent = "\u0e01\u0e33\u0e25\u0e31\u0e07\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e44\u0e1f\u0e25\u0e4c\u2026";
+    try {
+      const zip = new JSZip();
+      const nP = addShapefile(zip, "dam_point", 1, points, SHP_POINT_FIELDS);
+      const nL = addShapefile(zip, "dam_line", 3, lines, SHP_LINE_FIELDS);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `dam_shp_utm47n_${new Date().toISOString().slice(0, 10)}.zip`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      toast(`\u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01\u0e41\u0e25\u0e49\u0e27: dam_point ${nP.toLocaleString()} \u0e08\u0e38\u0e14, dam_line ${nL.toLocaleString()} \u0e40\u0e2a\u0e49\u0e19 (UTM 47N)`
+        + (noGeom ? ` \u2014 \u0e02\u0e49\u0e32\u0e21 ${noGeom.toLocaleString()} \u0e0a\u0e48\u0e27\u0e07\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e21\u0e35\u0e1e\u0e34\u0e01\u0e31\u0e14` : ""), "ok", 6000);
+    } catch (err) {
+      console.error(err);
+      toast("\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e44\u0e1f\u0e25\u0e4c Shapefile \u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08: " + (err.message || err), "error", 6000);
+    } finally { btn.disabled = false; btn.textContent = "\u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01 Shapefile"; }
+  }
+  $("#btnShp").onclick = exportShapefile;
+
+  /* ---------- แผงและแท็บ ---------- */
+  function openPanel(open) {
+    $("#layout").classList.toggle("collapsed", !open);
+    $("#btnPanel").setAttribute("aria-expanded", String(open));
+  }
+  let currentTab = "query";
+  function switchTab(name) {
+    currentTab = name;
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
+    ["query", "results", "form", "import"].forEach(n => ($(`#tab-${n}`).hidden = n !== name));
+    $("#layout").classList.toggle("wide", name === "import");
+    openPanel(true);
+  }
+  document.querySelectorAll(".tab").forEach(t => t.onclick = () => switchTab(t.dataset.tab));
+  $("#btnPanel").onclick = () => {
+    const isOpen = !$("#layout").classList.contains("collapsed");
+    if (isOpen && currentTab === "query") openPanel(false); else switchTab("query");
+  };
+  $("#btnClosePanel").onclick = () => openPanel(false);
+  if (isMobile()) openPanel(false);
+
+  /* ---------- ฟอร์มบันทึกข้อมูล (1 แถว = 1 ช่วง) ---------- */
+  const F = { id: $("#fId"), name: $("#fName"), seg: $("#fSeg"), type: $("#fType"), year: $("#fYear"), status: $("#fStatus"),
+    prov: $("#fProv"), se: $("#fSE"), sn: $("#fSN"), ee: $("#fEE"), en: $("#fEN"), wkt: $("#fWkt"),
+    slat: $("#fSLat"), slon: $("#fSLon"), elat: $("#fELat"), elon: $("#fELon") };
+  let formPlaces = null;   // ชื่อตำบล/อำเภอ ที่คำนวณได้จากชั้นขอบเขต
+
+  function openForm(row) {
+    switchTab("form");
+    const editing = !!row?.id;
+    $("#formTitle").textContent = editing ? "แก้ไขช่วงของโครงการ" : "เพิ่มช่วงของโครงการ";
+    F.id.value = editing ? row.id : "";
+    F.name.value = row?.dam_name || ""; F.seg.value = row?.segment ?? "";
+    F.type.value = row?.dam_type || ""; F.year.value = row?.year || ""; F.status.value = row?.status || "";
+    F.prov.value = row?.province || "";
+    F.se.value = row?.start_easting ?? ""; F.sn.value = row?.start_northing ?? "";
+    F.ee.value = row?.end_easting ?? ""; F.en.value = row?.end_northing ?? "";
+    F.wkt.value = row?.wkt || "";
+    F.slat.value = F.slon.value = F.elat.value = F.elon.value = "";
+    formPlaces = row ? { start_tambon: row.start_tambon, start_amphoe: row.start_amphoe, end_tambon: row.end_tambon,
+      end_amphoe: row.end_amphoe, line_tambon: row.line_tambon, line_amphoe: row.line_amphoe, province: row.province } : null;
+    $("#btnDelete").hidden = !editing; $("#btnCopy").hidden = !editing;
+    applyFormLock(); updatePreview();
+    if (editing) { selectedId = row.id; const rec = recs.get(row.id); if (rec) highlight(rec); }
+  }
+  function closeForm() {
+    if (mode === "draw" || mode === "reshape") editSketch.cancel();
+    if (mode) setMode(null);
+    previewLayer.removeAll(); previewLineLayer.removeAll(); editLayer.removeAll(); previewLineLayer.visible = true;
+    $("#damForm").reset(); F.id.value = ""; formPlaces = null;
+    switchTab(queryActive ? "results" : "query");
+  }
+  function applyFormLock() { $("#formLock").hidden = canEdit; $("#formFields").disabled = !canEdit; }
+
+  function readForm() {
+    const s = el => el.value.trim() || null;
+    return { dam_name: s(F.name), segment: s(F.seg), dam_type: s(F.type), year: s(F.year), status: s(F.status),
+      start_easting: num3(F.se.value), start_northing: num3(F.sn.value),
+      end_easting: num3(F.ee.value), end_northing: num3(F.en.value),
+      wkt: s(F.wkt), province: s(F.prov) };
+  }
+  // ตรวจว่าช่วงนี้ครบองค์ประกอบ: จุดเริ่มต้น 1 จุด จุดสิ้นสุด 1 จุด เส้นทาง 1 เส้น
+  function validateSeg(d) {
+    if (!d.dam_name) return "ไม่มีชื่อโครงการ";
+    if (!d.segment) return "ไม่มีช่วงที่";
+    const chk = (e, n, label) => {
+      if (e == null && n == null) return `ไม่มีพิกัด${label}`;
+      if (!Number.isFinite(e) || !Number.isFinite(n)) return `พิกัด${label}ไม่ครบหรือไม่ใช่ตัวเลข`;
+      if (e < 100000 || e > 900000) return `Easting ${label} อยู่นอกช่วงที่เป็นไปได้`;
+      if (n < 0 || n > 10000000) return `Northing ${label} อยู่นอกช่วงที่เป็นไปได้`;
+      return null;
+    };
+    const e1 = chk(d.start_easting, d.start_northing, "จุดเริ่มต้น"); if (e1) return e1;
+    const e2 = chk(d.end_easting, d.end_northing, "จุดสิ้นสุด"); if (e2) return e2;
+    if (!d.wkt) return "ไม่มีเส้นทางเขื่อน (WKT)";
+    try {
+      const g = parseWkt(d.wkt).geometry;
+      if (g.type !== "polyline") return "เส้นทางเขื่อนต้องเป็นข้อมูลเส้น (LINESTRING)";
+    } catch (err) { return "WKT: " + err.message; }
+    return null;
+  }
+
+  const ptFrom = (e, n) => {
+    e = toNum(e); n = toNum(n);
+    if (!Number.isFinite(e) || !Number.isFinite(n)) return null;
+    const [lon, lat] = WGS.utmToLatLon(e, n, ZONE);
+    return new Point({ longitude: lon, latitude: lat });
+  };
+
+  let previewTimer;
+  function updatePreview() {
+    previewLayer.removeAll(); previewLineLayer.removeAll();
+    const msgs = []; let bad = false; $("#btnWktFix").hidden = true;
+    const sp = ptFrom(F.se.value, F.sn.value), ep = ptFrom(F.ee.value, F.en.value);
+    let line = null;
+    if (sp) { previewLayer.add(new Graphic({ geometry: sp, symbol: SYM.drawStart })); F.slat.value = sp.latitude.toFixed(6); F.slon.value = sp.longitude.toFixed(6); }
+    else if (F.se.value.trim() || F.sn.value.trim()) { msgs.push("พิกัดจุดเริ่มต้นไม่ครบหรือไม่ใช่ตัวเลข"); bad = true; }
+    if (ep) { previewLayer.add(new Graphic({ geometry: ep, symbol: SYM.drawEnd })); F.elat.value = ep.latitude.toFixed(6); F.elon.value = ep.longitude.toFixed(6); }
+    else if (F.ee.value.trim() || F.en.value.trim()) { msgs.push("พิกัดจุดสิ้นสุดไม่ครบหรือไม่ใช่ตัวเลข"); bad = true; }
+    for (const [p, label] of [[sp, "จุดเริ่มต้น"], [ep, "จุดสิ้นสุด"]]) {
+      if (p && !inThailand(p.longitude, p.latitude)) { msgs.push(`${label}อยู่นอกประเทศไทย ตรวจสอบว่า Easting กับ Northing สลับกันหรือไม่`); bad = true; }
+    }
+    if (F.wkt.value.trim()) {
+      try {
+        const { geometry, type, utm } = parseWkt(F.wkt.value);
+        if (geometry.type !== "polyline") throw new Error("ต้องเป็นข้อมูลเส้น (LINESTRING)");
+        line = geometry;
+        previewLineLayer.add(new Graphic({ geometry, symbol: SYM.drawLine }));
+        const nv = geometry.paths.reduce((a, p) => a + p.length, 0);
+        msgs.push(`เส้นทาง: ${nv} จุดยอด ยาวประมาณ ${fmtLen(geometryEngine.geodesicLength(geometry, "meters"))}`);
+        if (utm) { msgs.push("WKT มีค่าพิกัดแบบ UTM ควรแปลงเป็น EPSG:4326 ก่อนบันทึก"); bad = true; $("#btnWktFix").hidden = !["LINESTRING", "MULTILINESTRING"].includes(type); }
+      } catch (err) { msgs.push("WKT: " + err.message); bad = true; }
+    }
+    // ชื่อตำบล/อำเภอ อัตโนมัติจากชั้นขอบเขต
+    const pl = lookupPlaces({ startPt: sp, endPt: ep, line });
+    if (pl) {
+      formPlaces = pl;
+      if (pl.province && !F.prov.value.trim()) F.prov.value = pl.province;
+    }
+    const shown = formPlaces || {};
+    const txt = (t, a) => (t || a) ? [t, a].filter(Boolean).join(" ") : (admin.ready ? "ไม่อยู่ในขอบเขตที่มีในไฟล์" : "ยังไม่ได้คำนวณ");
+    $("#plStart").innerHTML = `ตำบล/อำเภอ: <b>${esc(txt(shown.start_tambon, shown.start_amphoe))}</b>`;
+    $("#plEnd").innerHTML = `ตำบล/อำเภอ: <b>${esc(txt(shown.end_tambon, shown.end_amphoe))}</b>`;
+    $("#plLine").innerHTML = `ตำบล/อำเภอ ที่เส้นทางพาดผ่าน: <b>${esc(txt(shown.line_tambon, shown.line_amphoe))}</b>`;
+    if (!admin.ready) msgs.push(`ยังไม่ได้ใช้ขอบเขตตำบล (${CONFIG.ADMIN_FILE}): ${admin.error || "กำลังโหลด"}`);
+    if (!sp || !ep || !line) msgs.push("ต้องมีจุดเริ่มต้น จุดสิ้นสุด และเส้นทางครบทั้งสามส่วนจึงจะบันทึกได้");
+    $("#geoStatus").innerHTML = (msgs.length ? msgs : ["ยังไม่มีข้อมูลพิกัด"]).map(m => `<li>${esc(m)}</li>`).join("");
+    $("#geoStatus").classList.toggle("warn", bad);
+  }
+  [F.se, F.sn, F.ee, F.en, F.wkt].forEach(el => el.addEventListener("input", () => { clearTimeout(previewTimer); previewTimer = setTimeout(updatePreview, 350); }));
+
+  $("#btnWktFix").onclick = () => {
+    try { F.wkt.value = toWkt(parseWkt(F.wkt.value).geometry); updatePreview(); toast("แปลง WKT เป็น EPSG:4326 แล้ว", "ok"); }
+    catch (err) { toast(err.message, "error"); }
+  };
+  $("#btnStraight").onclick = () => {
+    const sp = ptFrom(F.se.value, F.sn.value), ep = ptFrom(F.ee.value, F.en.value);
+    if (!sp || !ep) { toast("ต้องมีพิกัดจุดเริ่มต้นและจุดสิ้นสุดก่อน", "error"); return; }
+    F.wkt.value = lineWkt([sp.longitude, sp.latitude], [ep.longitude, ep.latitude]);
+    updatePreview(); toast("สร้างเส้นตรงระหว่างสองจุดแล้ว", "ok");
+  };
+  $("#btnPreviewZoom").onclick = () => {
+    const g = [...previewLayer.graphics.toArray(), ...previewLineLayer.graphics.toArray()];
+    if (!g.length) { toast("ยังไม่มีข้อมูลพิกัดให้แสดง"); return; }
+    if (isMobile()) openPanel(false);
+    view.goTo(g.length === 1 && g[0].geometry.type === "point" ? { target: g[0], zoom: 17 } : g, { duration: 600 }).catch(() => {});
+  };
+  // แปลงค่าละติจูด/ลองจิจูด เป็น Easting/Northing บน WGS84 UTM Zone 47
+  function convertLatLon(which) {
+    const lat = toNum(which === "start" ? F.slat.value : F.elat.value);
+    const lon = toNum(which === "start" ? F.slon.value : F.elon.value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) { toast("กรอกละติจูดและลองจิจูดเป็นตัวเลขให้ครบ", "error"); return; }
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) { toast("ค่าละติจูดหรือลองจิจูดเกินช่วงที่เป็นไปได้ อาจสลับช่องกัน", "error", 5000); return; }
+    const [E, N] = WGS.latLonToUtm(lon, lat, ZONE);
+    if (which === "start") { F.se.value = E.toFixed(3); F.sn.value = N.toFixed(3); }
+    else { F.ee.value = E.toFixed(3); F.en.value = N.toFixed(3); }
+    updatePreview();
+    toast(`แปลงเป็น Easting/Northing (UTM 47N) แล้ว${lon < 96 || lon > 102 ? " แต่ตำแหน่งอยู่นอกโซน 47" : ""}`, lon < 96 || lon > 102 ? "error" : "ok");
+  }
+  $("#btnConvStart").onclick = () => convertLatLon("start");
+  $("#btnConvEnd").onclick = () => convertLatLon("end");
+
+  const startPick = target => { pickTarget = target; if (isMobile()) openPanel(false); setMode("pick", `คลิกบนแผนที่เพื่อกำหนด${target === "start" ? "จุดเริ่มต้น" : "จุดสิ้นสุด"}โครงการ`); };
+  $("#btnPickStart").onclick = () => startPick("start");
+  $("#btnPickEnd").onclick = () => startPick("end");
+
+  // วาดและแก้ไขเส้นทาง พร้อม snap เข้าหาจุดเริ่มต้น จุดสิ้นสุด และข้อมูลเดิมบนแผนที่
+  const editSketch = new SketchViewModel({
+    view, layer: editLayer, polylineSymbol: SYM.drawLine, updateOnGraphicClick: false,
+    defaultUpdateOptions: { tool: "reshape", toggleToolOnClick: false, enableRotation: false, enableScaling: false },
+    snappingOptions: {
+      enabled: true, selfEnabled: true, featureEnabled: true,
+      featureSources: [
+        { layer: previewLayer, enabled: true },      // จุดเริ่มต้น/จุดสิ้นสุดของช่วงที่กำลังกรอก
+        { layer: startLayer, enabled: true },        // จุดเริ่มต้นของช่วงอื่นในฐานข้อมูล
+        { layer: endLayer, enabled: true },          // จุดสิ้นสุดของช่วงอื่น
+        { layer: lineLayer, enabled: true }          // เส้นทางของช่วงอื่น (ต่อเส้นให้ชนกัน)
+      ]
+    }
+  });
+  $("#fSnap").onchange = e => { editSketch.snappingOptions.enabled = e.target.checked; };
+
+  const SNAP_HINT = "ปลายเส้นจะดูดเข้าหาจุดเริ่มต้นและจุดสิ้นสุดอัตโนมัติ";
+  function syncWktFromSketch(g, { quiet = false } = {}) {
+    if (!g) return;
+    F.wkt.value = toWkt(webMercatorUtils.webMercatorToGeographic(g.geometry));
+    if (!quiet) updatePreview();
+  }
+  $("#btnDraw").onclick = () => {
+    if (!F.se.value.trim() || !F.ee.value.trim()) toast("แนะนำให้กรอกพิกัดจุดเริ่มต้นและจุดสิ้นสุดก่อน เพื่อให้ snap ได้", "info", 5000);
+    if (isMobile()) openPanel(false);
+    editLayer.removeAll(); previewLineLayer.visible = false;
+    setMode("draw", `คลิกวางจุดของเส้นทางเขื่อน ดับเบิลคลิกเพื่อจบ (${SNAP_HINT})`);
+    editSketch.create("polyline");
+  };
+  function startReshape() {
+    let geom;
+    try { geom = parseWkt(F.wkt.value).geometry; } catch { toast("ยังไม่มี WKT เส้นทางที่ถูกต้องให้แก้ไข", "error"); return; }
+    if (geom.type !== "polyline") { toast("แก้ไขรูปได้เฉพาะข้อมูลเส้น", "error"); return; }
+    if (isMobile()) openPanel(false);
+    editLayer.removeAll(); previewLineLayer.visible = false;
+    const g = new Graphic({ geometry: webMercatorUtils.geographicToWebMercator(geom), symbol: SYM.drawLine });
+    editLayer.add(g);
+    setMode("reshape", "ลากจุดยอดเพื่อย้าย คลิกจุดกึ่งกลางเพื่อเพิ่มจุด เลือกจุดแล้วกด Delete เพื่อลบ แล้วกดเสร็จสิ้น", { finish: true });
+    view.goTo(g, { duration: 500 }).catch(() => {});
+    editSketch.update([g], { tool: "reshape" });
+  }
+  $("#btnReshape").onclick = startReshape;
+
+  editSketch.on("create", e => {
+    if (e.state === "complete") {
+      previewLineLayer.visible = true;
+      syncWktFromSketch(e.graphic);
+      editLayer.removeAll(); setMode(null);
+      if (isMobile()) openPanel(true);
+      toast("บันทึกเส้นลงช่อง WKT แล้ว กดบันทึกข้อมูลเพื่อยืนยัน", "ok");
+    } else if (e.state === "cancel") { editLayer.removeAll(); previewLineLayer.visible = true; setMode(null); }
+  });
+  editSketch.on("update", e => {
+    const g = e.graphics && e.graphics[0];
+    // อัปเดต WKT ทันทีทุกครั้งที่ย้าย เพิ่ม หรือลบจุดยอด
+    if (e.state === "active") {
+      const t = e.toolEventInfo && e.toolEventInfo.type;
+      if (t && (t.endsWith("-stop") || t === "vertex-add" || t === "vertex-remove")) syncWktFromSketch(g, { quiet: true });
+      return;
+    }
+    if (e.state !== "complete") return;
+    if (!e.aborted && g) syncWktFromSketch(g, { quiet: true });
+    editLayer.removeAll(); previewLineLayer.visible = true; setMode(null); updatePreview();
+    if (isMobile()) openPanel(true);
+  });
+
+  $("#damForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!canEdit) return;
+    const p = readForm();
+    const msg = validateSeg(p);
+    if (msg) { toast(msg, "error", 5000); return; }
+    Object.assign(p, {
+      start_tambon: formPlaces?.start_tambon ?? null, start_amphoe: formPlaces?.start_amphoe ?? null,
+      end_tambon: formPlaces?.end_tambon ?? null, end_amphoe: formPlaces?.end_amphoe ?? null,
+      line_tambon: formPlaces?.line_tambon ?? null, line_amphoe: formPlaces?.line_amphoe ?? null
+    });
+    const id = F.id.value ? Number(F.id.value) : null;
+    const btn = $("#btnSave"); btn.disabled = true; btn.textContent = "กำลังบันทึก…";
+    try {
+      const saved = id ? await api.update(id, p) : await api.insert(p);
+      toast(id ? "บันทึกการแก้ไขแล้ว" : "เพิ่มช่วงของโครงการแล้ว", "ok");
+      await reload();
+      previewLayer.removeAll(); previewLineLayer.removeAll();
+      $("#damForm").reset(); F.id.value = ""; formPlaces = null;
+      switchTab("results");
+      const rec = recs.get(saved.id);
+      if (rec) zoomToRec(rec);
+    } catch (err) {
+      toast("บันทึกไม่สำเร็จ: " + errText(err), "error", 6000);
+    } finally { btn.disabled = false; btn.textContent = "บันทึกข้อมูล"; }
+  });
+  $("#btnDelete").onclick = async () => {
+    const id = Number(F.id.value); if (!id) return;
+    if (!confirm(`ลบ “${F.name.value} ช่วงที่ ${F.seg.value}” ออกจากฐานข้อมูลหรือไม่ การลบนี้ย้อนกลับไม่ได้`)) return;
+    try {
+      await api.remove(id);
+      toast("ลบช่วงนี้แล้ว", "ok");
+      view.closePopup(); selectedId = null;
+      closeForm(); await reload();
+    } catch (err) { toast("ลบไม่สำเร็จ: " + errText(err), "error", 6000); }
+  };
+  $("#btnCopy").onclick = () => {
+    const nextSeg = String(Number(F.seg.value) + 1);
+    F.id.value = "";
+    F.seg.value = Number.isFinite(Number(F.seg.value)) ? nextSeg : "";
+    // ช่วงถัดไปมักเริ่มที่จุดสิ้นสุดของช่วงก่อนหน้า
+    F.se.value = F.ee.value; F.sn.value = F.en.value;
+    F.ee.value = ""; F.en.value = ""; F.wkt.value = "";
+    $("#formTitle").textContent = "เพิ่มช่วงของโครงการ";
+    $("#btnDelete").hidden = true; $("#btnCopy").hidden = true;
+    formPlaces = null; updatePreview(); clearHighlight();
+    toast("เตรียมช่วงถัดไปให้แล้ว กำหนดจุดสิ้นสุดและเส้นทางใหม่", "ok", 5000);
+  };
+  $("#btnCancel").onclick = closeForm;
+  $("#btnAdd").onclick = () => { if (canEdit) openForm(null); else openLogin(); };
+
+  /* ---------- นำเข้าข้อมูลหลายรายการ (GeoJSON / Excel / CSV) ---------- */
+  const IMPORT_FIELDS = [
+    { key: "dam_name", label: "ชื่อโครงการ *", aliases: ["dam_name", "ชื่อโครงการ", "ชื่อเขื่อน", "ชื่อ", "name", "โครงการ"] },
+    { key: "segment", label: "ช่วงที่", aliases: ["segment", "ช่วงที่", "ช่วง", "seg", "section"] },
+    { key: "dam_type", label: "ประเภท", aliases: ["dam_type", "ประเภท", "ประเภทเขื่อน", "type"] },
+    { key: "year", label: "ปี", aliases: ["year", "ปี", "ปีงบประมาณ", "ปีที่ดำเนินการ", "budget_year", "fiscal_year"] },
+    { key: "status", label: "สถานะการดำเนินการ", aliases: ["status", "สถานะ", "สถานะการดำเนินการ", "สถานะโครงการ", "ผลการดำเนินการ"] },
+    { key: "start_easting", label: "Easting จุดเริ่มต้น", aliases: ["start_easting", "easting จุดเริ่มต้น", "จุดเริ่มต้น easting", "easting เริ่มต้น", "e จุดเริ่มต้น", "start_e"] },
+    { key: "start_northing", label: "Northing จุดเริ่มต้น", aliases: ["start_northing", "northing จุดเริ่มต้น", "จุดเริ่มต้น northing", "northing เริ่มต้น", "n จุดเริ่มต้น", "start_n"] },
+    { key: "end_easting", label: "Easting จุดสิ้นสุด", aliases: ["end_easting", "easting จุดสิ้นสุด", "จุดสิ้นสุด easting", "easting สิ้นสุด", "e จุดสิ้นสุด", "end_e"] },
+    { key: "end_northing", label: "Northing จุดสิ้นสุด", aliases: ["end_northing", "northing จุดสิ้นสุด", "จุดสิ้นสุด northing", "northing สิ้นสุด", "n จุดสิ้นสุด", "end_n"] },
+    { key: "start_lat", label: "ละติจูด จุดเริ่มต้น", aliases: ["start_lat", "ละติจูดจุดเริ่มต้น", "ละติจูด จุดเริ่มต้น", "lat จุดเริ่มต้น", "latitude จุดเริ่มต้น", "start_latitude"] },
+    { key: "start_lon", label: "ลองจิจูด จุดเริ่มต้น", aliases: ["start_lon", "start_long", "ลองจิจูดจุดเริ่มต้น", "ลองจิจูด จุดเริ่มต้น", "lon จุดเริ่มต้น", "longitude จุดเริ่มต้น", "start_longitude"] },
+    { key: "end_lat", label: "ละติจูด จุดสิ้นสุด", aliases: ["end_lat", "ละติจูดจุดสิ้นสุด", "ละติจูด จุดสิ้นสุด", "lat จุดสิ้นสุด", "latitude จุดสิ้นสุด", "end_latitude"] },
+    { key: "end_lon", label: "ลองจิจูด จุดสิ้นสุด", aliases: ["end_lon", "end_long", "ลองจิจูดจุดสิ้นสุด", "ลองจิจูด จุดสิ้นสุด", "lon จุดสิ้นสุด", "longitude จุดสิ้นสุด", "end_longitude"] },
+    { key: "wkt", label: "เส้นทาง WKT", aliases: ["wkt", "geometry", "geom", "the_geom", "wkt_geom", "ข้อมูลพิกัด wkt", "well known text", "เส้นทาง", "เส้นทางเขื่อน"] },
+    { key: "province", label: "จังหวัด", aliases: ["province", "จังหวัด", "prov", "changwat"] },
+    { key: "pt_easting", label: "Easting (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["easting", "e", "x", "utm_e", "จุดพิกัด easting", "พิกัด easting"] },
+    { key: "pt_northing", label: "Northing (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["northing", "n", "y", "utm_n", "จุดพิกัด northing", "พิกัด northing"] },
+    { key: "pt_lat", label: "ละติจูด (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["lat", "latitude", "ละติจูด", "พิกัดละติจูด"] },
+    { key: "pt_lon", label: "ลองจิจูด (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["lon", "long", "lng", "longitude", "ลองจิจูด", "พิกัดลองจิจูด"] },
+    { key: "point_type", label: "ประเภทจุดพิกัด (ไฟล์แบบ 1 แถว = 1 จุด)", aliases: ["point_type", "ประเภทจุดพิกัด", "ประเภทจุด"] }
+  ];
+  let imp = null;
+
+  function autoMap(columns) {
+    const map = {}, used = new Set(), nc = columns.map(c => [c, norm(c)]);
+    for (const f of IMPORT_FIELDS) {
+      const al = f.aliases.map(norm);
+      const hit = nc.find(([c, n]) => !used.has(c) && al.includes(n));
+      if (hit) { map[f.key] = hit[0]; used.add(hit[0]); }
+    }
+    for (const f of IMPORT_FIELDS) {
+      if (map[f.key]) continue;
+      const al = f.aliases.map(norm).filter(a => a.length >= 4);
+      const hit = nc.find(([c, n]) => !used.has(c) && al.some(a => n.includes(a)));
+      if (hit) { map[f.key] = hit[0]; used.add(hit[0]); }
+    }
+    return map;
+  }
+  function normPtype(v) {
+    const t = str(v); if (!t) return null;
+    const l = t.toLowerCase();
+    if (t.includes("เริ่ม") || /^(start|begin|s)$/.test(l)) return "start";
+    if (t.includes("สิ้นสุด") || t.includes("ปลาย") || /^(end|finish|e)$/.test(l)) return "end";
+    return null;
+  }
+  function decodeText(buf) {
+    try { return new TextDecoder("utf-8", { fatal: true }).decode(buf).replace(/^\ufeff/, ""); }
+    catch { return new TextDecoder("windows-874").decode(buf); }
+  }
+  function gjToWkt(g, conv) {
+    const pts = a => a.map(c => { const [x, y] = conv(c); return `${r7(x)} ${r7(y)}`; }).join(", ");
+    switch (g.type) {
+      case "LineString": return `LINESTRING(${pts(g.coordinates)})`;
+      case "MultiLineString": return `MULTILINESTRING(${g.coordinates.map(l => `(${pts(l)})`).join(", ")})`;
+      case "Polygon": return `POLYGON(${g.coordinates.map(r => `(${pts(r)})`).join(", ")})`;
+      default: return null;
+    }
+  }
+
+  async function readImportFile(file) {
+    if (typeof XLSX === "undefined") throw new Error("โหลดไลบรารี SheetJS ไม่สำเร็จ ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+    const ext = file.name.split(".").pop().toLowerCase();
+    const buf = await file.arrayBuffer();
+    imp = { name: file.name, kind: "", wb: null, forceUtm: false, columns: [], source: [], map: {}, rows: [] };
+    if (ext === "geojson" || ext === "json") {
+      let gj;
+      try { gj = JSON.parse(decodeText(buf)); } catch { throw new Error("ไฟล์ไม่ใช่ JSON ที่ถูกต้อง"); }
+      const feats = gj.type === "FeatureCollection" ? gj.features
+        : gj.type === "Feature" ? [gj]
+        : gj.type && gj.coordinates ? [{ type: "Feature", properties: {}, geometry: gj }] : null;
+      if (!Array.isArray(feats)) throw new Error("ไม่พบ features ในไฟล์ GeoJSON");
+      imp.kind = "GeoJSON";
+      imp.forceUtm = /32647|utm.*47/i.test(JSON.stringify(gj.crs || ""));
+      imp.source = feats.map((f, i) => ({ src: i + 1, props: f.properties || {}, geom: f.geometry || null }));
+      imp.columns = [...new Set(feats.flatMap(f => Object.keys(f.properties || {})))];
+      $("#impSheetWrap").hidden = true;
+    } else if (["csv", "txt", "xlsx", "xls"].includes(ext)) {
+      imp.kind = ext === "csv" || ext === "txt" ? "CSV" : "Excel";
+      imp.wb = imp.kind === "CSV" ? XLSX.read(decodeText(buf), { type: "string", raw: true }) : XLSX.read(buf, { type: "array" });
+      $("#impSheet").innerHTML = imp.wb.SheetNames.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+      $("#impSheetWrap").hidden = imp.wb.SheetNames.length < 2;
+      loadSheet(imp.wb.SheetNames[0]);
+      return;
+    } else throw new Error("รองรับเฉพาะไฟล์ .geojson .json .xlsx .xls และ .csv");
+    imp.map = autoMap(imp.columns);
+    renderMapping(); buildImport();
+  }
+  function loadSheet(name) {
+    const ws = imp.wb.Sheets[name];
+    const header = (XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false })[0] || []).map(v => String(v ?? "").trim());
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
+    imp.source = rows.map((p, i) => ({ src: (p.__rowNum__ ?? i + 1) + 1, props: p, geom: null }));
+    imp.columns = [...new Set([...header.filter(Boolean), ...rows.flatMap(r => Object.keys(r))])].filter(c => !c.startsWith("__EMPTY"));
+    imp.map = autoMap(imp.columns);
+    renderMapping(); buildImport();
+  }
+  $("#impSheet").onchange = e => loadSheet(e.target.value);
+
+  function renderMapping() {
+    $("#impMap").innerHTML = IMPORT_FIELDS.map(f => `
+      <label class="map-row"><span>${esc(f.label)}</span>
+        <select data-key="${f.key}"><option value="">ไม่นำเข้า</option>${imp.columns.map(c =>
+          `<option value="${esc(c)}"${imp.map[f.key] === c ? " selected" : ""}>${esc(c)}</option>`).join("")}</select>
+      </label>`).join("");
+    $("#impGeoHint").hidden = imp.kind !== "GeoJSON";
+  }
+  $("#impMap").addEventListener("change", e => {
+    const k = e.target.dataset.key; if (!k) return;
+    if (e.target.value) imp.map[k] = e.target.value; else delete imp.map[k];
+    buildImport();
+  });
+  ["#impAutoEnds", "#impStraight", "#impSkipDup", "#impFixProv"].forEach(s => $(s).onchange = () => imp && buildImport());
+  $("#impProvName").value = CONFIG.DEFAULT_PROVINCE;
+  $("#impProvName").addEventListener("input", () => imp && buildImport());
+  $("#impOnlyIssues").onchange = () => imp && renderImport();
+
+  const dupKey = r => `${String(r.dam_name ?? "").trim().toLowerCase()}|${String(r.segment ?? "").trim().toLowerCase()}`;
+
+  function buildImport() {
+    const m = imp.map;
+    const optEnds = $("#impAutoEnds").checked, optStraight = $("#impStraight").checked, skipDup = $("#impSkipDup").checked;
+    const conv = gjConv(imp.forceUtm);
+    const common = s => {
+      const get = k => (m[k] ? s.props[m[k]] : null);
+      return { dam_name: str(get("dam_name")), segment: str(get("segment")), dam_type: str(get("dam_type")),
+        year: str(get("year")), status: str(get("status")), province: str(get("province")), wkt: str(get("wkt")) };
+    };
+    // แปลงละติจูด/ลองจิจูด เป็น Easting/Northing บน WGS84 UTM Zone 47
+    const llToUtm = (latV, lonV) => {
+      const lat = toNum(latV), lon = toNum(lonV);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+      const [E, N] = WGS.latLonToUtm(lon, lat, ZONE);
+      return [+E.toFixed(3), +N.toFixed(3)];
+    };
+    const geomPoints = imp.source.some(s => s.geom && (s.geom.type === "Point" || s.geom.type === "MultiPoint"));
+    const pointMode = !(m.start_easting || m.end_easting || m.start_lat || m.end_lat)
+      && ((m.pt_easting && m.pt_northing) || (m.pt_lat && m.pt_lon) || m.point_type || geomPoints);
+
+    // ---- รวบรวมเป็นรายช่วง ----
+    const items = [];   // { srcs:[], d:{...} }
+    if (!pointMode) {
+      for (const s of imp.source) {
+        const get = k => (m[k] ? s.props[m[k]] : null);
+        const d = { ...common(s),
+          start_easting: num3(get("start_easting")), start_northing: num3(get("start_northing")),
+          end_easting: num3(get("end_easting")), end_northing: num3(get("end_northing")) };
+        const item = { srcs: [s.src], d, notes: [], error: null };
+        if (d.start_easting == null) {
+          const c = llToUtm(get("start_lat"), get("start_lon"));
+          if (c) { [d.start_easting, d.start_northing] = c; item.notes.push("แปลงจุดเริ่มต้นจากพิกัดภูมิศาสตร์"); }
+        }
+        if (d.end_easting == null) {
+          const c = llToUtm(get("end_lat"), get("end_lon"));
+          if (c) { [d.end_easting, d.end_northing] = c; item.notes.push("แปลงจุดสิ้นสุดจากพิกัดภูมิศาสตร์"); }
+        }
+        try {
+          if (s.geom && !d.wkt) {
+            const w = gjToWkt(s.geom, conv);
+            if (w) d.wkt = w;
+            else if (s.geom.type === "Point" && d.start_easting == null) {
+              const [x, y] = s.geom.coordinates;
+              if (imp.forceUtm || Math.abs(x) > 180) { d.start_easting = num3(x); d.start_northing = num3(y); }
+              else { const [E, N] = WGS.latLonToUtm(x, y, ZONE); d.start_easting = +E.toFixed(3); d.start_northing = +N.toFixed(3); }
+            } else if (!w) throw new Error(`ยังไม่รองรับ geometry ชนิด ${s.geom.type}`);
+          }
+        } catch (err) { item.error = err.message; }
+        items.push(item);
+      }
+    } else {
+      const groups = new Map();
+      for (const s of imp.source) {
+        const get = k => (m[k] ? s.props[m[k]] : null);
+        const base = common(s);
+        const key = dupKey(base);
+        let g = groups.get(key);
+        if (!g) { g = { srcs: [], d: { ...base, start_easting: null, start_northing: null, end_easting: null, end_northing: null }, notes: ["รวมจากไฟล์แบบ 1 แถว = 1 จุด"], error: null }; groups.set(key, g); }
+        g.srcs.push(s.src);
+        for (const k of ["dam_type", "year", "status", "province", "wkt"]) if (!g.d[k] && base[k]) g.d[k] = base[k];
+        let E = num3(get("pt_easting")), N = num3(get("pt_northing"));
+        if (E == null) {
+          const c = llToUtm(get("pt_lat"), get("pt_lon"));
+          if (c) { [E, N] = c; if (!g.notes.includes("แปลงจากพิกัดภูมิศาสตร์")) g.notes.push("แปลงจากพิกัดภูมิศาสตร์"); }
+        }
+        try {
+          if (s.geom) {
+            if (s.geom.type === "Point" || s.geom.type === "MultiPoint") {
+              const c = s.geom.type === "Point" ? s.geom.coordinates : s.geom.coordinates[0];
+              if (E == null && c) {
+                const [x, y] = c;
+                if (imp.forceUtm || Math.abs(x) > 180) { E = num3(x); N = num3(y); }
+                else { const [e2, n2] = WGS.latLonToUtm(x, y, ZONE); E = +e2.toFixed(3); N = +n2.toFixed(3); }
+              }
+            } else if (!g.d.wkt) { const w = gjToWkt(s.geom, conv); if (w) g.d.wkt = w; }
+          }
+        } catch (err) { g.error = err.message; }
+        if (E != null || N != null) {
+          const kind = normPtype(get("point_type")) || (g.d.start_easting == null ? "start" : "end");
+          if (kind === "start") { g.d.start_easting = E; g.d.start_northing = N; }
+          else { g.d.end_easting = E; g.d.end_northing = N; }
+        }
+      }
+      items.push(...groups.values());
+    }
+
+    // ---- เติมเส้น/จุดที่ขาด คำนวณตำบลอำเภอ ตรวจสอบ และเช็คซ้ำ ----
+    const existing = new Set([...recs.values()].map(r => dupKey(r.row)));
+    const seen = new Set(), out = [];
+    for (const it of items) {
+      const d = it.d, notes = it.notes;
+      let line = null, error = it.error;
+      if (!error) {
+        try {
+          if (d.wkt) {
+            const pw = parseWkt(d.wkt);
+            if (pw.utm) { d.wkt = toWkt(pw.geometry); notes.push("แปลง WKT จาก UTM เป็น EPSG:4326"); }
+            if (pw.geometry.type !== "polyline") throw new Error("เส้นทางเขื่อนต้องเป็นข้อมูลเส้น");
+            line = pw.geometry;
+          }
+          if (line && optEnds) {
+            const first = line.paths[0][0], last = line.paths.at(-1).at(-1);
+            if (d.start_easting == null) { const [E, N] = WGS.latLonToUtm(first[0], first[1], ZONE); d.start_easting = +E.toFixed(3); d.start_northing = +N.toFixed(3); notes.push("เติมจุดเริ่มต้นจากปลายเส้น"); }
+            if (d.end_easting == null) { const [E, N] = WGS.latLonToUtm(last[0], last[1], ZONE); d.end_easting = +E.toFixed(3); d.end_northing = +N.toFixed(3); notes.push("เติมจุดสิ้นสุดจากปลายเส้น"); }
+          }
+          const sp = ptFrom(d.start_easting, d.start_northing), ep = ptFrom(d.end_easting, d.end_northing);
+          if (!line && optStraight && sp && ep) {
+            d.wkt = lineWkt([sp.longitude, sp.latitude], [ep.longitude, ep.latitude]);
+            line = parseWkt(d.wkt).geometry;
+            notes.push("สร้างเส้นตรงระหว่างสองจุด");
+          }
+          const pl = lookupPlaces({ startPt: sp, endPt: ep, line });
+          if (pl) {
+            Object.assign(d, { start_tambon: pl.start_tambon, start_amphoe: pl.start_amphoe, end_tambon: pl.end_tambon,
+              end_amphoe: pl.end_amphoe, line_tambon: pl.line_tambon, line_amphoe: pl.line_amphoe });
+            if (!d.province && pl.province) d.province = pl.province;
+          }
+          if ($("#impFixProv").checked) d.province = str($("#impProvName").value) || CONFIG.DEFAULT_PROVINCE;
+          if (!d.segment) { d.segment = "1"; notes.push("ไม่มีช่วงที่ ใช้ค่า 1"); }
+        } catch (err) { error = err.message; }
+      }
+      const err = error || validateSeg(d);
+      const k = dupKey(d);
+      let status = err ? "error" : "ok", msg = err || "";
+      if (!err && existing.has(k)) { if (skipDup) { status = "dup"; msg = "ซ้ำกับข้อมูลในฐานข้อมูล"; } else notes.push("ซ้ำกับข้อมูลเดิม"); }
+      else if (!err && seen.has(k)) { if (skipDup) { status = "dup"; msg = "ซ้ำกับแถวก่อนหน้าในไฟล์"; } else notes.push("ซ้ำในไฟล์"); }
+      if (status === "ok") {
+        seen.add(k);
+        if (!admin.ready) notes.push("ยังไม่มีขอบเขตตำบล จึงเว้นชื่อตำบล/อำเภอไว้");
+        msg = notes.join(", ");
+      }
+      out.push({ src: it.srcs.join(", "), data: d, status, msg });
+    }
+    imp.rows = out;
+    renderImport();
+  }
+
+  function renderImport() {
+    const rows = imp.rows;
+    const nOk = rows.filter(r => r.status === "ok").length, nDup = rows.filter(r => r.status === "dup").length, nErr = rows.filter(r => r.status === "error").length;
+    $("#impInfo").innerHTML = `<b>${esc(imp.name)}</b> (${imp.kind}) พบ ${imp.source.length.toLocaleString()} แถว รวมได้ ${rows.length.toLocaleString()} ช่วง`
+      + (imp.forceUtm ? " ระบบพิกัดในไฟล์เป็น UTM 47N" : "")
+      + (!imp.map.dam_name ? "<br>ยังไม่ได้เลือกคอลัมน์ชื่อโครงการ เลือกในหัวข้อจับคู่คอลัมน์ด้านล่าง" : "");
+    $("#impSum").innerHTML = `<span class="chip start">พร้อมนำเข้า ${nOk.toLocaleString()}</span>`
+      + (nDup ? `<span class="chip">ข้ามเพราะซ้ำ ${nDup.toLocaleString()}</span>` : "")
+      + (nErr ? `<span class="chip end">ผิดพลาด ${nErr.toLocaleString()}</span>` : "");
+    const MAX = 300;
+    const shown = $("#impOnlyIssues").checked ? rows.filter(r => r.status !== "ok" || r.msg) : rows;
+    const stLabel = { ok: "พร้อม", dup: "ข้าม", error: "ผิดพลาด" };
+    const nf = v => Number.isFinite(v) ? fmt3(v) : "";
+    $("#impTable").innerHTML = `<thead><tr><th>แถว</th><th>สถานะ</th><th>ชื่อโครงการ</th><th>ช่วงที่</th><th>ปี</th><th>สถานะดำเนินการ</th>
+        <th>E เริ่มต้น</th><th>N เริ่มต้น</th><th>E สิ้นสุด</th><th>N สิ้นสุด</th><th>เส้นทาง</th><th>ตำบล/อำเภอ</th><th>หมายเหตุ</th></tr></thead><tbody>`
+      + shown.slice(0, MAX).map(({ src, data: d, status, msg }) => `<tr class="${status}">
+          <td>${esc(src)}</td><td><span class="st ${status}">${stLabel[status]}</span></td>
+          <td>${esc(d.dam_name || "–")}</td><td>${esc(d.segment || "")}</td><td>${esc(d.year || "")}</td><td>${esc(d.status || "")}</td>
+          <td>${nf(d.start_easting)}</td><td>${nf(d.start_northing)}</td><td>${nf(d.end_easting)}</td><td>${nf(d.end_northing)}</td>
+          <td>${d.wkt ? "มี" : ""}</td><td>${esc(placeText(d) || "")}</td>
+          <td class="msg ${status === "ok" ? "note" : ""}">${esc(msg)}</td></tr>`).join("")
+      + (shown.length > MAX ? `<tr><td colspan="13">แสดง ${MAX} แถวแรกจาก ${shown.length.toLocaleString()} แถว</td></tr>` : "")
+      + (!shown.length ? `<tr><td colspan="13">ไม่มีแถวที่ต้องแสดง</td></tr>` : "") + "</tbody>";
+    $("#btnImport").textContent = nOk ? `นำเข้า ${nOk.toLocaleString()} ช่วง` : "นำเข้าข้อมูล";
+    applyImportLock();
+    drawImportPreview();
+  }
+
+  function drawImportPreview() {
+    importLayer.removeAll();
+    const gs = [];
+    for (const { data: d, status } of imp.rows) {
+      if (status !== "ok" || gs.length > 4000) continue;
+      const sp = ptFrom(d.start_easting, d.start_northing), ep = ptFrom(d.end_easting, d.end_northing);
+      if (sp) gs.push(new Graphic({ geometry: sp, symbol: SYM.start }));
+      if (ep) gs.push(new Graphic({ geometry: ep, symbol: SYM.end }));
+      if (d.wkt) { try { gs.push(new Graphic({ geometry: parseWkt(d.wkt).geometry, symbol: SYM.previewLine })); } catch {} }
+    }
+    importLayer.addMany(gs);
+  }
+  function applyImportLock() {
+    $("#importLock").hidden = canEdit;
+    const nOk = imp ? imp.rows.filter(r => r.status === "ok").length : 0;
+    $("#btnImport").disabled = !canEdit || !nOk;
+  }
+  function clearImport() {
+    imp = null; importLayer.removeAll();
+    $("#impStep2").hidden = true; $("#impFile").value = ""; $("#impErrors").innerHTML = "";
+  }
+  async function handleImportFile(file) {
+    if (!file) return;
+    $("#impErrors").innerHTML = "";
+    try { await readImportFile(file); $("#impStep2").hidden = false; }
+    catch (err) { clearImport(); toast("อ่านไฟล์ไม่สำเร็จ: " + err.message, "error", 6000); }
+  }
+  $("#impFile").onchange = e => handleImportFile(e.target.files[0]);
+  const dz = $("#dropZone");
+  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
+  dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+  dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); handleImportFile(e.dataTransfer.files[0]); });
+
+  $("#btnImpClear").onclick = clearImport;
+  $("#btnImpZoom").onclick = () => {
+    if (!importLayer.graphics.length) { toast("ไม่มีแถวที่มีพิกัดให้แสดง"); return; }
+    if (isMobile()) openPanel(false);
+    view.goTo(importLayer.graphics.toArray(), { duration: 600 }).catch(() => {});
+  };
+  $("#btnImport").onclick = async () => {
+    if (!canEdit) { openLogin(); return; }
+    const list = imp.rows.filter(r => r.status === "ok").map(r => r.data);
+    if (!list.length) return;
+    if (!confirm(`นำเข้า ${list.length.toLocaleString()} ช่วงเข้าสู่ฐานข้อมูลหรือไม่`)) return;
+    const btn = $("#btnImport"), bar = $("#impProgress");
+    btn.disabled = true; bar.hidden = false; bar.firstElementChild.style.width = "0";
+    const CHUNK = 500, errs = []; let done = 0, failed = 0;
+    for (let i = 0; i < list.length; i += CHUNK) {
+      const chunk = list.slice(i, i + CHUNK);
+      try { await api.insertMany(chunk); done += chunk.length; }
+      catch (err) { failed += chunk.length; errs.push(`รายการที่ ${i + 1}–${i + chunk.length}: ${errText(err)}`); }
+      bar.firstElementChild.style.width = `${Math.round(Math.min(i + CHUNK, list.length) / list.length * 100)}%`;
+    }
+    bar.hidden = true;
+    await reload();
+    if (failed) {
+      buildImport();
+      $("#impErrors").innerHTML = `<p class="stats error">นำเข้าได้ ${done.toLocaleString()} ช่วง ไม่สำเร็จ ${failed.toLocaleString()} ช่วง<br>${errs.map(esc).join("<br>")}</p>`;
+      toast(`นำเข้าไม่สำเร็จ ${failed.toLocaleString()} ช่วง ดูรายละเอียดในแท็บนำเข้า`, "error", 7000);
+    } else {
+      clearImport(); resetQuery(); switchTab("results");
+      toast(`นำเข้า ${done.toLocaleString()} ช่วงแล้ว`, "ok");
+      zoomAll({ quiet: true });
+    }
+  };
+
+  const TPL_HEAD = ["ชื่อโครงการ", "ช่วงที่", "ประเภท", "ปี", "สถานะการดำเนินการ",
+    "easting จุดเริ่มต้น", "northing จุดเริ่มต้น", "easting จุดสิ้นสุด", "northing จุดสิ้นสุด", "wkt", "จังหวัด"];
+  const TPL_ROWS = [
+    ["เขื่อนป้องกันตลิ่งบ้านท่าราบ", "1", "เขื่อนป้องกันตลิ่ง", "2566", "ดำเนินการเสร็จเรียบร้อย",
+      601682.862, 1447940.645, 602602.507, 1448441.783, "LINESTRING(99.938 13.096, 99.942 13.099, 99.9465 13.1005)", "เพชรบุรี"],
+    ["เขื่อนป้องกันตลิ่งบ้านท่าราบ", "2", "เขื่อนป้องกันตลิ่ง", "2567", "อยู่ระหว่างก่อสร้าง",
+      602602.507, 1448441.783, 603190.000, 1448950.000, "LINESTRING(99.9465 13.1005, 99.95 13.103, 99.9522 13.1051)", "เพชรบุรี"]
+  ];
+  $("#btnTplXlsx").onclick = () => {
+    if (typeof XLSX === "undefined") { toast("โหลดไลบรารี SheetJS ไม่สำเร็จ", "error"); return; }
+    const ws = XLSX.utils.aoa_to_sheet([TPL_HEAD, ...TPL_ROWS]);
+    ws["!cols"] = [34, 8, 18, 8, 20, 16, 16, 16, 16, 60, 12].map(wch => ({ wch }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "dams");
+    XLSX.writeFile(wb, "แม่แบบนำเข้าข้อมูลเขื่อน.xlsx");
+  };
+  $("#btnTplCsv").onclick = () => {
+    const q = v => `"${String(v).replace(/"/g, '""')}"`;
+    downloadText("แม่แบบนำเข้าข้อมูลเขื่อน.csv", "\ufeff" + [TPL_HEAD, ...TPL_ROWS].map(r => r.map(q).join(",")).join("\r\n"));
+  };
+  $("#btnImportTop").onclick = () => switchTab("import");
+
+  /* ---------- เข้าสู่ระบบ ---------- */
+  let canEdit = DEMO, session = null;
+  function updateAuthUI() {
+    canEdit = DEMO || !!session;
+    const lbl = $("#authLabel");
+    if (DEMO) { lbl.textContent = "โหมดตัวอย่าง"; $("#btnAuth").disabled = true; }
+    else if (session) { lbl.textContent = "ออกจากระบบ"; $("#btnAuth").title = session.user?.email || ""; }
+    else { lbl.textContent = "เข้าสู่ระบบ"; $("#btnAuth").title = "เข้าสู่ระบบเพื่อเพิ่มหรือแก้ไขข้อมูล"; }
+    $("#btnAdd").title = canEdit ? "เพิ่มช่วงของโครงการ" : "เข้าสู่ระบบเพื่อเพิ่มข้อมูล";
+    applyFormLock(); applyImportLock(); renderResults();
+  }
+  const dlg = $("#loginDialog");
+  function openLogin() { if (DEMO) return; $("#lErr").textContent = ""; dlg.showModal(); $("#lEmail").focus(); }
+  $("#btnAuth").onclick = async () => {
+    if (DEMO) return;
+    if (session) { await sb.auth.signOut(); toast("ออกจากระบบแล้ว"); } else openLogin();
+  };
+  $("#lCancel").onclick = () => dlg.close();
+  $("#loginForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const btn = $("#lSubmit"); btn.disabled = true; $("#lErr").textContent = "";
+    const { error } = await sb.auth.signInWithPassword({ email: $("#lEmail").value.trim(), password: $("#lPass").value });
+    btn.disabled = false;
+    if (error) { $("#lErr").textContent = error.message === "Invalid login credentials" ? "อีเมลหรือรหัสผ่านไม่ถูกต้อง" : error.message; return; }
+    $("#lPass").value = ""; dlg.close(); toast("เข้าสู่ระบบแล้ว", "ok");
+  });
+  async function initAuth() {
+    if (DEMO) { updateAuthUI(); return; }
+    const { data } = await sb.auth.getSession();
+    session = data.session;
+    sb.auth.onAuthStateChange((_evt, s) => { session = s; updateAuthUI(); });
+    updateAuthUI();
+  }
+
+  /* ---------- โหลดข้อมูล ---------- */
+  function updateStats() {
+    const all = [...recs.values()];
+    const projects = new Set(all.map(r => r.row.dam_name)).size;
+    const nFull = all.filter(r => r.start && r.end && r.line).length;
+    const st = $("#stats"); st.classList.remove("error");
+    st.innerHTML = `<b>${projects.toLocaleString()}</b> โครงการ รวม <b>${all.length.toLocaleString()}</b> ช่วง`
+      + `<br>ข้อมูลครบทั้งจุดเริ่มต้น จุดสิ้นสุด และเส้นทาง ${nFull.toLocaleString()} ช่วง`
+      + (all.length - nFull ? ` (ยังไม่ครบ ${(all.length - nFull).toLocaleString()} ช่วง)` : "")
+      + `<br>ขอบเขตตำบล: ${admin.ready ? `${admin.polys.length.toLocaleString()} รูปจาก ${CONFIG.ADMIN_FILE}` : `ยังไม่ได้ใช้งาน (${admin.error || "กำลังโหลด"})`}`
+      + (DEMO ? "<br>โหมดตัวอย่าง: ยังไม่ได้ตั้งค่า Supabase ข้อมูลที่แก้ไขจะหายเมื่อรีเฟรช" : "");
+  }
+  async function reload({ fit = false } = {}) {
+    try {
+      const rows = await api.list();
+      rebuild(rows);
+      refreshFilterOptions();
+      if (queryActive) runQuery({ silent: true }); else { applyVisibility(); renderResults(); }
+      updateStats();
+      if (fit) {
+        const geoms = [...recs.values()].flatMap(r => [r.start, r.end, r.line]).filter(Boolean).map(g => g.geometry);
+        if (geoms.length) await view.goTo(geoms, { animate: false }).catch(() => {});
+        home.viewpoint = view.viewpoint.clone();
+      }
+    } catch (err) {
+      const st = $("#stats"); st.classList.add("error");
+      st.textContent = `โหลดข้อมูลไม่สำเร็จ: ${errText(err)} — ตรวจสอบ SUPABASE_URL, ANON KEY, ชื่อตาราง "${CONFIG.TABLE}" และ RLS policy สำหรับการอ่าน`;
+    }
+  }
+
+  if (DEMO) $("#sourceLabel").textContent = "โหมดตัวอย่าง ยังไม่ได้เชื่อมต่อ Supabase";
+  view.when(async () => {
+    await initAuth();
+    await loadAdmin();
+    if (!admin.ready) toast(`ยังไม่ได้ใช้ขอบเขตตำบล: ${admin.error || "ไม่พบไฟล์"} — วาง ${CONFIG.ADMIN_FILE} ไว้โฟลเดอร์เดียวกับ index.html และเปิดผ่านเว็บเซิร์ฟเวอร์`, "error", 8000);
+    await reload({ fit: true });
+    if (DEMO) toast("โหมดตัวอย่าง: ใส่ SUPABASE_URL และ ANON KEY ในไฟล์เพื่อใช้ฐานข้อมูลจริง", "info", 6000);
+  });
+});
+</script>
+</body>
+</html>
